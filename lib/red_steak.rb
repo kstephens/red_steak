@@ -2,12 +2,35 @@
 
 # An extensible, instantiable, cloneable statemachine.
 #
+# Features:
+#
+# * Statemachines can be instantiated then cloned via #dup.
+# * Substatemachines are supported, a state may have an imbedded statemachine.
+# * Builder DSL simplifies construction of DSL.
+# * Statemachines can be serialized.
+# * Statemachines can be modified on-the-fly.
+# * Context objects can be notfied of transitions.
+# * Context objects can be used to create transition guards.
+# * Statemachines, States and Transitions are objects that can be extended with metadata.
+# * History of transitions can be kept.
+#
 module RedSteak
+  # Transition is unknown by name.
   class UnknownTransitionError < Exception; end
+
+  # Transition between states is impossible.
   class InvalidTransitionError < Exception; end
+
+  # Transition between two states is not possible due
+  # to a guard.
   class CannotTransitionError < Exception; end
+  
+  # Possible transitions between two states can follow more than
+  # transition.
   class AmbigousTransitionError < Exception; end
 
+
+  # Base class for RedSteak objects.
   class Base 
     attr_accessor :name
     attr_reader :_proto
@@ -28,6 +51,7 @@ module RedSteak
       @_proto ||= self
     end
 
+    # Sets the name as a Symbol.
     def name= x
       @name = x && x.to_sym
       x
@@ -56,15 +80,22 @@ module RedSteak
       @_options = _dup_opts @_options
     end
 
+    # Returns the name as a String.
     def to_s
       name.to_s
     end
 
+    def to_a
+      [ name ]
+    end
+
+    # Returns the class and the name as a String.
     def inspect
       "#<#{self.class} #{self.name.inspect}>"
     end
 
-    # Called by subclasses to notify/query the context for specific actions.
+
+    # Called by subclasses to notify/query the context object for specific actions.
     def _notify! action, args, sm = nil
       method = _options[action] || action
       # $stderr.puts "  _notify #{self.inspect} #{action.inspect} method = #{method.inspect}"
@@ -85,16 +116,18 @@ module RedSteak
     end
 
 
+=begin
+    # Delegates to current context object.
     def method_missing sel, *args, &blk
-      $stderr.puts "#{self}#method_missing #{sel.inspect} #{args}"
+      # $stderr.puts "#{self}#method_missing #{sel.inspect} #{args}"
       cntx = statemachine.context
-      if cntx
+      if cntx && cntx.respond_to?(sel)
         return cntx.send(sel, *args, &blk)
       end
-      $stderr.puts "  #{caller.join("\n  ")}"
+      # $stderr.puts "  #{caller.join("\n  ")}"
       super
     end
-
+=end
   end # class
 
 
@@ -119,26 +152,45 @@ module RedSteak
     attr_reader :state
     
     # The receiver of all methods missing inside Statemachine, State, and Transition.
+    #
+    # This object also recieves transition notifications:
+    #
+    # * enter_state!(state, *args)
+    # * exit_state!(state, *args)
+    # * before_transition!(trans, *args)
+    # * after_transition!(trans, *args)
+    # * during_transition!(trans, *args)
+    # * can_transition?(trans, *args)
+    #
     attr_accessor :context
-
-    # If true.
-    attr_accessor :verbose
 
     # History of all transitions.
     attr_accessor :history
+    
+    # If true, each transition is kept in #history.
+    attr_accessor :history_enabled
 
+    # If true, history of substates is kept.
+    attr_accessor :deep_history
+
+    # The logging object.
+    # Can be a Log4r::Logger or IO object.
     attr_accessor :logger
+
+    # Log level method Symbol for Log4r::Logger.
+    attr_accessor :log_level
 
 
     def initialize opts
-      super
       @state = nil
       @start_state = nil
       @end_state = nil
       @states = [ ]
       @transitions = [ ]
+      @history_enabled = false
       @history = [ ]
-      @verbose ||= 0
+      @logger = nil
+      super
     end
     
 
@@ -183,6 +235,7 @@ module RedSteak
         @state = @state.dup
         @state.statemachine = self
       end
+      @history = @history && @history.dup
     end
 
     # Returns ture if we are at the start state.
@@ -192,13 +245,9 @@ module RedSteak
 
     # Returns true if we are at the end state.
     def at_end?
-=begin
-      $stderr.puts "at_end? @state #{@state.inspect} #{@state.object_id}"
-      $stderr.puts "at_end? @state._proto #{@state._proto.inspect} #{@state._proto.object_id}"
-      $stderr.puts "at_end? @end_state #{@end_state.inspect} #{@end_state.object_id}"
-=end
       @state._proto == @end_state
     end
+
 
     # Go to the start state.
     def start!
@@ -234,10 +283,14 @@ module RedSteak
     def transitions_to state, *args
       state = state.to_sym unless Symbol === state
 
+      # $stderr.puts "  #{@state.inspect} transitions_from => #{@state.transitions_from.inspect}"
+
       trans = @state.transitions_from.select do | t |
         t.to_state === state &&
         t.can_transition?(self, *args)
       end
+
+      # $stderr.puts "  #{@state.inspect} transitions_to(#{state.inspect}) => #{trans.inspect}"
 
       trans
     end
@@ -264,16 +317,28 @@ module RedSteak
     def transition! name, *args
       if Transition === name
         trans = name
+        name = trans.name
 
-        _log "transition! from #{@state.name.inspect} via #{name.inspect}"
+        _log "transition! #{name.inspect}"
         
+        if @state === trans.from_state
+          $stderr.puts "    @state is from_state for #{trans.inspect}"
+        else
+          $stderr.puts "    @state.statemachine.to_a           = #{@state.statemachine.to_a.inspect}"
+          $stderr.puts "    trans.from_state.statemachine.to_a = #{trans.from_state.statemachine.to_a.inspect}"
+
+        end
+        if trans.can_transition?(self, *args)
+          $stderr.puts "    can_transition?() for #{trans.inspect}"
+        end
+
         trans = nil unless @state === trans.from_state && trans.can_transition?(self, *args)
       else
         name = name.to_sym unless Symbol === name
         
         # start! unless @state
         
-        _log "transition! from #{@state.name.inspect} via #{name.inspect}"
+        _log "transition! #{name.inspect}"
         
         # Find a valid transition.
         trans = @state.transitions_from.select do | t |
@@ -281,8 +346,6 @@ module RedSteak
           t === name &&
           t.can_transition?(self, *args)
         end
-
-        _log "transition! from #{@state.name.inspect} via #{name.inspect} found #{trans.inspect}"
 
         if trans.size > 1
           raise AmbigousTransitionError, "from #{@state.name.inspect} to #{name.inspect}"
@@ -299,9 +362,9 @@ module RedSteak
     end
 
 
-    # Adds a state to this statemachine.
+    # Adds a State to this Statemachine.
     def add_state! s
-      _log "state #{s.inspect}"
+      _log "add_state! #{s.inspect}"
 
       if @states.find { | x | x.name == s.name }
         raise ArgumentError, "state of named #{s.name.inspect} already exists"
@@ -314,9 +377,9 @@ module RedSteak
     end
 
 
-    # Adds a state to this statemachine.
+    # Adds a Transition to this statemachine.
     def add_transition! t
-      _log "transition #{t.inspect}"
+      _log "add_transition! #{t.inspect}"
 
       if @transitions.find { | x | x.name == t.name }
         raise ArgumentError, "transition named #{s.name.inspect} already exists"
@@ -331,8 +394,20 @@ module RedSteak
     end
 
 
-    #####################################
+    def to_a
+      if ss = superstate
+        x = ss.statemachine.to_a
+      else
+        x = [ ]
+      end
+      x += [ @_proto.name ]
+      x
+    end
 
+
+    ##################################################################
+    # Dot graph support
+    #
 
     # Returns the Dot name for this statemachine.
     def to_dot_name
@@ -347,7 +422,7 @@ module RedSteak
 
 
     # Renders this statemachine as Dot syntax.
-    def to_dot f
+    def to_dot f, opts = { }
       type = @superstate ? "subgraph #{to_dot_name}" : "digraph"
       do_graph = true
 
@@ -357,9 +432,9 @@ module RedSteak
 
       f.puts %Q{  #{(to_dot_name + "_START").inspect} [ shape="rectangle", label="#{to_dot_label} START", style=filled, fillcolor=grey, fontcolor=black ]; }
 
-      states.each { | x | x.to_dot f }
+      states.each { | x | x.to_dot f, self, opts }
 
-      transitions.each { | x | x.to_dot f }
+      transitions.each { | x | x.to_dot f, self, opts }
 
       f.puts "}" if do_graph
       f.puts "// } #{inspect}\n"
@@ -368,7 +443,7 @@ module RedSteak
 
     #####################################
 
-
+    # Creates a new Builder to augment an existing Statemachine.
     def builder opts = { }, &blk
       b = Builder.new
       if block_given?
@@ -382,15 +457,38 @@ module RedSteak
 
     #####################################
 
+
     def _log *args
       case 
       when IO === @logger
-        @logger.puts "#{self.inspect} : #{state && state.name.inspect} : #{args * " "}"
+        @logger.puts "#{self.to_a.inspect} #{(state && state.to_a).inspect} #{args * " "}"
       when defined?(::Log4r) && (Log4r::Logger === @logger)
-        args.unshift :debug if args.size < 0
-        @logger.send(*args)
+        @logger.send(log_level || :debug, *args)
       when (x = superstatemachine)
         x._log *args
+      end
+    end
+
+
+    def full_history
+      if (ssm = superstatemachine) && ssm.deep_history
+        ssm.full_history
+      else
+        self.history
+      end
+    end
+
+
+    def record_history! hash = nil
+      if @history_enabled || @deep_history
+        hash ||= yield
+        $stderr.puts "  HISTORY #{@history.size} #{hash.inspect}"
+        @history << hash
+      end
+
+      if (ssm = superstatemachine) && ssm.deep_history
+        hash ||= yield
+        ssm.record_history! hash
       end
     end
 
@@ -400,7 +498,7 @@ module RedSteak
 
     # Executes transition.
     def execute_transition! trans, *args
-      _log "executing transition #{(trans.name).inspect} #{args.inspect}"
+      _log "execute_transition! #{(trans.to_a).inspect}"
 
       old_state = @state
 
@@ -411,7 +509,14 @@ module RedSteak
 
         trans.after_transition!(self, *args)
 
-        @history << [ Time.now.gmtime, old_state, trans, @state ]                   
+        record_history! do 
+          {
+            :time => Time.now.gmtime,
+            :previous_state => old_state, 
+            :transition => trans, 
+            :new_state => @state,
+          }
+        end
       end
 
       self
@@ -419,11 +524,16 @@ module RedSteak
 
 
     # Moves from one state machine to another.
+    #
+    # Notifies exit_state!
+    # If a block is given, yield to it before entering new state.
+    # Notifies enter_state!
+    #
     def goto_state! state, *args
       old_state = @state
 
       if @state
-        _log "leaving state #{(@state && @state.name).inspect}"
+        _log "exit_state! #{@state.to_a.inspect}"
         @state.exit_state!(*args)
       end
 
@@ -432,10 +542,11 @@ module RedSteak
       @state = state.dup
       @state.statemachine = self
 
-      _log "entering state #{state.inspect}"
+      _log "enter_state! #{state.to_a.inspect}"
       @state.enter_state!(*args)
 
       self
+
     rescue Exception => err
       @state = old_state
       raise err
@@ -468,6 +579,7 @@ module RedSteak
     end
 
 
+    # Returns a new State object and dups any substatemachines.
     def dup_deepen!
       super
       if @substatemachine
@@ -496,13 +608,13 @@ module RedSteak
     end
 
 
-    # Is this a start state?
+    # Returns true if this a start state.
     def start_state?
       @state_type == :start
     end
 
 
-    # Is this an end state?
+    # Returns true if this an end state.
     def end_state?
       @state_type == :end
     end
@@ -520,29 +632,32 @@ module RedSteak
     # Returns a list of transitions to or from this state.
     def transitions
       @transitions ||=
-        statemachine.transitions.select { | x | x.to_state === self || x.from_state === self }.freeze
+        statemachine.transitions.select do | x | 
+          x.to_state === self.name || x.from_state === self.name
+        end.freeze
     end
 
 
     # Returns a list of transitions to this state.
     def transitions_to
       @transitions_to ||=
-        transitions.select { | x | x.to_state === self }.freeze
+        transitions.select { | x | x.to_state === self.name }.freeze
     end
 
 
     # Returns a list of transitions from this state.
     def transitions_from
       @transitions_from ||=
-        transitions.select { | x | x.from_state === self }.freeze
+        transitions.select { | x | x.from_state === self.name }.freeze
     end
 
 
-    # Returns true if this state matches x.
+    # Returns true if this State matches x.
     def === x
       # $stderr.puts "#{self.inspect} === #{x.inspect}"
       self.class === x ?
-        @name === x.name :
+        @name === x.name && 
+        statemachine.to_a === x.statemachine.to_a :
         x === @name
     end
     
@@ -562,8 +677,8 @@ module RedSteak
     end
 
 
-    # Returns an array representation of this state.
-    # may include substates.
+    # Returns an array representation of this State.
+    # May include substates.
     def to_a
       x = [ name ]
       if substate
@@ -584,7 +699,7 @@ module RedSteak
 
     
     def inspect
-      "#<#{self.class} #{name.inspect} #{substate && substate.inspect}>"
+      "#<#{self.class} #{to_a.inspect}>"
     end
 
     
@@ -600,24 +715,63 @@ module RedSteak
     
 
     # Returns the Dot syntax for this state.
-    def to_dot f
-      shape =
+    def to_dot f, sm, opts
+      dot_opts = {
+        :color => :black,
+        :label => name.to_s,
+        :style => :filled,
+      }
+
       case
         # when @substatemachine
         # :egg
       when end_state?
-        :rectangle
+        dot_opts[:shape] = :rectangle
+        dot_opts[:fillcolor] = :gray
+        dot_opts[:fontcolor] = :black
       else
-        :oval
+        dot_opts[:shape] = :oval
+        dot_opts[:fillcolor] = :white
+        dot_opts[:fontcolor] = :black
       end
 
+      if opts[:show_history]
+        sequence = [ ]
+
+        sm.full_history.each_with_index do | hist, i |
+          if (s0 = hist[:previous_state] === self) || 
+             (s1 = hist[:new_state] === self)
+            # $stderr.puts "hist = #{hist.inspect} i = #{i.inspect}"
+            case
+            when s0
+              sequence << i
+            when s1
+              sequence << i + 1
+            end
+          end
+        end
+
+        sequence.uniq!
+        sequence.sort!
+        unless sequence.empty?
+          if opts[:show_history_sequence] 
+            dot_opts[:label] += ": (#{sequence * ', '})"
+          end
+          dot_opts[:fillcolor] = :black
+          dot_opts[:fontcolor] = :white
+        end
+      end
+
+
       f.puts "\n// #{self.inspect}"
-      f.puts %Q{#{to_dot_name.inspect} [ shape="#{shape}", label=#{name.to_s.inspect}, style=filled, color=black, #{end_state? ? 'fillcolor=gray, fontcolor=black' : 'fillcolor=white, fontcolor=black'}];}
+      f.puts %Q{#{to_dot_name.inspect} [ shape="#{dot_opts[:shape]}", label=#{dot_opts[:label].inspect}, style=#{dot_opts[:style]}, color=#{dot_opts[:color]}, fillcolor=#{dot_opts[:fillcolor]}, fontcolor=#{dot_opts[:fontcolor]} ];}
+
       if start_state?
         f.puts "#{(statemachine.to_dot_name + '_START').inspect} -> #{to_dot_name.inspect};"
       end
+
       if @substatemachine
-        @substatemachine.to_dot f
+        @substatemachine.to_dot f, opts
         f.puts "#{to_dot_name.inspect} -> #{(@substatemachine.to_dot_name + '_START').inspect} [ style=dashed ];"
       end
     end
@@ -659,7 +813,8 @@ module RedSteak
     def === x
       # $stderr.puts "#{self.inspect} === #{x.inspect}"
       self.class === x ?
-        x.name === self.name :
+        x.name === self.name &&
+        statemachine.to_a === x.statemachine.to_a :
         x === self.name
     end
 
@@ -697,9 +852,35 @@ module RedSteak
     end
 
     # Renders the Dot syntax for this Transition.
-    def to_dot f
+    def to_dot f, sm, opts
       f.puts "\n// #{self.inspect}"
-      f.puts "#{from_state.to_dot_name.inspect} -> #{to_state.to_dot_name.inspect} [ label=#{name.to_s.inspect}, color=black ];"
+
+      dot_opts = { 
+        :label => name.to_s,
+        :color => :black,
+      }
+
+      sequence = [ ]
+
+      if opts[:show_history]
+        sm.full_history.each_with_index do | hist, i |
+          if hist[:transition] === self
+            sequence << (i + 1)
+          end
+        end
+
+        sequence.sort!
+        sequence.uniq!
+      end
+
+      unless sequence.empty?
+        sequence.each do | seq |
+          f.puts "#{from_state.to_dot_name.inspect} -> #{to_state.to_dot_name.inspect} [ label=#{seq.to_s.inspect}, color=gray, fontcolor=gray ];"
+        end
+      end
+
+      f.puts "#{from_state.to_dot_name.inspect} -> #{to_state.to_dot_name.inspect} [ label=#{dot_opts[:label].inspect}, color=#{dot_opts[:color]} ];"
+
     end
 
   end # class

@@ -44,6 +44,11 @@ describe RedSteak do
               transition :d1
               transition :end
             end
+            state :d3 do
+              transition :d1
+            end
+	    transition :d2, :d3
+
             state :end
           end
         end
@@ -127,18 +132,24 @@ describe RedSteak do
     context = Object.new
 
     x = sm.dup
-    # x.logger = $stdout
-
+    if ENV['TEST_VERBOSE']
+      x.logger = $stdout
+    end
+      
     x.context = RedSteak::TestContext.new
 
     x
   end
 
 
-  def to_dot sm, file = nil
-    file ||= "red_steak-#{sm.name}.dot"
+  def to_dot sm, opts = { }
+    file = "red_steak-"
+    opts[:name] ||= sm.name
+    file += opts[:name].to_s
+    file += '-history' if opts[:show_history]
+    file += ".dot"
     File.open(file, 'w') do | fh |
-      sm.to_dot fh
+      sm.to_dot fh, opts
     end
     file_svg = "#{file}.svg"
 
@@ -162,6 +173,7 @@ describe RedSteak do
 
   it 'should handle transitions' do
     x = statemachine_with_context
+    x.deep_history = history_enabled = true
     c = x.context
 
     x.start!
@@ -190,10 +202,10 @@ describe RedSteak do
     x.transition! :"c->a"
     x.state.name.should == :a
 
-    x.transition! :"foo"
+    x.transition! "foo"
     x.state.name.should == :a
 
-    x.transition! :"bar"
+    x.transition! :bar
     x.state.name.should == :a
 
     x.transition_to! :b
@@ -207,11 +219,26 @@ describe RedSteak do
     x.at_start?.should == false
     x.at_end?.should == true
 
+    x.history.size.should == 8
+    x.history.map { |h| h[:transition].name }.should ==
+    [
+      :a_to_b, 
+      :'b->c',
+      :'c->a',
+      :foo,
+      :bar,
+      :a_to_b,
+      :c2,
+      :'c->end'
+    ]
+
+    to_dot x, :show_history => true
   end
 
 
   it 'should handle substatemachines' do
     x = statemachine_with_context
+    x.deep_history = history_enabled = true
 
     x.start!
     x.state.name.should == :a
@@ -222,8 +249,11 @@ describe RedSteak do
     x.transition_to! :d
     x.state.name.should == :d
 
-    x.state.substatemachine.should_not == nil
+    # start transitions in substates.
     ssm = x.state.substatemachine
+    ssm.should_not == nil
+    ssm.state.name.should == :d1
+    ssm.at_start?.should == true
 
     x.state.transition_to! :d2
     ssm.state.name.should == :d2
@@ -241,6 +271,8 @@ describe RedSteak do
 
     x.transition_to! :end
     x.at_end?.should == true
+
+    to_dot x, :name => "with-substates", :show_history => true
   end
 
 
