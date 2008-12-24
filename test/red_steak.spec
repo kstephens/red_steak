@@ -110,7 +110,9 @@ describe RedSteak do
     attr_accessor :can_transition
 
     # This is the guard before
-    # enter_state!, after_state!, 
+    # enter_state!, after_state!.
+    # Must return true if the transition is 
+    # allowed.
     def can_transition?(trans, *args)
       self.can_transition = trans.name
 

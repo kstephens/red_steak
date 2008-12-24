@@ -474,6 +474,7 @@ module RedSteak
       @transitions << t
       t.statemachine = self
 
+      # Notify.
       t.to_state.transition_added! self
       t.from_state.transition_added! self
 
@@ -488,6 +489,7 @@ module RedSteak
       @transitions.delete(t)
       t.statemachine = nil
 
+      # Notify.
       t.to_state.transition_removed! self
       t.from_state.transition_removed! self
 
@@ -712,6 +714,22 @@ module RedSteak
       # Move to next state buy cloning the State object.
       @state = state.dup
       @state.statemachine = self
+      if ssm = @state.substatemachine
+        # Clone the substate's statemachine.
+        ssm = ssm.dup
+
+        # Set the substates statemachine to the clone.
+        @state.substatemachine = ssm
+
+        # Associate the substatemachine with this state.
+        ssm.superstate = @state
+
+        # Start the substatemachine.
+        ssm.start!
+
+        # Associate the start substate's to this state.
+        ssm.state.superstate = @state
+      end
 
       # Notify of entering state.
       _log "enter_state! #{state.to_a.inspect}"
@@ -737,6 +755,9 @@ module RedSteak
     # This state type, :start, :end or nil.
     attr_accessor :state_type
 
+    # This state's superstate.
+    attr_accessor :superstate
+
     # This state's substatemachine, or nil.
     attr_accessor :substatemachine
 
@@ -747,7 +768,9 @@ module RedSteak
     def intialize opts
       @statemachine = nil
       @state_type = nil
+      @superstate = nil
       @substatemachine = nil
+      @context = nil
       super
     end
 
@@ -755,10 +778,12 @@ module RedSteak
     # Returns a new State object and dups any substatemachines.
     def dup_deepen!
       super
+=begin
       if @substatemachine
         @substatemachine = @substatemachine.dup
         @substatemachine.superstate = self
       end
+=end
     end
 
 
@@ -772,12 +797,6 @@ module RedSteak
     # Returns this state's substatemathine's state.
     def substate
       @substatemachine && @substatemachine.state
-    end
-
-
-    # Returns the state's statemachine's superstate, if it exists.
-    def superstate
-      @statemachine.superstate
     end
 
 
@@ -873,9 +892,15 @@ module RedSteak
 
     # Clients can override.
     def enter_state! *args
+=begin
       if @substatemachine
+        @substatemachine = @substatemachine.dup
+        @substatemachine.superstate = self
+
         @substatemachine.start! # ???
+        @substatemachine.state.superstate = self
       end
+=end
       _notify! :enter_state!, args
     end
 
@@ -1168,9 +1193,9 @@ module RedSteak
     #
     def statemachine name = nil, opts = { }, &blk
       # Create a sub state machine?
-      s = @context[:state]
-      if s
-        name = s.name
+      superstate = @context[:state]
+      if superstate
+        name = superstate.name
       end
       raise(ArgumentError, 'invalid name') unless name
 
@@ -1188,9 +1213,9 @@ module RedSteak
       @result ||= sm
 
       # Attach state to substate machine.
-      if s
-        s.substatemachine = sm 
-        sm.superstate = s
+      if superstate
+        superstate.substatemachine = sm 
+        sm.superstate = superstate
       end
 
       _with_context(:state, nil) do
@@ -1203,6 +1228,14 @@ module RedSteak
                 # Do this at the end.
                 sm.start_state = _find_state(@context[:start_state]) if @context[:start_state]
                 sm.end_state   = _find_state(@context[:end_state])   if @context[:end_state]
+
+                # Associate substates with their superstate
+                # prototypes.
+                if superstate
+                  sm.states.each do | x |
+                    x.superstate = superstate
+                  end
+                end
               end
             end
           end
