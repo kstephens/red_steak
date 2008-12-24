@@ -94,6 +94,8 @@ describe RedSteak do
     sm.end_state.name.should == :end
 
     sm.states.find{|x| x.name == :a}._options[:option_foo].should == :foo
+
+    sm.validate.should == [ ]
   end
 
 

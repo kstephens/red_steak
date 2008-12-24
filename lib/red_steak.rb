@@ -378,11 +378,36 @@ module RedSteak
       @states << s
       s.statemachine = self
 
+      # Notify.
+      s.state_added! self
+
       s
     end
 
 
-    # Adds a Transition to this statemachine.
+    # Removes a State from this Statemachine.
+    # Also removes any Transitions associated with the State.
+    # List of Transitions removed is returned.
+    def remove_state! s
+      _log "remove_state! #{state.inspect}"
+
+      transitions = s.transitions
+
+      @states.delete(s)
+      s.statemachine = nil
+
+      transitions.each do | t |
+        remove_transition! t
+      end
+
+      # Notify.
+      s.state_removed! self
+
+      transitions
+    end
+
+
+    # Adds a Transition to this Statemachine.
     def add_transition! t
       _log "add_transition! #{t.inspect}"
 
@@ -392,10 +417,59 @@ module RedSteak
 
       @transitions << t
       t.statemachine = self
-      t.to_state.transition_added!
-      t.from_state.transition_added!
+
+      t.to_state.transition_added! self
+      t.from_state.transition_added! self
 
       t
+    end
+
+
+    # Removes a Transition from this Statemachine.
+    def remove_transition! t
+      _log "remove_transition! #{t.inspect}"
+
+      @transitions.delete(t)
+      t.statemachine = nil
+
+      t.to_state.transition_removed! self
+      t.from_state.transition_removed! self
+
+      self
+    end
+
+
+    # Returns a list of validation errors.
+    def validate errors = nil
+      errors ||= [ ]
+      errors << [ :no_start_state ] unless start_state
+      errors << [ :no_end_state ] unless end_state
+      states.each do | s |
+        errors << [ :state_without_transitions, s ] if s.transitions.empty?
+        # $stderr.puts "  #{s.inspect} from_states = #{s.from_states.inspect}"
+        # $stderr.puts "  #{s.inspect} to_states   = #{s.to_states.inspect}"
+        case
+        when s.end_state?
+          errors << [ :end_state_cannot_be_reached, s ] if s.from_states.select{|x| x != s}.empty?
+          errors << [ :end_state_has_outbound_transitions, s ] unless s.to_states.empty?
+        when s.start_state?
+          errors << [ :start_state_has_no_outbound_transitions, s ] if s.to_states.empty?
+        else
+          errors << [ :state_has_no_inbound_transitions, s ] if s.from_states.select{|x| x != s}.empty?
+          errors << [ :state_has_no_outbound_transitions, s ] if s.to_states.select{|x| x != s}.empty?
+        end
+        if ssm = s.substatemachine
+          errors << [ :end_state_has_substates, s ] if s.end_state?
+          ssm.validate errors
+        end
+      end
+      errors
+    end
+
+    
+    # Returns true if this statemachine is valid.
+    def valid?
+      validate.empty?
     end
 
 
@@ -570,22 +644,27 @@ module RedSteak
     def goto_state! state, *args
       old_state = @state
 
+      # Notify of exiting state.
       if @state
         _log "exit_state! #{@state.to_a.inspect}"
         @state.exit_state!(*args)
       end
 
+      # Yield to block before changing state.
       yield if block_given?
       
+      # Move to next state buy cloning the State object.
       @state = state.dup
       @state.statemachine = self
 
+      # Notify of entering state.
       _log "enter_state! #{state.to_a.inspect}"
       @state.enter_state!(*args)
 
       self
 
     rescue Exception => err
+      # Revert back to old state.
       @state = old_state
       raise err
     end
@@ -660,35 +739,67 @@ module RedSteak
     end
 
 
-    # Called after a new transition connected to this state.
-    def transition_added!
+    # Clears caches of related transitions.
+    def transitions_changed!
       @transitions =
         @transitions_to =
         @transitions_from = 
+        @to_states =
+        @from_states =
         nil
     end
 
 
-    # Returns a list of transitions to or from this state.
+    # Called after a Transition is connected to this state.
+    def transition_added! statemachine
+      transitions_changed!
+      _notify! :transition_added!, [ self ], statemachine
+    end
+
+
+    # Called after a Transition removed from this state.
+    def transition_removed! statemachine
+      transitions_changed!
+      _notify! :transition_removed!, [ self ], statemachine
+    end
+
+
+    # Returns a list of Transitions to or from this State.
     def transitions
       @transitions ||=
-        statemachine.transitions.select do | x | 
-          x.to_state === self.name || x.from_state === self.name
+        statemachine.transitions.select do | t | 
+          t.to_state === self.name || t.from_state === self.name
         end.freeze
     end
 
 
-    # Returns a list of transitions to this state.
+    # Returns a list of Transitions to this State.
+    # May include Transitions that leave from this State.
     def transitions_to
       @transitions_to ||=
-        transitions.select { | x | x.to_state === self.name }.freeze
+        transitions.select { | t | t.to_state === self.name }.freeze
     end
 
 
-    # Returns a list of transitions from this state.
+    # Returns a list of Transitions from this State.
+    # May include Transitions that return to this State.
     def transitions_from
       @transitions_from ||=
-        transitions.select { | x | x.from_state === self.name }.freeze
+        transitions.select { | t | t.from_state === self.name }.freeze
+    end
+
+
+    # Returns a list of States that are immediately transitional from this one.
+    def to_states
+      @to_states ||=
+        transitions_from.map { | t | t.to_state }.uniq.freeze
+    end
+
+
+    # Returns a list of States that are immediately transitional to this one.
+    def from_states
+      @from_states ||=
+        transitions_to.map { | t | t.from_state }.uniq.freeze
     end
 
 
@@ -718,6 +829,19 @@ module RedSteak
     # Clients can override.
     def exit_state! *args
       _notify! :exit_state!, args
+    end
+
+
+    # Called after a State is connected to this state.
+    def state_added! statemachine
+      _notify! :state_added!, [ self ], statemachine
+    end
+
+
+    # Called after a State removed from this state.
+    def state_removed! statemachine
+      transitions_changed!
+      _notify! :state_removed!, [ self ], statemachine
     end
 
 
