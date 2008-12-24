@@ -321,6 +321,7 @@ module RedSteak
 
         _log "transition! #{name.inspect}"
         
+=begin
         if @state === trans.from_state
           $stderr.puts "    @state is from_state for #{trans.inspect}"
         else
@@ -331,6 +332,7 @@ module RedSteak
         if trans.can_transition?(self, *args)
           $stderr.puts "    can_transition?() for #{trans.inspect}"
         end
+=end
 
         trans = nil unless @state === trans.from_state && trans.can_transition?(self, *args)
       else
@@ -397,11 +399,17 @@ module RedSteak
     def to_a
       if ss = superstate
         x = ss.statemachine.to_a
+        x += [ ss.name ]
       else
         x = [ ]
       end
       x += [ @_proto.name ]
       x
+    end
+
+
+    def inspect
+      "#<#{self.class} #{to_a.inspect}>"
     end
 
 
@@ -415,14 +423,16 @@ module RedSteak
     end
 
 
-    # Returns the Dot label for this statemachine.
+    # Returns the Dot label for this Statemachine.
     def to_dot_label
       @superstate ? "#{@superstate.statemachine.name}::#{name}" : name.to_s
     end
 
 
-    # Renders this statemachine as Dot syntax.
+    # Renders this Statemachine as Dot syntax.
     def to_dot f, opts = { }
+      opts[:root_statemachine] ||= self
+
       type = @superstate ? "subgraph #{to_dot_name}" : "digraph"
       do_graph = true
 
@@ -482,7 +492,7 @@ module RedSteak
     def record_history! hash = nil
       if @history_enabled || @deep_history
         hash ||= yield
-        $stderr.puts "  HISTORY #{@history.size} #{hash.inspect}"
+        # $stderr.puts "  HISTORY #{@history.size} #{hash.inspect}"
         @history << hash
       end
 
@@ -506,17 +516,17 @@ module RedSteak
 
       goto_state!(trans.to_state, *args) do 
         trans.during_transition!(self, *args)
-
-        trans.after_transition!(self, *args)
-
-        record_history! do 
-          {
-            :time => Time.now.gmtime,
-            :previous_state => old_state, 
-            :transition => trans, 
-            :new_state => @state,
-          }
-        end
+      end
+      
+      trans.after_transition!(self, *args)
+      
+      record_history! do 
+        {
+          :time => Time.now.gmtime,
+          :previous_state => old_state, 
+          :transition => trans, 
+          :new_state => @state,
+        }
       end
 
       self
@@ -582,10 +592,12 @@ module RedSteak
     # Returns a new State object and dups any substatemachines.
     def dup_deepen!
       super
+=begin
       if @substatemachine
         @substatemachine = @substatemachine.dup
         @substatemachine.superstate = self
       end
+=end
     end
 
 
@@ -656,18 +668,22 @@ module RedSteak
     def === x
       # $stderr.puts "#{self.inspect} === #{x.inspect}"
       self.class === x ?
-        @name === x.name && 
-        statemachine.to_a === x.statemachine.to_a :
+        (self == x) ||
+        (self._proto == x._proto) ||
+        (@name === x.name && 
+         statemachine.to_a === x.statemachine.to_a) :
         x === @name
     end
     
 
     # Clients can override.
     def enter_state! *args
-      _notify! :enter_state!, args
       if @substatemachine
+        @substatemachine = @substatemachine.dup
+        @substatemachine.superstate = self
         @substatemachine.start! # ???
       end
+      _notify! :enter_state!, args
     end
 
 
@@ -679,7 +695,7 @@ module RedSteak
 
     # Returns an array representation of this State.
     # May include substates.
-    def to_a
+    def to_a dir = nil
       x = [ name ]
       if substate
         x += substate.to_a
@@ -738,7 +754,7 @@ module RedSteak
       if opts[:show_history]
         sequence = [ ]
 
-        sm.full_history.each_with_index do | hist, i |
+        opts[:root_statemachine].history.each_with_index do | hist, i |
           if (s0 = hist[:previous_state] === self) || 
              (s1 = hist[:new_state] === self)
             # $stderr.puts "hist = #{hist.inspect} i = #{i.inspect}"
@@ -813,8 +829,11 @@ module RedSteak
     def === x
       # $stderr.puts "#{self.inspect} === #{x.inspect}"
       self.class === x ?
-        x.name === self.name &&
-        statemachine.to_a === x.statemachine.to_a :
+        x._proto == self._proto ||
+        (
+         x.name === self.name &&
+         statemachine.to_a === x.statemachine.to_a
+        ) :
         x === self.name
     end
 
@@ -863,8 +882,10 @@ module RedSteak
       sequence = [ ]
 
       if opts[:show_history]
-        sm.full_history.each_with_index do | hist, i |
+        # $stderr.puts "\n  trans = #{self.inspect}, sm = #{self.statemachine.inspect}"
+        opts[:root_statemachine].history.each_with_index do | hist, i |
           if hist[:transition] === self
+            # $stderr.puts "  #{i} hist = #{hist.inspect}"
             sequence << (i + 1)
           end
         end
