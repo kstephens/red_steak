@@ -100,7 +100,8 @@ module RedSteak
 
     # Called by subclasses to notify/query the context object for specific actions.
     def _notify! action, args, sm = nil
-      method = _options[action] || action
+      args ||= EMPTY_ARRAY
+      method = _options[action] || (sm && _options[action]) || action
       # $stderr.puts "  _notify #{self.inspect} #{action.inspect} method = #{method.inspect}"
       c ||= (sm || self).context
       # $stderr.puts "    c = #{c.inspect}"
@@ -134,13 +135,19 @@ module RedSteak
   end # class
 
 
+  # Simple Array proxy for looking up States and Transitions by name.
   class ArrayDelegator
     def initialize del, sel
       @del, @sel = del, sel
     end
 
     def [] pattern
-      _elements.find { | e | e === pattern }
+      case pattern
+      when Integer
+        _elements[pattern]
+      else
+        _elements.find { | e | e === pattern }
+      end
     end
 
     def method_missing sel, *args, &blk
@@ -223,6 +230,7 @@ module RedSteak
     def start_state= x
       @start_state = x
       if x
+        @start_state.statemachine = self
         @states.each do | s |
           s.state_type = nil if s.start_state?
         end
@@ -236,6 +244,7 @@ module RedSteak
     def end_state= x
       @end_state = x
       if x 
+        @end_state.statemachine = self
         @states.each do | s |
           s.state_type = nil if s.end_state?
         end
@@ -244,10 +253,14 @@ module RedSteak
       x
     end
 
+
+    # Returns an Array of States indexable by name.
     def s
       @s ||= ArrayDelegator.new(self, :states)
     end
 
+
+    # Returns an Array of Transitions indexable by name.
     def t
       @t ||= ArrayDelegator.new(self, :transitions)
     end
@@ -262,19 +275,32 @@ module RedSteak
 
     def dup_deepen!
       super
+
+      # Duplicate states and transitions in event of augmentation.
       @states = @states.dup
       @transitions = @transitions.dup
+=begin
+      if @start_state
+        @start_state = @start_state.dup
+        @start_state.statemachine = self
+      end
+=end
+      # If state is active, dup it to reattach it to this statemachine.
       if @state
         @state = @state.dup
         @state.statemachine = self
       end
+
+      # Deepen history, if available.
       @history = @history && @history.dup
     end
+
 
     # Returns ture if we are at the start state.
     def at_start?
       @state.nil? || @state._proto == @start_state
     end
+
 
     # Returns true if we are at the end state.
     def at_end?
@@ -729,12 +755,10 @@ module RedSteak
     # Returns a new State object and dups any substatemachines.
     def dup_deepen!
       super
-=begin
       if @substatemachine
         @substatemachine = @substatemachine.dup
         @substatemachine.superstate = self
       end
-=end
     end
 
 
@@ -771,7 +795,7 @@ module RedSteak
 
     # Clears caches of related transitions.
     def transitions_changed!
-      $stderr.puts "  #{name.inspect} transitions_changed!"
+      # $stderr.puts "  #{name.inspect} transitions_changed!"
 
       @transitions =
         @transitions_to =
@@ -785,14 +809,14 @@ module RedSteak
     # Called after a Transition is connected to this state.
     def transition_added! statemachine
       transitions_changed!
-      _notify! :transition_added!, [ self ], statemachine
+      _notify! :transition_added!, nil, statemachine
     end
 
 
     # Called after a Transition removed from this state.
     def transition_removed! statemachine
       transitions_changed!
-      _notify! :transition_removed!, [ self ], statemachine
+      _notify! :transition_removed!, nil, statemachine
     end
 
 
@@ -850,8 +874,6 @@ module RedSteak
     # Clients can override.
     def enter_state! *args
       if @substatemachine
-        @substatemachine = @substatemachine.dup
-        @substatemachine.superstate = self
         @substatemachine.start! # ???
       end
       _notify! :enter_state!, args
@@ -1178,6 +1200,7 @@ module RedSteak
               if blk
                 instance_eval &blk 
                 
+                # Do this at the end.
                 sm.start_state = _find_state(@context[:start_state]) if @context[:start_state]
                 sm.end_state   = _find_state(@context[:end_state])   if @context[:end_state]
               end
@@ -1329,7 +1352,7 @@ module RedSteak
 
     # Locates a transition by name or creates a new object.
     def _find_transition opts
-      raise ArgumentError, "opts" unless Hash === opts
+      raise ArgumentError, "opts expected Hash" unless Hash === opts
 
       opts[:from_state] = _find_state opts[:from_state]
       opts[:to_state] = _find_state opts[:to_state]
