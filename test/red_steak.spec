@@ -293,11 +293,19 @@ describe RedSteak do
   it 'should handle augmentation via builder' do
     x = statemachine_with_context
     x.name = "#{x.name}-augmented"
+
+    x.s[:a].to_states.map{|s| s.name}.should == [ :a, :b, :d ]
+    x.s[:end].from_states.map{|s| s.name}.should == [ :c, :d ]
+
+    # Add state :f and transitions from :a and to :end.
     x.builder do 
       state :f
       transition :a, :f
       transition :f, :end
     end
+
+    x.s[:a].to_states.map{|s| s.name}.should == [ :a, :b, :d, :f ]
+    x.s[:end].from_states.map{|s| s.name}.should == [ :c, :d, :f ]
 
     c = x.context
 
