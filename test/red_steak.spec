@@ -101,6 +101,7 @@ describe RedSteak do
 
   class RedSteak::TestContext
     attr_accessor :enter_state, :exit_state, :before_transition, :after_transition
+    attr_accessor :state_added, :transition_added
 
     def enter_state!(state, *args)
       _log
@@ -122,8 +123,19 @@ describe RedSteak do
       self.after_transition = trans.name
     end
 
+    def transition_added!(trans, *args)
+      _log
+      self.transition_added = trans.name
+    end
+
+    def state_added!(state, *args)
+      _log
+      self.state_added = state.name
+    end
+
+
     def _log
-      # $stderr.puts "  CALLBACK: #{caller(1).first}"
+      $stderr.puts "  CALLBACK: #{caller(1).first}"
     end
   end
 
