@@ -134,6 +134,28 @@ module RedSteak
   end # class
 
 
+  class ArrayDelegator
+    def initialize del, sel
+      @del, @sel = del, sel
+    end
+
+    def [] pattern
+      _elements.find { | e | e === pattern }
+    end
+
+    def method_missing sel, *args, &blk
+      _elements.send(sel, *args, &blk)
+    end
+
+    private 
+
+    def _elements
+      @del.send(@sel)
+    end
+
+  end
+
+
   # A Statemachine object.
   class Statemachine < Base
     # The list of all states.
@@ -220,6 +242,14 @@ module RedSteak
         x.state_type = :end
       end
       x
+    end
+
+    def s
+      @s ||= ArrayDelegator.new(self, :states)
+    end
+
+    def t
+      @t ||= ArrayDelegator.new(self, :transitions)
     end
 
     def statemachine
@@ -741,6 +771,8 @@ module RedSteak
 
     # Clears caches of related transitions.
     def transitions_changed!
+      $stderr.puts "  #{name.inspect} transitions_changed!"
+
       @transitions =
         @transitions_to =
         @transitions_from = 
