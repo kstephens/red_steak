@@ -504,7 +504,6 @@ module RedSteak
 
 
     private
-    
 
     # Executes transition.
     def execute_transition! trans, *args
@@ -694,23 +693,29 @@ module RedSteak
 
 
     # Returns an array representation of this State.
-    # May include substates.
+    # Includes superstates and substates.
     def to_a dir = nil
+      if superstate
+        superstate.to_a
+      else
+        to_a_substate
+      end
+    end
+
+
+    # Returns an array representation of this State and its substates.
+    def to_a_substate
       x = [ name ]
       if substate
-        x += substate.to_a
+        x += substate.to_a_substate
       end
       x
     end
 
 
-    # Returns the string representation of this state.
+    # Returns the string representation of this State.
     def to_s
-      if substate
-        "[ #{super} #{substate} ]" 
-      else
-        super
-      end
+      "[ #{to_a * ' '} ]"
     end
 
     
