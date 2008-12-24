@@ -143,7 +143,8 @@ describe RedSteak do
 
 
   def to_dot sm, opts = { }
-    file = "red_steak-"
+    dir = opts[:dir] || File.expand_path(File.dirname(__FILE__) + '/../example')
+    file = "#{dir}/red_steak-"
     opts[:name] ||= sm.name
     file += opts[:name].to_s
     file += '-history' if opts[:show_history]
@@ -157,8 +158,7 @@ describe RedSteak do
     if system("#{cmd} >/dev/null 2>&1") == true
       cmd = "dot -Tsvg:cairo:cairo #{file.inspect} -o #{file_svg.inspect}"
       system(cmd).should == true
-      $stdout.puts "View file://#{Dir.getwd}/#{file_svg}"
-      File.unlink(file)
+      $stdout.puts "View file://#{file_svg}"
     else
       $stderr.puts "Warning: #{cmd} failed"
     end

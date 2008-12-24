@@ -15,6 +15,9 @@
 # * History of transitions can be kept.
 #
 module RedSteak
+  EMPTY_ARRAY = [ ].freeze
+  EMPTY_HASH =  { }.freeze
+
   # Transition is unknown by name.
   class UnknownTransitionError < Exception; end
 
@@ -440,7 +443,7 @@ module RedSteak
       f.puts "#{type} {" if do_graph
       f.puts %Q{  label = #{to_dot_label.inspect}}
 
-      f.puts %Q{  #{(to_dot_name + "_START").inspect} [ shape="rectangle", label="#{to_dot_label} START", style=filled, fillcolor=grey, fontcolor=black ]; }
+      f.puts %Q{  #{(to_dot_name + "_START").inspect} [ shape="rectangle", label="#{to_dot_label} START", style=filled, fillcolor=black, fontcolor=white ]; }
 
       states.each { | x | x.to_dot f, self, opts }
 
@@ -465,7 +468,7 @@ module RedSteak
     end
 
 
-    #####################################
+    ##################################################################
 
 
     def _log *args
@@ -480,6 +483,31 @@ module RedSteak
     end
 
 
+    ##################################################################
+    # History support
+    #
+
+
+    # Returns an Array of Hashes containing:
+    #
+    #  :time
+    #  :previous_state
+    #  :transition
+    #  :new_state
+    #
+    def history
+      @history || 
+        EMPTY_ARRAY
+    end
+
+
+    # Clears current history.
+    def clear_history!
+      @history = nil
+    end
+
+
+    # Returns the full history, if deep_history is in effect.
     def full_history
       if (ssm = superstatemachine) && ssm.deep_history
         ssm.full_history
@@ -489,11 +517,12 @@ module RedSteak
     end
 
 
+    # Records a new history record.
     def record_history! hash = nil
       if @history_enabled || @deep_history
         hash ||= yield
         # $stderr.puts "  HISTORY #{@history.size} #{hash.inspect}"
-        @history << hash
+        (@history ||= [ ]) << hash
       end
 
       if (ssm = superstatemachine) && ssm.deep_history
@@ -748,8 +777,8 @@ module RedSteak
         # :egg
       when end_state?
         dot_opts[:shape] = :rectangle
-        dot_opts[:fillcolor] = :gray
-        dot_opts[:fontcolor] = :black
+        dot_opts[:fillcolor] = :black
+        dot_opts[:fontcolor] = :white
       else
         dot_opts[:shape] = :oval
         dot_opts[:fillcolor] = :white
@@ -778,8 +807,8 @@ module RedSteak
           if opts[:show_history_sequence] 
             dot_opts[:label] += ": (#{sequence * ', '})"
           end
-          dot_opts[:fillcolor] = :black
-          dot_opts[:fontcolor] = :white
+          dot_opts[:fillcolor] = :grey
+          dot_opts[:fontcolor] = :black
         end
       end
 
@@ -831,10 +860,12 @@ module RedSteak
     end
 
 
+    # Returns true if X matches this transition.
     def === x
       # $stderr.puts "#{self.inspect} === #{x.inspect}"
       self.class === x ?
-        x._proto == self._proto ||
+        (x == self) ||
+        (x._proto == self._proto) ||
         (
          x.name === self.name &&
          statemachine.to_a === x.statemachine.to_a
