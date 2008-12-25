@@ -114,7 +114,7 @@ describe RedSteak do
     # enter_state!, after_state!.
     # Must return true if the transition is 
     # allowed.
-    def can_transition?(trans, *args)
+    def can_transition?(sm, trans, *args)
       self.can_transition = trans.name
 
 =begin
@@ -129,17 +129,17 @@ describe RedSteak do
 =end
     end
 
-    def before_transition!(trans, *args)
+    def before_transition!(sm, trans, *args)
       _log
       self.before_transition = trans.name
     end
 
-    def exit_state!(state, *args)
+    def exit_state!(sm, state, *args)
       _log
       self.exit_state = state.name
     end
 
-    def enter_state!(state, *args)
+    def enter_state!(sm, state, *args)
       _log
       self.enter_state = state.name
 
@@ -151,19 +151,19 @@ describe RedSteak do
 =end
     end
 
-    def after_transition!(trans, *args)
+    def after_transition!(sm, trans, *args)
       _log
       self.after_transition = trans.name
     end
 
 
     # Statemachine change notifications.
-    def transition_added!(trans, *args)
+    def transition_added!(sm, trans, *args)
       _log
       self.transition_added = trans.name
     end
 
-    def state_added!(state, *args)
+    def state_added!(sm, state, *args)
       _log
       self.state_added = state.name
     end

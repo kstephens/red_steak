@@ -58,7 +58,8 @@ module RedSteak
         @_options = _dup_opts opts
       end
 
-      # Scan options for setters.
+      # Scan options for setters,
+      # deleting options with setters from Hash.
       @_options.each do | k, v |
         s = "#{k}="
         if respond_to? s
@@ -78,6 +79,7 @@ module RedSteak
       x
     end
 
+    # Dups options Hashes deeply.
     def _dup_opts opts
       h = { }
       opts.each do | k, v |
@@ -91,24 +93,33 @@ module RedSteak
       h
     end
 
+
+    # Clones object deeply by
+    # calling #dup_deepen!
     def dup
       x = super
       x.dup_deepen!
       x
     end
 
+
+    # Deepens @_options.
+    # Subclasses should call super.
     def dup_deepen!
       @_options = _dup_opts @_options
     end
+
 
     # Returns the name as a String.
     def to_s
       name.to_s
     end
 
+
     def to_a
       [ name ]
     end
+
 
     # Returns the class and the name as a String.
     def inspect
@@ -117,21 +128,23 @@ module RedSteak
 
 
     # Called by subclasses to notify/query the context object for specific actions.
+    # Will get the method from local _options or the statemachine's _options Hash.
+    # The context is either the local object's context or the statemachine's context.
     def _notify! action, args, sm = nil
+      sm ||= statemachine
       args ||= EMPTY_ARRAY
-      method = _options[action] || (sm && _options[action]) || action
+      method = 
+        _options[action] || 
+        (sm && sm._options[action]) || 
+        action
       # $stderr.puts "  _notify #{self.inspect} #{action.inspect} method = #{method.inspect}"
-      c ||= (sm || self).context
-      # $stderr.puts "    c = #{c.inspect}"
-      if c
-        case
-        when Symbol === method && (c.respond_to?(method))
-          c.send(method, self, *args)
-        when Proc === method
-          method.call(self, *args)
-        else
-          nil
-        end
+      case
+      when Proc === method
+        method.call(sm, self, *args)
+      when Symbol === method && 
+          (c = @context || sm.context) &&
+          (c.respond_to?(method))
+        c.send(method, sm, self, *args)
       else
         nil
       end
@@ -271,6 +284,7 @@ module RedSteak
       @t ||= ArrayDelegator.new(self, :transitions)
     end
 
+    # Returns the Statemachine for _notify!
     def statemachine
       self
     end
