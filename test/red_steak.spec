@@ -1,3 +1,4 @@
+# -*- ruby-mode -*-
 
 require 'red_steak'
 
@@ -92,7 +93,7 @@ describe RedSteak do
       sort { | a, b | a.to_s <=> b.to_s }.
       should == 
       [
-       :foo, :bar, :a_to_b, :'b->c', :c2, :'c->a', :'c->end', :'a->d', :'d->end'
+	:foo, :bar, :a_to_b, :'b->c', :c2, :'c->a', :'c->end', :'a->d', :'d->end'
       ].sort { | a, b | a.to_s <=> b.to_s }
 
     sm.start_state.name.should == :a

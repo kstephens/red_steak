@@ -137,19 +137,6 @@ module RedSteak
       end
     end
 
-
-=begin
-    # Delegates to current context object.
-    def method_missing sel, *args, &blk
-      # $stderr.puts "#{self}#method_missing #{sel.inspect} #{args}"
-      cntx = statemachine.context
-      if cntx && cntx.respond_to?(sel)
-        return cntx.send(sel, *args, &blk)
-      end
-      # $stderr.puts "  #{caller.join("\n  ")}"
-      super
-    end
-=end
   end # class
 
 
@@ -205,13 +192,14 @@ module RedSteak
     #
     # This object also recieves transition notifications:
     #
-    # * enter_state!(state, *args)
-    # * exit_state!(state, *args)
-    # * before_transition!(trans, *args)
-    # * after_transition!(trans, *args)
-    # * during_transition!(trans, *args)
     # * can_transition?(trans, *args)
+    # * before_transition!(trans, *args)
+    # * enter_state!(state, *args)
+    # * during_transition!(trans, *args)
+    # * exit_state!(state, *args)
+    # * after_transition!(trans, *args)
     #
+    # States and Transitions many define specific context objects.
     attr_accessor :context
 
     # History of all transitions.
@@ -227,7 +215,7 @@ module RedSteak
     # Can be a Log4r::Logger or IO object.
     attr_accessor :logger
 
-    # Log level method Symbol for Log4r::Logger.
+    # Log level method Symbol if Log4r::Logger === logger.
     attr_accessor :log_level
 
 
