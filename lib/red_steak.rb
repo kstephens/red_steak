@@ -42,7 +42,23 @@ module RedSteak
     def initialize opts = EMPTY_HASH
       @name = nil
       @_proto = nil
-      @_options = _dup_opts opts
+      @_options = nil
+      self._options = opts
+      @_proto ||= self
+    end
+
+
+    # Sets all options.
+    def _options= opts
+      # If some options are already set, merge them.
+      if @_options
+        return @_options if opts.empty?
+        @_options.merge(_dup_opts opts)
+      else
+        @_options = _dup_opts opts
+      end
+
+      # Scan options for setters.
       @_options.each do | k, v |
         s = "#{k}="
         if respond_to? s
@@ -51,8 +67,10 @@ module RedSteak
           @_options.delete k
         end
       end
-      @_proto ||= self
+
+      @_options
     end
+
 
     # Sets the name as a Symbol.
     def name= x
@@ -434,6 +452,11 @@ module RedSteak
       @states << s
       s.statemachine = self
 
+      # Attach to superstate.
+      if ss = superstate
+        s.superstate = ss
+      end
+
       # Notify.
       s.state_added! self
 
@@ -756,6 +779,7 @@ module RedSteak
     attr_accessor :state_type
 
     # This state's superstate.
+    # This is the containing State for this statemachine.
     attr_accessor :superstate
 
     # This state's substatemachine, or nil.
@@ -1229,6 +1253,7 @@ module RedSteak
                 sm.start_state = _find_state(@context[:start_state]) if @context[:start_state]
                 sm.end_state   = _find_state(@context[:end_state])   if @context[:end_state]
 
+=begin
                 # Associate substates with their superstate
                 # prototypes.
                 if superstate
@@ -1236,6 +1261,7 @@ module RedSteak
                     x.superstate = superstate
                   end
                 end
+=end
               end
             end
           end
@@ -1378,7 +1404,12 @@ module RedSteak
         opts[:statemachine] = @context[:statemachine]
         s = State.new opts
         @context[:statemachine].add_state! s
+      else
+        if s 
+          s._options = opts
+        end
       end
+
       
       s
     end
@@ -1388,7 +1419,7 @@ module RedSteak
       raise ArgumentError, "opts expected Hash" unless Hash === opts
 
       opts[:from_state] = _find_state opts[:from_state]
-      opts[:to_state] = _find_state opts[:to_state]
+      opts[:to_state]   = _find_state opts[:to_state]
       opts[:name] ||= "#{opts[:from_state].name}->#{opts[:to_state].name}".to_sym
 
       t = @context[:statemachine].transitions.find do | x |
@@ -1399,6 +1430,11 @@ module RedSteak
         opts[:statemachine] = @context[:statemachine]
         t = Transition.new opts
         @context[:statemachine].add_transition! t
+      else
+        if t
+          opts.delete(:name)
+          t._options = opts
+        end
       end
       
       t
