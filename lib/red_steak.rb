@@ -19,23 +19,11 @@
 module RedSteak
   EMPTY_ARRAY = [ ].freeze
   EMPTY_HASH =  { }.freeze
-
-  # Transition is unknown by name.
-  class UnknownTransitionError < Exception; end
-
-  # Transition between states is impossible.
-  class InvalidTransitionError < Exception; end
-
-  # Transition between two states is not possible due
-  # to a guard.
-  class CannotTransitionError < Exception; end
-  
-  # Possible transitions between two states can follow more than
-  # transition.
-  class AmbigousTransitionError < Exception; end
+  EMPTY_STRING = ''.freeze
 
 end # module
 
+require 'red_steak/error'
 require 'red_steak/base'
 
 require 'red_steak/statemachine'

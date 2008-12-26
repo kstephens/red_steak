@@ -140,11 +140,11 @@ module RedSteak
 
       case trans.size
       when 0
-        raise UnknownTransitionError, state
+        raise Error::UnknownTransition, state
       when 1
         transition!(trans.first, *args)
       else
-        raise AmbigousTransitionError, state
+        raise Error::AmbigousTransition, state
       end
     end
 
@@ -173,7 +173,7 @@ module RedSteak
         end
 
         if trans.size > 1
-          raise AmbigousTransitionError, "from #{@state.name.inspect} to #{name.inspect}"
+          raise Error::AmbigousTransition, "from #{@state.name.inspect} to #{name.inspect}"
         end
 
         trans = trans.first
@@ -182,7 +182,7 @@ module RedSteak
       if trans
         execute_transition!(trans, *args)
       else
-        raise CannotTransitionError, name
+        raise Error::CannotTransition, name
       end
     end
 
