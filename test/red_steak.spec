@@ -99,9 +99,15 @@ describe RedSteak do
     sm.start_state.name.should == :a
     sm.end_state.name.should == :end
 
-    sm.states.find{|x| x.name == :a}._options[:option_foo].should == :foo
+    sm.states.find{|x| x.name == :a}.options[:option_foo].should == :foo
 
     sm.validate.should == [ ]
+
+    ssm = sm.states[:d].substatemachine
+    ssm.should_not == nil
+    ssm.start_state.name.should == :d1
+    ssm.end_state.name.should == :end
+
   end
 
 
@@ -114,7 +120,7 @@ describe RedSteak do
     # enter_state!, after_state!.
     # Must return true if the transition is 
     # allowed.
-    def can_transition?(sm, trans, *args)
+    def can_transition?(m, trans, *args)
       self.can_transition = trans.name
 
 =begin
@@ -129,17 +135,17 @@ describe RedSteak do
 =end
     end
 
-    def before_transition!(sm, trans, *args)
+    def before_transition!(m, trans, *args)
       _log
       self.before_transition = trans.name
     end
 
-    def exit_state!(sm, state, *args)
+    def exit_state!(m, state, *args)
       _log
       self.exit_state = state.name
     end
 
-    def enter_state!(sm, state, *args)
+    def enter_state!(m, state, *args)
       _log
       self.enter_state = state.name
 
@@ -151,19 +157,19 @@ describe RedSteak do
 =end
     end
 
-    def after_transition!(sm, trans, *args)
+    def after_transition!(m, trans, *args)
       _log
       self.after_transition = trans.name
     end
 
 
     # Statemachine change notifications.
-    def transition_added!(sm, trans, *args)
+    def transition_added!(m, trans, *args)
       _log
       self.transition_added = trans.name
     end
 
-    def state_added!(sm, state, *args)
+    def state_added!(m, state, *args)
       _log
       self.state_added = state.name
     end
@@ -175,24 +181,32 @@ describe RedSteak do
   end
 
 
-  def statemachine_with_context
-    sm = statemachine
+  def machine_with_context sm = nil
+    sm ||= statemachine
 
-    context = Object.new
+    x = sm.machine
 
-    x = sm.dup
+    x.deep_history = x.history_enabled = true
+
     if ENV['TEST_VERBOSE']
       x.logger = $stdout
     end
       
     x.context = RedSteak::TestContext.new
-    # x.t[:'a->b'].context = SomeOther
+    # x.transitions[:'a->b'].context = SomeOther
 
     x
   end
 
 
-  def to_dot sm, opts = { }
+  def to_dot x, opts = { }
+    case x
+    when RedSteak::Machine
+      sm = x.statemachine
+    when RedSteak::Statemachine
+      sm = x
+    end
+
     dir = opts[:dir] || File.expand_path(File.dirname(__FILE__) + '/../example')
     file = "#{dir}/red_steak-"
     opts[:name] ||= sm.name
@@ -200,7 +214,8 @@ describe RedSteak do
     file += '-history' if opts[:show_history]
     file += ".dot"
     File.open(file, 'w') do | fh |
-      sm.to_dot fh, opts
+      opts[:stream] = fh
+      RedSteak::Dot.new(opts).render(x)
     end
     file_svg = "#{file}.svg"
 
@@ -222,27 +237,28 @@ describe RedSteak do
 
 
   it 'should handle transitions' do
-    x = statemachine_with_context
-    x.deep_history = history_enabled = true
+    x = machine_with_context
     c = x.context
 
     x.start!
+    x.at_start?.should == true
+    x.at_end?.should == false
+
     x.state.name.should == :a
     c.enter_state.should == :a
     c.exit_state.should == nil
     c.before_transition.should == nil
     c.after_transition.should == nil
-    x.at_start?.should == true
-    x.at_end?.should == false
 
     x.transition! "a_to_b"
+    x.at_start?.should == false
+    x.at_end?.should == false
+
     x.state.name.should == :b
     c.enter_state.should == :b
     c.exit_state.should == :a
     c.before_transition.should == :a_to_b
     c.after_transition.should == :a_to_b
-    x.at_start?.should == false
-    x.at_end?.should == false
 
     x.transition! :"b->c"
     x.state.name.should == :c
@@ -258,6 +274,9 @@ describe RedSteak do
     x.transition! :bar
     x.state.name.should == :a
 
+    x.transition! "foo"
+    x.state.name.should == :a
+
     x.transition_to! :b
     x.state.name.should == :b
 
@@ -265,11 +284,11 @@ describe RedSteak do
     x.state.name.should == :c
 
     x.transition_to! :end
-    x.state.name.should == :end
     x.at_start?.should == false
     x.at_end?.should == true
+    x.state.name.should == :end
 
-    x.history.size.should == 8
+    x.history.size.should == 9
     x.history.map { |h| h[:transition].name }.should ==
     [
       :a_to_b, 
@@ -277,6 +296,7 @@ describe RedSteak do
       :'c->a',
       :foo,
       :bar,
+      :foo,
       :a_to_b,
       :c2,
       :'c->end'
@@ -287,8 +307,7 @@ describe RedSteak do
 
 
   it 'should handle substatemachines' do
-    x = statemachine_with_context
-    x.deep_history = history_enabled = true
+    x = machine_with_context
 
     x.start!
     x.state.name.should == :a
@@ -300,20 +319,21 @@ describe RedSteak do
     x.state.name.should == :d
 
     # start transitions in substates.
-    ssm = x.state.substatemachine
+    ssm = x.sub
     ssm.should_not == nil
+
     ssm.state.name.should == :d1
     ssm.at_start?.should == true
 
-    x.state.transition_to! :d2
+    ssm.transition_to! :d2
     ssm.state.name.should == :d2
     ssm.at_end?.should == false
 
-    x.state.transition_to! :d1
+    ssm.transition_to! :d1
     ssm.state.name.should == :d1
     ssm.at_end?.should == false
 
-    x.state.transition_to! :end
+    ssm.transition_to! :end
     ssm.state.name.should == :end
     ssm.at_end?.should == true
 
@@ -327,40 +347,47 @@ describe RedSteak do
 
 
   it 'should handle augmentation via builder' do
-    x = statemachine_with_context
-    x.name = "#{x.name}-augmented"
+    sm = statemachine.copy
+    sm.name = "#{sm.name}-augmented"
 
-    a = x.s[:a]
-    a.to_states.map{|s| s.name}.should == [ :a, :b, :d ]
-    e = x.s[:end]
-    e.from_states.map{|s| s.name}.should == [ :c, :d ]
+    a = sm.states[:a]
+    a.should_not == nil
+    a.targets.map{|s| s.name}.should == [ :a, :b, :d ]
+    e = sm.states[:end]
+    e.should_not == nil
+    e.sources.map{|s| s.name}.should == [ :c, :d ]
 
     # Add state :f and transitions from :a and to :end.
-    x.builder do 
+    sm.builder do 
       state :f
       transition :a, :f
       transition :f, :end
     end
 
-    a.object_id.should == x.s[:a].object_id
-    e.object_id.should == x.s[:end].object_id
+    to_dot sm
 
-=begin
-    # FIXME
-    x.s[:a].to_states.map{|s| s.name}.should == [ :a, :b, :d, :f ]
-    x.s[:end].from_states.map{|s| s.name}.should == [ :c, :d, :f ]
-=end
+    a.object_id.should == sm.states[:a].object_id
+    e.object_id.should == sm.states[:end].object_id
 
+    sm.states[:a].targets.map{|s| s.name}.should == [ :a, :b, :d, :f ]
+    sm.states[:end].sources.map{|s| s.name}.should == [ :c, :d, :f ]
+
+    ############################################
+
+    x = machine_with_context(sm)
     c = x.context
 
     x.start!
+    x.at_start?.should == true
+    x.at_end?.should == false
+
     x.state.name.should == :a
     c.enter_state.should == :a
     c.exit_state.should == nil
     c.before_transition.should == nil
     c.after_transition.should == nil
-    x.at_start?.should == true
-    x.at_end?.should == false
+
+    to_dot x, :show_history => true
 
     x.transition_to! :f
     x.state.name.should == :f
@@ -368,7 +395,7 @@ describe RedSteak do
     x.transition_to! :end
     x.state.name.should == :end
 
-    to_dot x
+    to_dot x, :show_history => true
 
   end
 
