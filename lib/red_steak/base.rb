@@ -77,6 +77,13 @@ module RedSteak
       x
     end
 
+
+    # Returns the name Symbol.
+    def to_sym
+      @name
+    end
+
+
     # Dups options Hashes deeply.
     def _dup_opts opts
       h = { }

@@ -77,27 +77,25 @@ module RedSteak
       _with_context(:state, nil) do
         _with_context(:start_state, nil) do 
           _with_context(:end_state, nil) do
-            _with_context(:statemachine, sm) do 
+            _with_context(:transitions, nil) do
+              @context[:transitions] = [ ]
+              _with_context(:statemachine, sm) do 
               if blk
                 instance_eval &blk 
                 
-                # Do this at the end.
+                # Set start, end states.
                 sm.start_state = _find_state(@context[:start_state]) if @context[:start_state]
                 sm.end_state   = _find_state(@context[:end_state])   if @context[:end_state]
 
-#=begin
-                # Associate substates with their superstate
-                # prototypes.
-                if superstate
-                  sm.states.each do | s |
-                    s.superstate = superstate
-                  end
+                # Create transitions.
+                @context[:transitions].each do | t |
+                  _create_transition! t
                 end
-#=end
-              end
-            end
-          end
-        end
+              end # statemachine
+              end # transitions
+            end # end_state
+          end # start_state
+        end # state
       end
     end
 
@@ -121,6 +119,8 @@ module RedSteak
       _with_context :state, s do 
         instance_eval &blk if blk
       end
+
+      self
     end
 
 
@@ -161,19 +161,17 @@ module RedSteak
       when 2 # source, target
         opts[:source], opts[:target] = *args
       else
-        raise(ArgumentError)
+        raise ArgumentError, "expected (target) or (source, target)"
       end
 
-      raise ArgumentError unless opts[:source]
-      raise ArgumentError unless opts[:target]
+      raise ArgumentError, "source state not given" unless opts[:source]
+      raise ArgumentError, "target state not given" unless opts[:target]
       
-      opts[:source] = _find_state opts[:source]
-      opts[:target]   = _find_state opts[:target]
+      opts[:_block] = blk if block_given?
+ 
+      @context[:transitions] << opts
 
-      t = _find_transition opts
-      _with_context :transition, t do
-        instance_eval &blk if blk
-      end
+      self
     end
 
 
@@ -227,15 +225,31 @@ module RedSteak
 
       raise ArgumentError, "name" unless name
 
-      s = @context[:statemachine].states.find do | x | 
-        name === x.name
+      # The owner of the State is the current Statemachine.
+      owner = @context[:statemachine]
+
+      # If the current object is a State,
+      # the owner is the superstate.
+      if State === @current
+        owner = @current
       end
 
+      raise Exception, "Cannot determine State owner" unless owner
+
+=begin
+      $stderr.puts "owner = #{owner.inspect}"
+      $stderr.puts "caller = #{caller(0)[0 .. 4] * "\n  "}"
+=end
+
+      # Find existing State by name.
+      s = owner.states[name]
+
+      # Create a new one, if requested.
       if create && ! s
         opts[:name] = name
         opts[:statemachine] = @context[:statemachine]
         s = State.new opts
-        @context[:statemachine].add_state! s
+        owner.add_state! s
       else
         if s 
           s.options = opts
@@ -246,12 +260,26 @@ module RedSteak
     end
 
 
+    # Called after all States have been created.
+    def _create_transition! opts
+      opts[:source] = _find_state opts[:source]
+      opts[:target] = _find_state opts[:target]
+
+      blk = opts.delete(:_block)
+
+      t = _find_transition opts
+      _with_context :transition, t do
+        instance_eval &blk if blk
+      end
+    end
+
+
     # Locates a transition by name or creates a new object.
     def _find_transition opts
       raise ArgumentError, "opts expected Hash" unless Hash === opts
 
       opts[:source] = _find_state opts[:source]
-      opts[:target]   = _find_state opts[:target]
+      opts[:target] = _find_state opts[:target]
       opts[:name] ||= "#{opts[:source].name}->#{opts[:target].name}".to_sym
 
       t = @context[:statemachine].transitions.find do | x |

@@ -13,33 +13,33 @@ digraph x1 {
 // #<RedSteak::State [:c]>
   node [ shape="box", label="c", style="filled,rounded", color=black, fillcolor=grey, fontcolor=black ] x4;
 
-// #<RedSteak::State [:end]>
-  node [ shape="doublecircle", label="end", style="filled,rounded", color=black, fillcolor=grey, fontcolor=black ] x5;
-
 // #<RedSteak::State [:d]>
 
 // {#<RedSteak::Statemachine [:test, :d, :d]>
-subgraph cluster_x6 {
+subgraph cluster_x5 {
   label="d"; 
   shape="box"; 
   style="filled,rounded"; 
   fillcolor="white"; 
   fontcolor="black"; 
-  node [ shape="circle", label="", style=filled, fillcolor=black ] x6_START; 
+  node [ shape="circle", label="", style=filled, fillcolor=black ] x5_START; 
 
 // #<RedSteak::State [:d, :d1]>
-  node [ shape="box", label="d1", style="filled,rounded", color=black, fillcolor=white, fontcolor=black ] x7;
+  node [ shape="box", label="d1", style="filled,rounded", color=black, fillcolor=white, fontcolor=black ] x6;
 
 // #<RedSteak::State [:d, :d2]>
-  node [ shape="box", label="d2", style="filled,rounded", color=black, fillcolor=white, fontcolor=black ] x8;
+  node [ shape="box", label="d2", style="filled,rounded", color=black, fillcolor=white, fontcolor=black ] x7;
+
+// #<RedSteak::State [:d, :d3]>
+  node [ shape="box", label="d3", style="filled,rounded", color=black, fillcolor=white, fontcolor=black ] x8;
 
 // #<RedSteak::State [:d, :end]>
   node [ shape="doublecircle", label="end", style="filled,rounded", color=black, fillcolor=black, fontcolor=white ] x9;
-
-// #<RedSteak::State [:d, :d3]>
-  node [ shape="box", label="d3", style="filled,rounded", color=black, fillcolor=white, fontcolor=black ] x10;
 }
 // } #<RedSteak::Statemachine [:test, :d, :d]>
+
+// #<RedSteak::State [:end]>
+  node [ shape="doublecircle", label="end", style="filled,rounded", color=black, fillcolor=grey, fontcolor=black ] x10;
 
 // #<RedSteak::Transition :foo :a -> :a>
 x2 -> x2 [ label="(4) foo", color=black, fontcolor=black ];
@@ -62,32 +62,32 @@ x3 -> x4 [ label="(8) c2", color=black, fontcolor=black ];
 x4 -> x2 [ label="(3) c->a", color=black, fontcolor=black ];
 
 // #<RedSteak::Transition :"c->end" :c -> :end>
-x4 -> x5 [ label="(9) c->end", color=black, fontcolor=black ];
+x4 -> x10 [ label="(9) c->end", color=black, fontcolor=black ];
 
 // #<RedSteak::Transition :"a->d" :a -> :d>
-x2 -> x6_START [ label="a->d", color=gray, fontcolor=gray ];
+x2 -> x5_START [ label="a->d", color=gray, fontcolor=gray ];
 
 // #<RedSteak::Transition :"d->end" :d -> :end>
-x6_START -> x5 [ label="d->end", color=gray, fontcolor=gray ];
+x5_START -> x10 [ label="d->end", color=gray, fontcolor=gray ];
 x1_START -> x2;
 
 // #<RedSteak::Transition :"d1->d2" :d1 -> :d2>
-x7 -> x8 [ label="d1->d2", color=gray, fontcolor=gray ];
+x6 -> x7 [ label="d1->d2", color=gray, fontcolor=gray ];
 
 // #<RedSteak::Transition :"d1->end" :d1 -> :end>
-x7 -> x9 [ label="d1->end", color=gray, fontcolor=gray ];
+x6 -> x9 [ label="d1->end", color=gray, fontcolor=gray ];
 
 // #<RedSteak::Transition :"d2->d1" :d2 -> :d1>
-x8 -> x7 [ label="d2->d1", color=gray, fontcolor=gray ];
+x7 -> x6 [ label="d2->d1", color=gray, fontcolor=gray ];
 
 // #<RedSteak::Transition :"d2->end" :d2 -> :end>
-x8 -> x9 [ label="d2->end", color=gray, fontcolor=gray ];
+x7 -> x9 [ label="d2->end", color=gray, fontcolor=gray ];
 
 // #<RedSteak::Transition :"d3->d1" :d3 -> :d1>
-x10 -> x7 [ label="d3->d1", color=gray, fontcolor=gray ];
+x8 -> x6 [ label="d3->d1", color=gray, fontcolor=gray ];
 
 // #<RedSteak::Transition :"d2->d3" :d2 -> :d3>
-x8 -> x10 [ label="d2->d3", color=gray, fontcolor=gray ];
-x6_START -> x7;
+x7 -> x8 [ label="d2->d3", color=gray, fontcolor=gray ];
+x5_START -> x6;
 }
 // } #<RedSteak::Statemachine [:test]>

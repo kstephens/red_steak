@@ -46,7 +46,7 @@ module RedSteak
 
     # Adds a substate to this Statemachine.
     def add_substate! s
-      _log "add_state! #{s.inspect}"
+      _log "add_substate! #{s.inspect}"
 
       if @substates.find { | x | x.name == s.name }
         raise ArgumentError, "substate named #{s.name.inspect} already exists"
@@ -184,10 +184,30 @@ module RedSteak
     # Returns true if this State matches x.
     def === x
       # $stderr.puts "#{self.inspect} === #{x.inspect}"
-      self.class === x ?
-        (self == x) :
+      case x
+      when self.class
+        self.is_a_substate_of?(x)
+      when Symbol
         x === @name
+      when String
+        x.to_s === to_s
+      when Regexp
+        x === to_s
+      else
+        false
+      end
     end
+
+
+    def is_a_substate_of? x
+      s = self
+      while s
+        return true if s == x
+        s = s.superstate
+      end
+      false
+    end
+
     
 
     # Clients can override.
@@ -248,7 +268,7 @@ module RedSteak
       to_a * '::'
     end
 
-    
+
     def inspect
       "#<#{self.class} #{to_a.inspect}>"
     end

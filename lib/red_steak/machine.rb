@@ -67,6 +67,17 @@ module RedSteak
     end
 
 
+    # Returns the states of the statemachine.
+    def states
+      @statemachine.states
+    end
+
+    # Returns the transitions of the statemachine.
+    def transitions
+      @statemachine.transitions
+    end
+
+
     # Returns true if #start! has been called.
     def started?
       ! @state.nil?

@@ -251,6 +251,7 @@ describe RedSteak do
     x.at_end?.should == false
 
     x.state.name.should == :a
+    x.state.should === :a
     c.enter_state.should == :a
     c.exit_state.should == nil
     c.before_transition.should == nil
@@ -261,6 +262,7 @@ describe RedSteak do
     x.at_end?.should == false
 
     x.state.name.should == :b
+    x.state.should === :b
     c.enter_state.should == :b
     c.exit_state.should == :a
     c.before_transition.should == :a_to_b
@@ -337,12 +339,18 @@ describe RedSteak do
 
     x.transition_to! :d
     x.state.name.should == :d
+    x.state.should === :d
+    x.state.should === "d"
 
     # start transitions in substates.
     ssm = x.sub
     ssm.should_not == nil
 
     ssm.state.name.should == :d1
+    ssm.state.should === :d1
+    ssm.state.should === "d::d1"
+    ssm.state.should === /^d::/
+    ssm.state.should === x.states[:d]
     ssm.at_start?.should == true
 
     ssm.transition_to! :d2
