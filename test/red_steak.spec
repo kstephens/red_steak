@@ -1,9 +1,12 @@
-# -*- ruby-mode -*-
+# -*- ruby -*-
 
 require 'red_steak'
 
 describe RedSteak do
+
+  # Returns the test Statemachine using the Builder.
   def statemachine
+    # There can only one.
     return Thread.current[:statemachine] if Thread.current[:statemachine]
 
     b = RedSteak::Builder.new
@@ -111,6 +114,7 @@ describe RedSteak do
   end
 
 
+  # A test context for the Statemachine.
   class RedSteak::TestContext
     attr_accessor :enter_state, :exit_state, :before_transition, :after_transition
     attr_accessor :state_added, :transition_added
@@ -181,6 +185,7 @@ describe RedSteak do
   end
 
 
+  # Returns a Machine that can walk a Statemachine with context object.
   def machine_with_context sm = nil
     sm ||= statemachine
 
@@ -199,7 +204,8 @@ describe RedSteak do
   end
 
 
-  def to_dot x, opts = { }
+  # Render graph.
+  def render_graph x, opts = { }
     case x
     when RedSteak::Machine
       sm = x.statemachine
@@ -232,7 +238,7 @@ describe RedSteak do
   
   it 'should generate Dot output' do
     sm = statemachine
-    to_dot sm
+    render_graph sm
   end
 
 
@@ -302,7 +308,7 @@ describe RedSteak do
       :'c->end'
     ]
 
-    to_dot x, :show_history => true
+    render_graph x, :show_history => true
   end
 
 
@@ -342,7 +348,7 @@ describe RedSteak do
     x.transition_to! :end
     x.at_end?.should == true
 
-    to_dot x, :name => "with-substates", :show_history => true
+    render_graph x, :name => "with-substates", :show_history => true
   end
 
 
@@ -364,7 +370,7 @@ describe RedSteak do
       transition :f, :end
     end
 
-    to_dot sm
+    render_graph sm
 
     a.object_id.should == sm.states[:a].object_id
     e.object_id.should == sm.states[:end].object_id
@@ -387,7 +393,7 @@ describe RedSteak do
     c.before_transition.should == nil
     c.after_transition.should == nil
 
-    to_dot x, :show_history => true
+    render_graph x, :show_history => true
 
     x.transition_to! :f
     x.state.name.should == :f
@@ -395,7 +401,7 @@ describe RedSteak do
     x.transition_to! :end
     x.state.name.should == :end
 
-    to_dot x, :show_history => true
+    render_graph x, :show_history => true
 
   end
 

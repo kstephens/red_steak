@@ -144,7 +144,7 @@ module RedSteak
       when 1
         transition!(trans.first, *args)
       else
-        raise Error::AmbigousTransition, state
+        raise Error::AmbiguousTransition, state
       end
     end
 
@@ -173,7 +173,7 @@ module RedSteak
         end
 
         if trans.size > 1
-          raise Error::AmbigousTransition, "from #{@state.name.inspect} to #{name.inspect}"
+          raise Error::AmbiguousTransition, "from #{@state.name.inspect} to #{name.inspect}"
         end
 
         trans = trans.first
