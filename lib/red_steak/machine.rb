@@ -89,6 +89,18 @@ module RedSteak
     def start! *args
       @state = nil
       goto_state! @statemachine.start_state, args
+
+      @history.clear if @history
+      record_history! do 
+        {
+          :time => Time.now.gmtime,
+          :previous_state => nil, 
+          :transition => nil, 
+          :new_state => @state,
+        }
+      end
+
+      self
     end
 
 

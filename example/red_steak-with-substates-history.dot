@@ -63,20 +63,20 @@ x4 -> x2 [ label="c->a", color=gray, fontcolor=gray ];
 x4 -> x5 [ label="c->end", color=gray, fontcolor=gray ];
 
 // #<RedSteak::Transition :"a->d" :a -> :d>
-x2 -> x6_START [ label="(1) a->d", color=black, fontcolor=black ];
+x2 -> x6_START [ label="(2) a->d", color=black, fontcolor=black ];
 
 // #<RedSteak::Transition :"d->end" :d -> :end>
-x6_START -> x5 [ label="(5) d->end", color=black, fontcolor=black ];
+x6_START -> x5 [ label="(6) d->end", color=black, fontcolor=black ];
 x1_START -> x2;
 
 // #<RedSteak::Transition :"d1->d2" :d1 -> :d2>
-x7 -> x8 [ label="(2) d1->d2", color=black, fontcolor=black ];
+x7 -> x8 [ label="(3) d1->d2", color=black, fontcolor=black ];
 
 // #<RedSteak::Transition :"d1->end" :d1 -> :end>
-x7 -> x9 [ label="(4) d1->end", color=black, fontcolor=black ];
+x7 -> x9 [ label="(5) d1->end", color=black, fontcolor=black ];
 
 // #<RedSteak::Transition :"d2->d1" :d2 -> :d1>
-x8 -> x7 [ label="(3) d2->d1", color=black, fontcolor=black ];
+x8 -> x7 [ label="(4) d2->d1", color=black, fontcolor=black ];
 
 // #<RedSteak::Transition :"d2->end" :d2 -> :end>
 x8 -> x9 [ label="d2->end", color=gray, fontcolor=gray ];

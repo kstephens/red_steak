@@ -18,6 +18,9 @@ module RedSteak
     attr_accessor :substatemachine
 
 
+    alias :states :substates
+
+
     def intialize opts = { }
       @state_type = nil
       @superstate = nil
@@ -63,6 +66,7 @@ module RedSteak
 
       s
     end
+    alias :add_state! :add_substate!
 
 
     # Removes a subtate from this State.
@@ -86,6 +90,7 @@ module RedSteak
 
       transitions
     end
+    alias :remove_state! :remove_substate!
 
 
     # Returns true if this a start state.
@@ -180,10 +185,7 @@ module RedSteak
     def === x
       # $stderr.puts "#{self.inspect} === #{x.inspect}"
       self.class === x ?
-        (self == x) ||
-        (self._proto == x._proto) ||
-        (@name === x.name && 
-         statemachine.to_a === x.statemachine.to_a) :
+        (self == x) :
         x === @name
     end
     
@@ -243,7 +245,7 @@ module RedSteak
 
     # Returns the string representation of this State.
     def to_s
-      "[ #{to_a * ' '} ]"
+      to_a * '::'
     end
 
     

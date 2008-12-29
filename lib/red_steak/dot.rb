@@ -161,9 +161,9 @@ module RedSteak
             # $stderr.puts "hist = #{hist.inspect} i = #{i.inspect}"
             case
             when s0
-              sequence << i
+              sequence << i - 1
             when s1
-              sequence << i + 1
+              sequence << i
             end
           end
         end
@@ -217,7 +217,7 @@ module RedSteak
         options[:history].each_with_index do | hist, i |
           if hist[:transition] === t
             # $stderr.puts "  #{i} hist = #{hist.inspect}"
-            sequence << (i + 1)
+            sequence << i
           end
         end
 

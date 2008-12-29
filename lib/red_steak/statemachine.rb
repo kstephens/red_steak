@@ -264,7 +264,7 @@ module RedSteak
       else
         x = [ ]
       end
-      x += [ @_proto.name ]
+      x += [ name ]
       x
     end
 

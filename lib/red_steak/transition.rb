@@ -22,12 +22,7 @@ module RedSteak
     def === x
       # $stderr.puts "#{self.inspect} === #{x.inspect}"
       self.class === x ?
-        (x == self) ||
-        (x._proto == self._proto) ||
-        (
-         x.name === self.name &&
-         statemachine.to_a === x.statemachine.to_a
-        ) :
+        (x == self) :
         x === self.name
     end
 

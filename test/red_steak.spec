@@ -294,18 +294,32 @@ describe RedSteak do
     x.at_end?.should == true
     x.state.name.should == :end
 
-    x.history.size.should == 9
-    x.history.map { |h| h[:transition].name }.should ==
+    x.history.map { |h| h[:new_state].to_s }.should ==
     [
-      :a_to_b, 
-      :'b->c',
-      :'c->a',
-      :foo,
-      :bar,
-      :foo,
-      :a_to_b,
-      :c2,
-      :'c->end'
+     "a",
+     "b",
+     "c",
+     "a",
+     "a",
+     "a",
+     "a",
+     "b",
+     "c",
+     "end"
+    ]
+
+    x.history.map { |h| h[:transition].to_s }.should ==
+    [
+      '',
+      'a_to_b', 
+      'b->c',
+      'c->a',
+      'foo',
+      'bar',
+      'foo',
+      'a_to_b',
+      'c2',
+      'c->end',
     ]
 
     render_graph x, :show_history => true
