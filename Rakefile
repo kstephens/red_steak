@@ -26,7 +26,7 @@ task :p4_git_pull do
   sh "p4 edit ..."
   sh "git pull origin master"
   git_revision
-  sh "find . -type f | grep -v ./.git | p4 add"
+  sh "find . -type f | grep -v ./.git | xargs p4 add"
   sh "p4 revert -a ..."
 end
 
