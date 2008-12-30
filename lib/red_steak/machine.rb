@@ -33,11 +33,18 @@ module RedSteak
     attr_accessor :context
 
     # History of all transitions.
+    #
+    # An Array of Hash objects, each containing:
+    # * :time - the Time the transition was completed.
+    # * :transition - the Transtion object.
+    # * :previous_state - the state before the transition.
+    # * :new_state - the state after the transition.
+    # 
+    # start! will create an initial History entry 
+    # where :transition and :previous_state is nil.
+    #
     attr_accessor :history
     
-    # If true, each transition is kept in #history.
-    attr_accessor :history_enabled
-
     # If true, history of substates is kept.
     attr_accessor :deep_history
 
@@ -66,11 +73,12 @@ module RedSteak
       @history = @history && @history.dup
     end
 
-
+ 
     # Returns the states of the statemachine.
     def states
       @statemachine.states
     end
+
 
     # Returns the transitions of the statemachine.
     def transitions
@@ -100,20 +108,23 @@ module RedSteak
     def start! *args
       @state = nil
       goto_state! @statemachine.start_state, args
-
-      @history.clear if @history
-      record_history! do 
-        {
-          :time => Time.now.gmtime,
-          :previous_state => nil, 
-          :transition => nil, 
-          :new_state => @state,
-        }
-      end
-
       self
     end
 
+ 
+    # Forcefully sets state.
+    def state= x
+      case x
+      when State
+        state = x
+      else
+        state = @statemachine.states[x]
+      end
+      goto_state! state
+      
+      self
+    end
+   
 
     # Returns true if a transition is possible from the current state.
     # Queries the transitions' guards.
@@ -249,8 +260,7 @@ module RedSteak
     #  :new_state
     #
     def history
-      @history || 
-        EMPTY_ARRAY
+      @history
     end
 
 
@@ -272,10 +282,9 @@ module RedSteak
 
     # Records a new history record.
     def record_history! hash = nil
-      if @history_enabled || @deep_history
+      if @history || @deep_history
         hash ||= yield
-        # $stderr.puts "  HISTORY #{@history.size} #{hash.inspect}"
-        (@history ||= [ ]) << hash
+        @history << hash
       end
 
       if @sup && @sup.deep_history
@@ -295,7 +304,7 @@ module RedSteak
 
       trans.before_transition!(self, args)
 
-      goto_state!(trans.target, args) do 
+      _goto_state!(trans.target, args) do 
         trans.during_transition!(self, args)
       end
       
@@ -316,11 +325,29 @@ module RedSteak
 
     # Moves from one state machine to another.
     #
+    # Calls _goto_state!, clears history and adds initial history record.
+    #
+    def goto_state! state, args, &blk
+      _goto_state! @statemachine.start_state, args, &blk
+
+      @history.clear if @history
+      record_history! do 
+        {
+          :time => Time.now.gmtime,
+          :previous_state => nil, 
+          :transition => nil, 
+          :new_state => @state,
+        }
+      end
+   end
+
+    # Moves from one state machine to another.
+    #
     # Notifies exit_state!
     # If a block is given, yield to it before entering new state.
     # Notifies enter_state!
     #
-    def goto_state! state, args
+    def _goto_state! state, args
       old_state = @state
 
       # Notify of exiting state.

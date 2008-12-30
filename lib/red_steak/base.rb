@@ -112,12 +112,15 @@ module RedSteak
     end
 
 
-    # Returns the name as a String.
+    # Returns the String representation of this object's namespace path.
+    # This is related to its namespace.
+    # See SEP.
     def to_s
-      name.to_s
+      to_a * SEP
     end
 
 
+    # Returns the namespace path of this object.
     def to_a
       [ name ]
     end
@@ -125,25 +128,41 @@ module RedSteak
 
     # Returns the class and the name as a String.
     def inspect
-      "#<#{self.class} #{self.name.inspect}>"
+      "#<#{self.class} #{self.to_s}>"
     end
   end # class
 
 
   # Simple Array proxy for looking up States and Transitions by name.
   class NamedArray
-    def initialize a = [ ]
+    def initialize a = [ ], axis = nil
       @a = a
+      @axis = axis
     end
+
 
     def [] pattern
       case pattern
       when Integer
         @a[pattern]
+      when Array
+        case pattern.size
+        when 0
+          nil
+        when 1
+          self[pattern.first]
+        else
+          x = self[pattern.first]
+          x = x.send(@axis) if @axis
+          x[pattern[1 .. -1]]
+        end
+      when String
+        self[pattern.split(SEP).map{|x| x.to_sym}]
       else
         @a.find { | e | e === pattern }
       end
     end
+
 
     def []=(i, v)
       case i
@@ -159,14 +178,20 @@ module RedSteak
       end
     end
 
+
     def method_missing sel, *args, &blk
       @a.send(sel, *args, &blk)
     end
+
 
     def deepen_copy! copier, src
       @a = @a.map { | x | copier[x] }
     end
 
+
+    def to_a
+      @a
+    end
   end # class
 
 end # module

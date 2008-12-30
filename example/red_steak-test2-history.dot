@@ -1,0 +1,59 @@
+
+// {#<RedSteak::Statemachine test2>
+digraph x1 {
+  label="test2"; 
+  node [ shape="circle", label="", style=filled, fillcolor=black ] x1_START; 
+
+// #<RedSteak::State test2 a>
+
+// {#<RedSteak::State test2 a>
+subgraph cluster_x2 {
+  label="a"; 
+  shape="box"; 
+  style="filled,rounded"; 
+  fillcolor=white; 
+  fontcolor=black; 
+  node [ shape="circle", label="", style=filled, fillcolor=black ] x2_START; 
+
+// #<RedSteak::State test2 a::a>
+  node [ shape="box", label="a", style="filled,rounded", color=black, fillcolor=white, fontcolor=black ] x3;
+
+// #<RedSteak::State test2 a::b>
+  node [ shape="box", label="b", style="filled,rounded", color=black, fillcolor=white, fontcolor=black ] x4;
+
+// #<RedSteak::State test2 a::c>
+  node [ shape="box", label="c", style="filled,rounded", color=black, fillcolor=white, fontcolor=black ] x5;
+}
+// } #<RedSteak::State test2 a>
+
+// #<RedSteak::State test2 b>
+  node [ shape="box", label="b", style="filled,rounded", color=black, fillcolor=white, fontcolor=black ] x6;
+
+// #<RedSteak::State test2 c>
+  node [ shape="box", label="c", style="filled,rounded", color=black, fillcolor=white, fontcolor=black ] x7;
+
+// #<RedSteak::State test2 end>
+  node [ shape="doublecircle", label="end", style="filled,rounded", color=black, fillcolor=black, fontcolor=white ] x8;
+
+// #<RedSteak::Transition :"a::a->b" a::a -> b>
+x3 -> x6 [ label="a::a->b", color=gray, fontcolor=gray ];
+
+// #<RedSteak::Transition :"a::a->a::c" a::a -> a::c>
+x3 -> x5 [ label="a::a->a::c", color=gray, fontcolor=gray ];
+
+// #<RedSteak::Transition :"a::b->c" a::b -> c>
+x4 -> x7 [ label="a::b->c", color=gray, fontcolor=gray ];
+
+// #<RedSteak::Transition :"a::b->a::c" a::b -> a::c>
+x4 -> x5 [ label="a::b->a::c", color=gray, fontcolor=gray ];
+
+// #<RedSteak::Transition :"a::c->c" a::c -> c>
+x5 -> x7 [ label="a::c->c", color=gray, fontcolor=gray ];
+
+// #<RedSteak::Transition :"b->c" b -> c>
+x6 -> x7 [ label="b->c", color=gray, fontcolor=gray ];
+
+// #<RedSteak::Transition :"c->end" c -> end>
+x7 -> x8 [ label="c->end", color=gray, fontcolor=gray ];
+}
+// } #<RedSteak::Statemachine test2>

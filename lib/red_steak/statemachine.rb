@@ -1,53 +1,54 @@
 
 module RedSteak
 
+  # Base class for all elements in a Statemachine.
+  class NamedElement < Base
+    # The Statemachine that owns this object.
+    attr_accessor :statemachine
+    
+    def intialize opts
+      @statemachine = nil
+      super
+    end
+    
+    
+    def deepen_copy! copier, src
+      super
+      @statemachine = copier[@statemachine]
+    end
+    
+    
+    # Called by subclasses to notify/query the context object for specific actions.
+    # Will get the method from local options or the statemachine's options Hash.
+    # The context is either the local object's context or the statemachine's context.
+    def _notify! action, machine, args
+      raise ArgumentError, 'action is not a Symbol' unless Symbol === action
+      
+      args ||= EMPTY_ARRAY
+      method = 
+        machine.options[action] ||
+        @options[action] || 
+        @statemachine.options[action] || 
+        action
+      # $stderr.puts "  _notify #{self.inspect} #{action.inspect} method = #{method.inspect}"
+      case
+      when Proc === method
+        method.call(machine, self, *args)
+      when Symbol === method && 
+          (c = machine.context || @context) &&
+          (c.respond_to?(method))
+        c.send(method, machine, self, *args)
+      else
+        nil
+      end
+    end
+    
+  end # class
+  
+
+
   # A Statemachine object.
   class Statemachine < Base
-
-    # Base class for all elements in a Statemachine.
-    class Element < Base
-      # The Statemachine that owns this object.
-      attr_accessor :statemachine
-      
-      def intialize opts
-        @statemachine = nil
-        super
-      end
-
-
-      def deepen_copy! copier, src
-        super
-        @statemachine = copier[@statemachine]
-      end
-
-
-      # Called by subclasses to notify/query the context object for specific actions.
-      # Will get the method from local options or the statemachine's options Hash.
-      # The context is either the local object's context or the statemachine's context.
-      def _notify! action, machine, args
-        raise ArgumentError, 'action is not a Symbol' unless Symbol === action
-
-        args ||= EMPTY_ARRAY
-        method = 
-          machine.options[action] ||
-          @options[action] || 
-          @statemachine.options[action] || 
-          action
-        # $stderr.puts "  _notify #{self.inspect} #{action.inspect} method = #{method.inspect}"
-        case
-        when Proc === method
-          method.call(machine, self, *args)
-        when Symbol === method && 
-            (c = machine.context || @context) &&
-            (c.respond_to?(method))
-          c.send(method, machine, self, *args)
-        else
-          nil
-        end
-      end
-      
-    end # class
-    
 
     # The list of all states.
     attr_reader :states
@@ -73,8 +74,8 @@ module RedSteak
 
 
     def initialize opts
-      @states = NamedArray.new
-      @transitions = NamedArray.new
+      @states = NamedArray.new([ ], :states)
+      @transitions = NamedArray.new([ ])
       @superstate = nil
       @start_state = nil
       @end_state = nil
@@ -257,26 +258,22 @@ module RedSteak
     end
 
 
+    # Returns the path name for this statemachine.
     def to_a
       if ss = superstate
-        x = ss.statemachine.to_a
-        x += [ ss.name ]
+        x = ss.superstatemachine.to_a + ss.to_a
       else
-        x = [ ]
+        x = [ name ]
       end
-      x += [ name ]
+      # x += [ name ]
       x
     end
 
 
-    def inspect
-      "#<#{self.class} #{to_a.inspect}>"
-    end
-
-
     # Creates a new Builder to augment an existing Statemachine.
+    # Executes block in builder, if given.
     def builder opts = { }, &blk
-      b = Builder.new
+      b = Builder.new(opts)
       if block_given?
         b.statemachine(self, opts, &blk)
         self
@@ -284,10 +281,10 @@ module RedSteak
         b
       end
     end
+    alias :build :builder
 
 
     # Creates a new Machine for this Statemachine.
-
     def machine opts = { }
       opts[:statemachine] ||= self
       Machine.new(opts)

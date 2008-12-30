@@ -17,10 +17,10 @@ describe RedSteak do
         start_state :a
         end_state :b
     
-        state :a, :option_foo => :foo do
-          transition :a, :name => 'foo'
-          transition :a, :name => 'bar'
-        end
+        state :a, :option_foo => :foo
+        transition :a, :name => 'foo'
+        transition :a, :name => 'bar'
+
         transition :a, :b, 
           :name => :a_to_b # ,
 	  #:context => 
@@ -28,34 +28,32 @@ describe RedSteak do
 	  
 	# state :q, :enter_state => :entering_q
         
-        state :b do 
-          transition :c
-          transition :c, :name => 'c2'
-        end
+        state :b
+        transition :c
+        transition :c, :name => 'c2'
         
-        state :c do
-          transition :a
-          transition :end
-        end
+        state :c
+        transition :a
+        transition :end
         
+        state :d
+        transition :a, :d
+        transition :end
         state :d do
-          transition :a, :d
-          transition :end
           statemachine do
             start_state :d1
             end_state :end
             
-            state :d1 do
-              transition :d2
-              transition :end
-            end
-            state :d2 do
-              transition :d1
-              transition :end
-            end
-            state :d3 do
-              transition :d1
-            end
+            state :d1
+            transition :d2
+            transition :end
+
+            state :d2
+            transition :d1
+            transition :end
+            
+            state :d3
+            transition :d1
 	    transition :d2, :d3
 
             state :end
@@ -101,6 +99,18 @@ describe RedSteak do
 
     sm.start_state.name.should == :a
     sm.end_state.name.should == :end
+
+    sm.states[:end].inspect.should == 
+      "#<RedSteak::State test end>"
+
+    sm.states[:d].substatemachine.states[:d1].inspect.should == 
+      "#<RedSteak::State test::d d::d1>"
+
+    e = sm.states[:end]
+    e.should_not == nil
+    e.transitions.to_a.map{|t| t.name}.should == [ :'c->end', :'d->end' ]
+    e.targets.to_a.should == [ ]
+    e.sources.to_a.map{|s| s.to_s}.should == [ 'c', 'd' ]
 
     sm.states.find{|x| x.name == :a}.options[:option_foo].should == :foo
 
@@ -191,7 +201,8 @@ describe RedSteak do
 
     x = sm.machine
 
-    x.deep_history = x.history_enabled = true
+    x.deep_history = true
+    x.history = [ ]
 
     if ENV['TEST_VERBOSE']
       x.logger = $stdout
@@ -307,12 +318,12 @@ describe RedSteak do
      "a",
      "b",
      "c",
-     "end"
+     "end",
     ]
 
     x.history.map { |h| h[:transition].to_s }.should ==
     [
-      '',
+      '', # nil.to_s
       'a_to_b', 
       'b->c',
       'c->a',
@@ -342,7 +353,7 @@ describe RedSteak do
     x.state.should === :d
     x.state.should === "d"
 
-    # start transitions in substates.
+    # start transitions in substates of State :d.
     ssm = x.sub
     ssm.should_not == nil
 
@@ -404,7 +415,7 @@ describe RedSteak do
 
     x = machine_with_context(sm)
     c = x.context
-
+ 
     x.start!
     x.at_start?.should == true
     x.at_end?.should == false
@@ -427,5 +438,51 @@ describe RedSteak do
 
   end
 
-end
+
+  it 'should handle substates' do
+    sm = RedSteak::Statemachine.
+    new(:name => :test2).
+    build(:logger => nil && $stderr) do
+      start_state 'a::a'
+      end_state :end
+
+      state :a do
+        state :a          # same as "a::a"
+        transition [ :b ] # same as "b"
+        transition :c
+
+        state :b          # same as "a:;b"
+        transition [ :c ] # same as "c"
+        transition :c
+
+        state :c          # same as "a::c"
+        transition "c"
+      end
+
+      state :b
+      transition :c
+
+      state :c 
+      transition :end
+
+      state :end
+    end
+
+
+    # $stderr.puts "transitions = #{sm.transitions.inspect}"
+      
+    sm.states[:a].substates.map{|s| s.to_s}.should == [ "a::a", "a::b", "a::c" ]
+    sm.states["a::a"].superstate.should == sm.states["a"]
+
+    sm.states["a::a"].targets.map{|s| s.to_s}.should == [ "b", "a::c" ]
+    sm.states["a::b"].targets.map{|s| s.to_s}.should == [ "c", "a::c" ]
+    sm.states["a::c"].targets.map{|s| s.to_s}.should == [ "c" ]
+
+    sm.states[:c].sources.map{|s| s.to_s}.should == [ 'a::b', 'a::c', 'b' ]
+
+    render_graph sm, :show_history => true
+  end
+  
+end # describe
+
 

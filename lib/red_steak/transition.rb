@@ -2,7 +2,7 @@
 module RedSteak
 
   # Represents a transition from one state to another state in a statemachine.
-  class Transition < Statemachine::Element
+  class Transition < NamedElement
     # The State that this Transition moves from.
     attr_accessor :source
 
@@ -21,9 +21,17 @@ module RedSteak
     # Returns true if X matches this transition.
     def === x
       # $stderr.puts "#{self.inspect} === #{x.inspect}"
-      self.class === x ?
-        (x == self) :
-        x === self.name
+      case x
+      when self.class
+        x == self
+      else
+        x === @name
+      end
+    end
+
+
+    def participants
+      NamedArray.new([ @source, @target ].uniq, :states)
     end
 
 
@@ -56,7 +64,7 @@ module RedSteak
 
 
     def inspect
-      "#<#{self.class} #{name.inspect} #{source.name.inspect} -> #{target.name.inspect}>" 
+      "#<#{self.class} #{name.inspect} #{source.to_s} -> #{target.to_s}>" 
     end
 
 

@@ -21,12 +21,15 @@ module RedSteak
   EMPTY_HASH =  { }.freeze
   EMPTY_STRING = ''.freeze
 
+  SEP = '::'.freeze
+
 end # module
 
 require 'red_steak/error'
 require 'red_steak/base'
 
 require 'red_steak/statemachine'
+require 'red_steak/vertex'
 require 'red_steak/state'
 require 'red_steak/transition'
 require 'red_steak/builder'

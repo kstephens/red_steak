@@ -21,9 +21,9 @@ module RedSteak
     def dot_name x
       case 
       when Statemachine
-        x.superstate ? "#{dot_name(x.superstate)}::#{x.name}" : x.name.to_s
+        x.superstate ? "#{dot_name(x.superstate)}#{SEP}#{x.name}" : x.name.to_s
       when State
-        "#{dot_name(x.statemachine)}::#{x.name}" # x.inspect
+        "#{dot_name(x.statemachine)}#{SEP}#{x.name}" # x.inspect
 #      when Transition
       else
         raise ArgumentError, x
@@ -40,7 +40,7 @@ module RedSteak
     def dot_label x
       case
       when Statemachine
-        x.superstate ? "#{dot_label(x.superstatemachine)}::#{x.name}" : x.name.to_s
+        x.superstate ? "#{dot_label(x.superstatemachine)}#{SEP}#{x.name}" : x.name.to_s
 #      when State
 #      when Transition
       else
@@ -106,19 +106,23 @@ module RedSteak
 
 
     # Renders the Statemachine as Dot syntax.
-    def render_Statemachine sm
+    def render_Statemachine sm, dot_opts = { }
       stream.puts "\n// {#{sm.inspect}"
-      # type = sm.superstate ? "subgraph #{dot_name(sm)}" : :digraph
       type = "subgraph cluster_#{dot_name(sm)}"
 
+      dot_opts[:label] ||= dot_label(sm.superstate)
+      dot_opts[:shape] = :box
+      dot_opts[:style] = 'filled,rounded'
+      dot_opts[:fillcolor] ||= :white
+      dot_opts[:fontcolor] ||= :black
+
       stream.puts "#{type} {"
-      if type != :digraph
-        stream.puts %Q{  label=#{dot_label(sm.superstate).inspect}; }
-        stream.puts %Q{  shape="box"; }
-        stream.puts %Q{  style="filled,rounded"; }
-        stream.puts %Q{  fillcolor="white"; }
-        stream.puts %Q{  fontcolor="black"; }
-      end
+
+      stream.puts %Q{  label=#{dot_opts[:label].inspect}; }
+      stream.puts %Q{  shape="#{dot_opts[:shape]}"; }
+      stream.puts %Q{  style="#{dot_opts[:style]}"; }
+      stream.puts %Q{  fillcolor=#{dot_opts[:fillcolor]}; }
+      stream.puts %Q{  fontcolor=#{dot_opts[:fontcolor]}; }
 
       stream.puts %Q{  node [ shape="circle", label="", style=filled, fillcolor=black ] #{(dot_name(sm) + "_START")}; }
 
@@ -180,7 +184,9 @@ module RedSteak
       end
 
 
-      if ssm = s.substatemachine
+      if ! s.substates.empty?
+        render_Statemachine(s, dot_opts)
+      elsif ssm = s.substatemachine
         render_Statemachine(ssm)
         # stream.puts %Q{#{dot_name(s)} -> #{(dot_name(ssm) + '_START')} [ label="substate", style=dashed ];}
       else

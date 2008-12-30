@@ -1,0 +1,23 @@
+
+-*- outline -*-
+
+* Things to do:
+** Machine#state=(String|Array).
+** Trigger State#enter and State#exit on superstates for transitions between Substates with disjoint superstates.
+** Add :elapsed_time to history Hash - has performance implication.
+** Use UML nomenclature for can_transition?, before_transition!, after_transition!: i.e.: :guard and triggers (enter, exit).
+** Support Statemachine#freeze to avoid accidental changes to a running Statemachine.
+
+* Jeremy's Comments:
+** Builder#start_state and #end_state is confusing,
+Use #initial and #final or the UML metamodel names for these
+   concepts.
+** Having to call start! explicitly is troublesome.
+** Setting Machine#context more than once could cause confusing.
+** Need a way to do Statemachine#freeze, which will throw errors if new states/transitions are added.
+** When you enter into a substate, lazyly create a Submachine.
+** Need to have a way to disable Machine#context= and Machine#state= to prevent foolishness.
+** There is an implied nil "start!" transition in the Machine#history,
+not sure what to do about this.
+** Make the Machine#history an Object or an Array, specify the method to call with options[:history_add].
+
