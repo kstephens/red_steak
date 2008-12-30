@@ -171,7 +171,7 @@ describe RedSteak do
     sm = statemachine
 
     sm.states.
-      map{ | x | x.name }.
+      map{ | s | s.name }.
       sort { | a, b | a.to_s <=> b.to_s }.
       should == 
       [
@@ -179,7 +179,7 @@ describe RedSteak do
       ].sort { | a, b | a.to_s <=> b.to_s }
 
     sm.transitions.
-      map{ | x | x.name }.
+      map{ | t | t.name }.
       sort { | a, b | a.to_s <=> b.to_s }.
       should == 
       [
@@ -201,7 +201,7 @@ describe RedSteak do
     e.targets.to_a.should == [ ]
     e.sources.to_a.map{|s| s.to_s}.should == [ 'c', 'd' ]
 
-    sm.states.find{|x| x.name == :a}.options[:option_foo].should == :foo
+    sm.states.find{|s| s.name == :a}.options[:option_foo].should == :foo
 
     sm.validate.should == [ ]
 
@@ -217,18 +217,17 @@ describe RedSteak do
   def machine_with_context sm = nil
     sm ||= statemachine
 
-    x = sm.machine
+    m = sm.machine
 
-    x.history = [ ]
+    m.history = [ ]
 
     if ENV['TEST_VERBOSE']
-      x.logger = $stdout
+      m.logger = $stdout
     end
       
-    x.context = RedSteak::TestContext.new
-    # x.transitions[:'a->b'].context = SomeOther
+    m.context = RedSteak::TestContext.new
 
-    x
+    m
   end
 
 
@@ -271,8 +270,8 @@ describe RedSteak do
 
 
   it 'should handle transitions' do
-    x = machine_with_context
-    c = x.context
+    m = machine_with_context
+    c = m.context
 
     c.clear!
 
@@ -280,37 +279,37 @@ describe RedSteak do
     # Start
     #
 
-    x.history.size.should == 0
-    x.start!
-    x.at_start?.should == true
-    x.at_end?.should == false
+    m.history.size.should == 0
+    m.start!
+    m.at_start?.should == true
+    m.at_end?.should == false
 
-    x.state.name.should == :a
-    x.state.should === :a
+    m.state.name.should == :a
+    m.state.should === :a
 
-    c._machine.should == x
-    c._state.should == x.states[:a]
+    c._machine.should == m
+    c._state.should == m.states[:a]
     c._transition.should == nil
     c._guard.should == nil
     c._effect.should == nil
     c._enter.should == [ ]
     c._exit.should == nil
     c._doActivity.should == [ ]
-    x.history.size.should == 1
+    m.history.size.should == 1
 
     #################################
     # Transition 1
     #
 
     c.clear!
-    x.transition! "a_to_b", :arg
-    x.at_start?.should == false
-    x.at_end?.should == false
+    m.transition! "a_to_b", :arg
+    m.at_start?.should == false
+    m.at_end?.should == false
 
-    x.state.name.should == :b
-    x.state.should === :b
+    m.state.name.should == :b
+    m.state.should === :b
 
-    c._machine.should == x
+    c._machine.should == m
     c._transition.name.should == :a_to_b
     c._guard.should == [ :arg ]
     c._a_to_b.should == [ :arg ]
@@ -319,51 +318,51 @@ describe RedSteak do
     c._enter.should == [ :arg ]
     c._exit.should == [ :arg ]
     c._doActivity.should == [ :arg ]
-    x.history.size.should == 2
+    m.history.size.should == 2
 
     #################################
     # Transition 2
     #
 
     c.clear!
-    x.transition! :"b->c"
-    x.state.name.should == :c
-    x.at_start?.should == false
-    x.at_end?.should == false
-    x.history.size.should == 3
+    m.transition! :"b->c"
+    m.state.name.should == :c
+    m.at_start?.should == false
+    m.at_end?.should == false
+    m.history.size.should == 3
 
     c.clear!
-    x.transition! :"c->a"
-    x.state.name.should == :a
-    x.history.size.should == 4
+    m.transition! :"c->a"
+    m.state.name.should == :a
+    m.history.size.should == 4
 
-    x.transition! "foo"
-    x.state.name.should == :a
-    x.history.size.should == 5
+    m.transition! "foo"
+    m.state.name.should == :a
+    m.history.size.should == 5
 
-    x.transition! :bar
-    x.state.name.should == :a
-    x.history.size.should == 6
+    m.transition! :bar
+    m.state.name.should == :a
+    m.history.size.should == 6
 
-    x.transition! "foo"
-    x.state.name.should == :a
-    x.history.size.should == 7
+    m.transition! "foo"
+    m.state.name.should == :a
+    m.history.size.should == 7
 
-    x.transition_to! :b
-    x.state.name.should == :b
-    x.history.size.should == 8
+    m.transition_to! :b
+    m.state.name.should == :b
+    m.history.size.should == 8
 
-    x.transition! :'c2'
-    x.state.name.should == :c
-    x.history.size.should == 9
+    m.transition! :'c2'
+    m.state.name.should == :c
+    m.history.size.should == 9
 
-    x.transition_to! :end
-    x.at_start?.should == false
-    x.at_end?.should == true
-    x.state.name.should == :end
-    x.history.size.should == 10
+    m.transition_to! :end
+    m.at_start?.should == false
+    m.at_end?.should == true
+    m.state.name.should == :end
+    m.history.size.should == 10
 
-    x.history.map { |h| h[:previous_state].to_s }.should ==
+    m.history.map { |h| h[:previous_state].to_s }.should ==
     [
      "", # nil.to_s
      "a",
@@ -377,7 +376,7 @@ describe RedSteak do
      "c",
     ]
 
-    x.history.map { |h| h[:new_state].to_s }.should ==
+    m.history.map { |h| h[:new_state].to_s }.should ==
     [
      "a",
      "b",
@@ -391,7 +390,7 @@ describe RedSteak do
      "end",
     ]
 
-    x.history.map { |h| h[:transition].to_s }.should ==
+    m.history.map { |h| h[:transition].to_s }.should ==
     [
       '', # nil.to_s
       'a_to_b', 
@@ -405,33 +404,33 @@ describe RedSteak do
       'c->end',
     ]
 
-    render_graph x, :show_history => true
+    render_graph m, :show_history => true
   end
 
 
   it 'should handle substatemachines' do
-    x = machine_with_context
+    m = machine_with_context
 
-    x.start!
-    x.state.name.should == :a
-    x.at_start?.should == true
-    x.at_end?.should == false
-    x.state.substatemachine.should == nil
+    m.start!
+    m.state.name.should == :a
+    m.at_start?.should == true
+    m.at_end?.should == false
+    m.state.substatemachine.should == nil
 
-    x.transition_to! :d
-    x.state.name.should == :d
-    x.state.should === :d
-    x.state.should === "d"
+    m.transition_to! :d
+    m.state.name.should == :d
+    m.state.should === :d
+    m.state.should === "d"
 
     # start transitions in substates of State :d.
-    ssm = x.sub
+    ssm = m.sub
     ssm.should_not == nil
 
     ssm.state.name.should == :d1
     ssm.state.should === :d1
     ssm.state.should === "d::d1"
     ssm.state.should === /^d::/
-    ssm.state.should === x.states[:d]
+    ssm.state.should === m.states[:d]
     ssm.at_start?.should == true
 
     ssm.transition_to! :d2
@@ -446,12 +445,12 @@ describe RedSteak do
     ssm.state.name.should == :end
     ssm.at_end?.should == true
 
-    x.at_end?.should == false
+    m.at_end?.should == false
 
-    x.transition_to! :end
-    x.at_end?.should == true
+    m.transition_to! :end
+    m.at_end?.should == true
 
-    render_graph x, :name => "with-substates", :show_history => true
+    render_graph m, :name => "with-substates", :show_history => true
   end
 
 
@@ -483,28 +482,28 @@ describe RedSteak do
 
     ############################################
 
-    x = machine_with_context(sm)
-    c = x.context
+    m = machine_with_context(sm)
+    c = m.context
  
-    x.start! :foo, :bar
-    x.at_start?.should == true
-    x.at_end?.should == false
+    m.start! :foo, :bar
+    m.at_start?.should == true
+    m.at_end?.should == false
 
-    x.state.name.should == :a
-    c._machine.should == x
+    m.state.name.should == :a
+    c._machine.should == m
     c._state.name.should == :a
     c._enter.should == [ :foo, :bar ]
     c._exit.should == nil
  
-    render_graph x, :show_history => true
+    render_graph m, :show_history => true
 
-    x.transition_to! :f
-    x.state.name.should == :f
+    m.transition_to! :f
+    m.state.name.should == :f
 
-    x.transition_to! :end
-    x.state.name.should == :end
+    m.transition_to! :end
+    m.state.name.should == :end
 
-    render_graph x, :show_history => true
+    render_graph m, :show_history => true
 
   end
 
