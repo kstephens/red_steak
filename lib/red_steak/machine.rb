@@ -55,6 +55,7 @@ module RedSteak
     attr_accessor :logger
 
     # Log level method Symbol if Log4r::Logger === logger.
+    # Defaults to :debug.
     attr_accessor :log_level
 
 
@@ -66,6 +67,7 @@ module RedSteak
       @history_append = :<<
       @history_clear = :clear
       @logger = nil
+      @log_level = :debug
       super
     end
     
