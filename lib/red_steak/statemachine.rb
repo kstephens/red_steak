@@ -21,23 +21,25 @@ module RedSteak
     # Called by subclasses to notify/query the context object for specific actions.
     # Will get the method from local options or the statemachine's options Hash.
     # The context is either the local object's context or the statemachine's context.
-    def _notify! action, machine, args
+    def _behavior! action, machine, args
       raise ArgumentError, 'action is not a Symbol' unless Symbol === action
       
       args ||= EMPTY_ARRAY
-      method = 
-        machine.options[action] ||
-        @options[action] || 
+
+      # Determine the behavior.
+      behavior = 
+        send(action) || 
         @statemachine.options[action] || 
         action
-      # $stderr.puts "  _notify #{self.inspect} #{action.inspect} method = #{method.inspect}"
+
+      # $stderr.puts "  _behavior! #{self.inspect} #{action.inspect} behavior = #{behavior.inspect}"
       case
-      when Proc === method
-        method.call(machine, self, *args)
-      when Symbol === method && 
-          (c = machine.context || @context) &&
-          (c.respond_to?(method))
-        c.send(method, machine, self, *args)
+      when Proc === behavior
+        behavior.call(machine, self, *args)
+      when Symbol === behavior && 
+          (c = machine.context) &&
+          (c.respond_to?(behavior))
+        c.send(behavior, machine, self, *args)
       else
         nil
       end
@@ -131,6 +133,7 @@ module RedSteak
 
     alias :s :states
     alias :t :transitions
+
 
     # Returns the superstatemachine of this State.
     def superstatemachine
@@ -261,7 +264,7 @@ module RedSteak
     # Returns the path name for this statemachine.
     def to_a
       if ss = superstate
-        x = ss.superstatemachine.to_a + ss.to_a
+        x = ss.statemachine.to_a + ss.to_a
       else
         x = [ name ]
       end

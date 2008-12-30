@@ -3,11 +3,20 @@ module RedSteak
 
   # Represents a transition from one state to another state in a statemachine.
   class Transition < NamedElement
+    # See TransitionKind.
+    attr_accessor :kind
+
     # The State that this Transition moves from.
     attr_accessor :source
 
     # The State the Transition move to.
     attr_accessor :target
+
+    # A guard is a constraint.
+    attr_accessor :guard
+    
+    # Specifies optional behavior to be performed when the transition fires.
+    attr_accessor :effect
 
 
     def deepen_copy! copier, src
@@ -35,30 +44,16 @@ module RedSteak
     end
 
 
-    # Clients can override.
-    def can_transition? machine, args
-      result = _notify! :can_transition?, machine, args
+    # Called by Machine to check guard.
+    def guard? machine, args
+      result = _behavior! :guard, machine, args
       result.nil? ? true : result
     end
 
 
-    # Clients can override.
-    def before_transition! machine, args
-      _notify! :before_transition!, machine, args
-      self
-    end
-
-
-    # Clients can override.
-    def during_transition! machine, args
-      _notify! :during_transition!, machine, args
-      self
-    end
-
-
-    # Clients can override.
-    def after_transition! machine, args
-      _notify! :after_transition!, machine, args
+    # Called by Machine to perform #effect when transition fires.
+    def effect! machine, args
+      _behavior! :effect, machine, args
       self
     end
 

@@ -4,6 +4,96 @@ require 'red_steak'
 
 describe RedSteak do
 
+  # A test context for the Statemachine.
+  class RedSteak::TestContext
+    attr_accessor :_machine, :_args
+
+    # Transition Behaviors:
+    attr_accessor :_transition, :_guard, :_effect
+
+    # State Behaviors:
+    attr_accessor :_state, :_enter, :_exit, :_doActivity
+
+    attr_accessor :_a_to_b
+
+    # For debugging.
+    attr_accessor :logger
+
+    def clear!
+      @_machine = 
+        @_args =
+        @_transition =
+        @_guard =
+        @_effect =
+        @_state =
+        @_enter =
+        @_exit =
+        @_doActivity =
+        @_a_to_b =
+        nil
+    end
+
+
+    # Called by Transition#guard?
+    def guard(machine, trans, *args)
+      @_machine = machine
+      @_transition = trans
+      @_guard = @_args = args
+      _log
+      nil # Ok
+    end
+
+    def a_to_b?(machine, trans, *args)
+      @_machine = machine
+      @_transition = trans
+      @_guard = @_args = args
+      @_a_to_b = args
+      _log
+      true
+    end
+
+    # Called by Transition#effect
+    def effect(machine, trans, *args)
+      @_machine = machine
+      @_transition = trans
+      @_effect = @_args = args
+      _log
+    end
+
+    # Called by State#enter!
+    def enter(machine, state, *args)
+      @_machine = machine
+      @_state = state
+      @_enter = @_args = args
+      _log
+    end
+
+    # Called by State#exit!
+    def exit(machine, state, *args)
+      @_machine = machine
+      @_state = state
+      @_exit = @_args = args
+      _log
+    end
+
+    # Called by State#doActivity!
+    def doActivity(machine, state, *args)
+      @_machine = machine
+      @_state = state
+      @_doActivity = @_args = args
+      _log
+    end
+
+    def _log
+      case @_logger
+      when IO
+        @_logger.puts "  #{self.class}: #{caller(1).first}"
+      end
+      self
+    end
+  end
+
+
   # Returns the test Statemachine using the Builder.
   def statemachine
     # There can only one.
@@ -22,9 +112,8 @@ describe RedSteak do
         transition :a, :name => 'bar'
 
         transition :a, :b, 
-          :name => :a_to_b # ,
-	  #:context => 
-	  #:can_transition? => :can_issue_loan?
+          :name => :a_to_b,
+          :guard => :a_to_b?
 	  
 	# state :q, :enter_state => :entering_q
         
@@ -124,84 +213,12 @@ describe RedSteak do
   end
 
 
-  # A test context for the Statemachine.
-  class RedSteak::TestContext
-    attr_accessor :enter_state, :exit_state, :before_transition, :after_transition
-    attr_accessor :state_added, :transition_added
-    attr_accessor :can_transition
-
-    # This is the guard before
-    # enter_state!, after_state!.
-    # Must return true if the transition is 
-    # allowed.
-    def can_transition?(m, trans, *args)
-      self.can_transition = trans.name
-
-=begin
-      $stderr.puts "  GUARD #{trans.inspect}"
-      case trans.name
-      when :'a_to_b'
-        # false
-        @guard_1 = false
-      else
-        true
-      end
-=end
-    end
-
-    def before_transition!(m, trans, *args)
-      _log
-      self.before_transition = trans.name
-    end
-
-    def exit_state!(m, state, *args)
-      _log
-      self.exit_state = state.name
-    end
-
-    def enter_state!(m, state, *args)
-      _log
-      self.enter_state = state.name
-
-=begin
-      do_some_stuff_here
-      @guard_1 = true
-      
-      state.statemachine.transition_to! :next_state
-=end
-    end
-
-    def after_transition!(m, trans, *args)
-      _log
-      self.after_transition = trans.name
-    end
-
-
-    # Statemachine change notifications.
-    def transition_added!(m, trans, *args)
-      _log
-      self.transition_added = trans.name
-    end
-
-    def state_added!(m, state, *args)
-      _log
-      self.state_added = state.name
-    end
-
-
-    def _log
-      # $stderr.puts "  CALLBACK: #{caller(1).first}"
-    end
-  end
-
-
   # Returns a Machine that can walk a Statemachine with context object.
   def machine_with_context sm = nil
     sm ||= statemachine
 
     x = sm.machine
 
-    x.deep_history = true
     x.history = [ ]
 
     if ENV['TEST_VERBOSE']
@@ -257,55 +274,108 @@ describe RedSteak do
     x = machine_with_context
     c = x.context
 
+    c.clear!
+
+    #################################
+    # Start
+    #
+
+    x.history.size.should == 0
     x.start!
     x.at_start?.should == true
     x.at_end?.should == false
 
     x.state.name.should == :a
     x.state.should === :a
-    c.enter_state.should == :a
-    c.exit_state.should == nil
-    c.before_transition.should == nil
-    c.after_transition.should == nil
 
-    x.transition! "a_to_b"
+    c._machine.should == x
+    c._state.should == x.states[:a]
+    c._transition.should == nil
+    c._guard.should == nil
+    c._effect.should == nil
+    c._enter.should == [ ]
+    c._exit.should == nil
+    c._doActivity.should == [ ]
+    x.history.size.should == 1
+
+    #################################
+    # Transition 1
+    #
+
+    c.clear!
+    x.transition! "a_to_b", :arg
     x.at_start?.should == false
     x.at_end?.should == false
 
     x.state.name.should == :b
     x.state.should === :b
-    c.enter_state.should == :b
-    c.exit_state.should == :a
-    c.before_transition.should == :a_to_b
-    c.after_transition.should == :a_to_b
 
+    c._machine.should == x
+    c._transition.name.should == :a_to_b
+    c._guard.should == [ :arg ]
+    c._a_to_b.should == [ :arg ]
+    c._effect.should == [ :arg ]
+    c._state.name.should == :b
+    c._enter.should == [ :arg ]
+    c._exit.should == [ :arg ]
+    c._doActivity.should == [ :arg ]
+    x.history.size.should == 2
+
+    #################################
+    # Transition 2
+    #
+
+    c.clear!
     x.transition! :"b->c"
     x.state.name.should == :c
     x.at_start?.should == false
     x.at_end?.should == false
+    x.history.size.should == 3
 
+    c.clear!
     x.transition! :"c->a"
     x.state.name.should == :a
+    x.history.size.should == 4
 
     x.transition! "foo"
     x.state.name.should == :a
+    x.history.size.should == 5
 
     x.transition! :bar
     x.state.name.should == :a
+    x.history.size.should == 6
 
     x.transition! "foo"
     x.state.name.should == :a
+    x.history.size.should == 7
 
     x.transition_to! :b
     x.state.name.should == :b
+    x.history.size.should == 8
 
     x.transition! :'c2'
     x.state.name.should == :c
+    x.history.size.should == 9
 
     x.transition_to! :end
     x.at_start?.should == false
     x.at_end?.should == true
     x.state.name.should == :end
+    x.history.size.should == 10
+
+    x.history.map { |h| h[:previous_state].to_s }.should ==
+    [
+     "", # nil.to_s
+     "a",
+     "b",
+     "c",
+     "a",
+     "a",
+     "a",
+     "a",
+     "b",
+     "c",
+    ]
 
     x.history.map { |h| h[:new_state].to_s }.should ==
     [
@@ -416,16 +486,16 @@ describe RedSteak do
     x = machine_with_context(sm)
     c = x.context
  
-    x.start!
+    x.start! :foo, :bar
     x.at_start?.should == true
     x.at_end?.should == false
 
     x.state.name.should == :a
-    c.enter_state.should == :a
-    c.exit_state.should == nil
-    c.before_transition.should == nil
-    c.after_transition.should == nil
-
+    c._machine.should == x
+    c._state.name.should == :a
+    c._enter.should == [ :foo, :bar ]
+    c._exit.should == nil
+ 
     render_graph x, :show_history => true
 
     x.transition_to! :f

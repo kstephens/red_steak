@@ -22,14 +22,13 @@ module RedSteak
     #
     # This object also recieves transition notifications:
     #
-    # * can_transition?(trans, *args)
-    # * before_transition!(trans, *args)
-    # * enter_state!(state, *args)
-    # * during_transition!(trans, *args)
-    # * exit_state!(state, *args)
-    # * after_transition!(trans, *args)
+    # * guard(machine, trans, *args)
+    # * effect(machine, trans, *args)
     #
-    # States and Transitions many define specific context objects.
+    # * enter(machine, state, *args)
+    # * exit(machine, state, *args)
+    # * doActivity(machine, state, *args)
+    #
     attr_accessor :context
 
     # History of all transitions.
@@ -44,9 +43,12 @@ module RedSteak
     # where :transition and :previous_state is nil.
     #
     attr_accessor :history
-    
-    # If true, history of substates is kept.
-    attr_accessor :deep_history
+
+    # Method called on history to append new record.
+    attr_accessor :history_append
+
+    # Method called on history to clear history.
+    attr_accessor :history_clear
 
     # The logging object.
     # Can be a Log4r::Logger or IO object.
@@ -60,8 +62,9 @@ module RedSteak
       @statemachine = nil
       @sub = @sup = nil
       @state = nil
-      @history_enabled = false
-      @history = [ ]
+      @history = nil
+      @history_append = :<<
+      @history_clear = :clear
       @logger = nil
       super
     end
@@ -127,20 +130,20 @@ module RedSteak
    
 
     # Returns true if a transition is possible from the current state.
-    # Queries the transitions' guards.
-    def can_transition? trans, *args
+    # Queries the transitions' guard.
+    def guard? trans, *args
       trans = trans.to_sym unless Symbol === trans
 
       trans = statemachine.transitions.select do | t |
         t.from_state == @state &&
-        t.can_transition?(self, args)
+        t.guard?(self, args)
       end
 
       trans.size > 0
     end
 
 
-    # Returns true if a non-ambigious transition is possible from the current state
+    # Returns true if a non-ambigious direct transition is possible from the current state
     # to the given state.
     # Queries the transitions' guards.
     def can_transition_to? state, *args
@@ -157,7 +160,7 @@ module RedSteak
 
       trans = @state.outgoing.select do | t |
         t.target === state &&
-        t.can_transition?(self, args)
+        t.guard?(self, args)
       end
 
       # $stderr.puts "  #{@state.inspect} transitions_to(#{state.inspect}) => #{trans.inspect}"
@@ -191,7 +194,7 @@ module RedSteak
 
         _log "transition! #{name.inspect}"
         
-        trans = nil unless @state === trans.source && trans.can_transition?(self, args)
+        trans = nil unless @state === trans.source && trans.guard?(self, args)
       else
         name = name.to_sym unless Symbol === name
         
@@ -203,7 +206,7 @@ module RedSteak
         trans = @state.outgoing.select do | t |
           # $stderr.puts "  testing t = #{t.inspect}"
           t === name &&
-          t.can_transition?(self, args)
+          t.guard?(self, args)
         end
 
         if trans.size > 1
@@ -252,86 +255,73 @@ module RedSteak
     #
 
 
-    # Returns an Array of Hashes containing:
-    #
-    #  :time
-    #  :previous_state
-    #  :transition
-    #  :new_state
-    #
-    def history
-      @history
-    end
-
-
     # Clears current history.
     def clear_history!
-      @history = nil
-    end
-
-
-    # Returns the full history, if deep_history is in effect.
-    def full_history
-      if @sup && @sup.deep_history
-        @sup.full_history
-      else
-        history
-      end
+      @history && @history.send(@history_clear)
     end
 
 
     # Records a new history record.
-    def record_history! hash = nil
-      if @history || @deep_history
+    # Supermachines are also notified.
+    # Machine is the origin of the history record.
+    def record_history! machine, hash = nil
+      if @history
         hash ||= yield
-        @history << hash
+        @history.send(@history_append, hash)
       end
 
-      if @sup && @sup.deep_history
+      if @sup
         hash ||= yield
-        @sup.record_history! hash
-      end
-    end
-
-
-    private
-
-    # Executes transition.
-    def execute_transition! trans, *args
-      _log "execute_transition! #{(trans.to_a).inspect}"
-
-      old_state = @state
-
-      trans.before_transition!(self, args)
-
-      _goto_state!(trans.target, args) do 
-        trans.during_transition!(self, args)
-      end
-      
-      trans.after_transition!(self, args)
-      
-      record_history! do 
-        {
-          :time => Time.now.gmtime,
-          :previous_state => old_state, 
-          :transition => trans, 
-          :new_state => @state,
-        }
+        @sup.record_history! machine, hash
       end
 
       self
     end
 
 
-    # Moves from one state machine to another.
+    private
+
+    # Executes transition.
+    #
+    # 1) Transition's effect behavior is performed.
+    # 2) Old State's exit behavior is performed.
+    # 3) transition history is logged.
+    # 4) New State's enter behavior is performed.
+    # 5) New State's doAction behavior is performed.
+    #
+    def execute_transition! trans, *args
+      _log "execute_transition! #{(trans.to_a).inspect}"
+
+      old_state = @state
+
+      # Behavior: Transition effect.
+      trans.effect!(self, args)
+      
+      _goto_state!(trans.target, args) do 
+        record_history!(self) do 
+          {
+            :time => Time.now.gmtime,
+            :previous_state => old_state, 
+            :transition => trans, 
+            :new_state => state,
+          }
+        end
+        
+      end
+      
+      self
+    end
+
+
+    # Moves directly to a State.
     #
     # Calls _goto_state!, clears history and adds initial history record.
     #
     def goto_state! state, args, &blk
-      _goto_state! @statemachine.start_state, args, &blk
+      _goto_state! state, args, &blk
 
-      @history.clear if @history
-      record_history! do 
+      clear_history!
+      record_history!(self) do 
         {
           :time => Time.now.gmtime,
           :previous_state => nil, 
@@ -339,28 +329,29 @@ module RedSteak
           :new_state => @state,
         }
       end
-   end
+    end
+
 
     # Moves from one state machine to another.
     #
-    # Notifies exit_state!
-    # If a block is given, yield to it before entering new state.
-    # Notifies enter_state!
+    # 1) Performs old State's exit behavior.
+    # 2) If a block is given, yield to it after entering new state.
+    # 3) Performs new State's enter behavior.
     #
     def _goto_state! state, args
       old_state = @state
 
-      # Notify of exiting state.
-      if @state
-        _log "exit_state! #{@state.to_a.inspect}"
-        @state.exit_state!(self, args)
+      # Behavior: exit state.
+      if @state && old_state != state
+        _log "exit! #{@state.to_a.inspect}"
+        @state.exit!(self, args)
       end
 
-      # Yield to block before changing state.
-      yield if block_given?
-      
-      # Move to next state buy cloning the State object.
+      # Move to next state.
       @state = state
+
+      # If the state has a substatemachine,
+      # start! it.
       if ssm = @state.substatemachine
         # Create a submachine.
         @sub = self.class.new(:sup => self, :statemachine => ssm)
@@ -369,9 +360,17 @@ module RedSteak
         @sub.start!
       end
 
-      # Notify of entering state.
-      _log "enter_state! #{@state.to_a.inspect}"
-      @state.enter_state!(self, args)
+      # Yield to block before changing state.
+      yield if block_given?
+      
+      # Behavior: enter state.
+      if ( old_state != state ) 
+        _log "enter! #{@state.to_a.inspect}"
+        @state.enter!(self, args)
+      end
+
+      # Behavior: doActivity.
+      @state.doActivity!(self, args)
 
       self
 

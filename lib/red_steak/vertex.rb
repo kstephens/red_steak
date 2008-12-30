@@ -39,14 +39,12 @@ module RedSteak
     # Called after a Transition is connected to this state.
     def transition_added! statemachine
       transitions_changed!
-      # _notify! :transition_added!, nil, statemachine
-    end
+     end
 
 
     # Called after a Transition removed from this state.
     def transition_removed! statemachine
       transitions_changed!
-      # _notify! :transition_removed!, nil, statemachine
     end
 
 

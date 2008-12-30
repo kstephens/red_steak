@@ -11,6 +11,15 @@ module RedSteak
     # This state's substates.
     attr_reader   :substates
 
+    # The behavior executed upon entry to the transtion.
+    attr_accessor :enter
+
+    # The behavior executed when it is transitioned into.
+    attr_accessor :doActivity
+
+    # The behavior executed when it is transitioned out of.
+    attr_accessor :exit
+
     # This state's substatemachine, or nil.
     attr_accessor :substatemachine
 
@@ -21,6 +30,9 @@ module RedSteak
 
     def initialize opts = { }
       @state_type = nil
+      @enter = nil
+      @doActivity = nil
+      @exit = nil
       @superstate = nil
       @substates = NamedArray.new([ ], :states)
       @substatemachine = nil
@@ -110,7 +122,9 @@ module RedSteak
       end
     end
 
-
+    
+    # Returns true if this State is a substate of x.
+    # All States are substates of themselves.
     def is_a_substate_of? x
       s = self
       while s
@@ -121,29 +135,32 @@ module RedSteak
     end
 
 
-    # Clients can override.
-    def enter_state! machine, args
-      _notify! :enter_state!, machine, args
+    # Called by Machine when State is entered.
+    def enter! machine, args
+      _behavior! :enter, machine, args
     end
 
 
-    # Clients can override.
-    def exit_state! machine, args
-      _notify! :exit_state!, machine, args
+    # Called by Machine when State is exited.
+    def exit! machine, args
+      _behavior! :exit, machine, args
+    end
+
+    # Called by Machine when State is transitioned to.
+    def doActivity! machine, args
+      _behavior! :doActivity, machine, args
     end
 
 
     # Called after this State is added to the statemachine.
     def state_added! statemachine
       transitions_changed!
-      # _notify! :transition_added!, [ self ], statemachine
     end
 
 
     # Called after a State removed from its statemachine.
     def state_removed! statemachine
       transitions_changed!
-      # _notify! :transition_removed!, [ self ], statemachine
     end
 
 
@@ -151,7 +168,6 @@ module RedSteak
     def transition_added! t
       # $stderr.puts caller(0)[0 .. 3] * "\n  "
       transitions_changed!
-      # _notify! :transition_added!, [ self ], statemachine
     end
 
 
@@ -159,10 +175,10 @@ module RedSteak
     def transition_removed! t
       # $stderr.puts caller(0)[0 .. 3] * "\n  "
       transitions_changed!
-      # _notify! :transition_removed!, [ self ], statemachine
     end
 
 
+=begin
     # Delegate other methods to substatemachine, if exists.
     def method_missing sel, *args, &blk
       if @substatemachine && @substatemachine.respond_to?(sel)
@@ -170,6 +186,7 @@ module RedSteak
       end
       super
     end
+=end
 
   end # class
 
