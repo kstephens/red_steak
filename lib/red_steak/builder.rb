@@ -275,21 +275,11 @@ module RedSteak
     end
    
 
-    # Determine what object (a Statemachine or a (super)State) should own
+    # Determine what object should own
     # a new State if one is created.
     def _owner
-=begin
-      # If the current object is a State,
-      # the owner is the current superstate.
-      # Else:
-      # The owner of the State is the current Statemachine.
-      owner = @context[:state] || @context[:statemachine]
-=end
-      owner = @context[:statemachine]
-      
-      owner
+      @context[:statemachine]
     end
-
 
 
     # Locates a state by name or creates a new object.
@@ -338,7 +328,7 @@ module RedSteak
         raise ArgumentError, "Cannot locate State #{name.inspect} in #{owner.inspect}" unless owner
 
         # Find existing State by name in owner.
-        state = owner.states[name]
+        state = owner.state[name]
 
       # Search up namespaces till Object is found is found.
       else
@@ -347,7 +337,7 @@ module RedSteak
         # Try owner first.
         if owner
           _log "  looking for State #{name.inspect} directly in owner = #{owner.inspect}:"
-          state = owner.states[name]
+          state = owner.state[name]
         end
       end
 

@@ -95,6 +95,9 @@ x8 -> x6 [ label="d::d3->d::d1", color=black, fontcolor=black ];
 
 // #<RedSteak::Transition test-augmented::d d::d2->d::d3 d::d2 -> d::d3>
 x7 -> x8 [ label="d::d2->d::d3", color=black, fontcolor=black ];
+
+// #<RedSteak::Transition test-augmented::d d::end->end d::end -> end>
+x9 -> x10 [ label="d::end->end", color=black, fontcolor=black ];
 x5_START -> x6;
 }
 // } #<RedSteak::Statemachine test-augmented>

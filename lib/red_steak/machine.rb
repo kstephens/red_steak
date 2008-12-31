@@ -118,7 +118,19 @@ module RedSteak
       
       self
     end
-   
+
+
+    def to_state state
+      case state
+      when State, nil
+        state
+      when String
+        stateMachine.rootStateMachine.state[state]
+      else
+        stateMachine.state[state]
+      end
+    end
+ 
 
     # Returns true if a transition is possible from the current state.
     # Queries the transitions' guard.
@@ -145,11 +157,11 @@ module RedSteak
     # Returns a list of valid transitions from current
     # state to the specified state.
     def transitions_to state, *args
-      state = state.to_sym unless Symbol === state
+      state = to_state(state)
 
       trans = @state.outgoing.select do | t |
-        t.target === state &&
-        t.guard?(self, args)
+        t.target == state &&
+          t.guard?(self, args)
       end
 
       trans
@@ -160,8 +172,10 @@ module RedSteak
     # This assumes that there is not more than one transition
     # from one state to another.
     def transition_to! state, *args
+      state = to_state(state)
+      
       trans = transitions_to(state, *args)
-
+      
       case trans.size
       when 0
         raise Error::UnknownTransition, state
@@ -228,7 +242,7 @@ module RedSteak
     def _log *args
       case 
       when IO === @logger
-        @logger.puts "#{self.to_a.inspect} #{(state && state.to_a).inspect} #{args * " "}"
+        @logger.puts "#{self.to_s} #{state.to_s} #{args * " "}"
       when defined?(::Log4r) && (Log4r::Logger === @logger)
         @logger.send(log_level || :debug, *args)
       when @sup
@@ -277,7 +291,7 @@ module RedSteak
     # 5) New State's doAction behavior is performed.
     #
     def execute_transition! trans, *args
-      _log "execute_transition! #{(trans.to_a).inspect}"
+      _log "execute_transition! #{trans.inspect}"
 
       old_state = @state
 
@@ -328,36 +342,42 @@ module RedSteak
     def _goto_state! state, args
       old_state = @state
 
+      # If the state has a submachine,
+      # start! it.
+      if ssm = state.submachine
+        if ss = ssm.start_state
+          state = ssm.start_state
+        end
+      end
+
       # Behavior: exit state.
-      if @state && old_state != state
-        _log "exit! #{@state.to_a.inspect}"
-        @state.exit!(self, args)
+      if old_state && old_state != state
+        old_state.ancestors.each do | s |
+          unless s.is_a_substate_of?(state)
+            _log "exit! #{s.inspect}"
+            s.exit!(self, args)
+          end
+        end
       end
 
       # Move to next state.
       @state = state
 
-      # If the state has a submachine,
-      # start! it.
-      if ssm = @state.submachine
-        # Create a submachine.
-        @sub = self.class.new(:sup => self, :stateMachine => ssm)
-
-        # Start the submachine.
-        @sub.start!
-      end
-
-      # Yield to block before changing state.
+      # Yield to block.
       yield if block_given?
       
       # Behavior: enter state.
-      if ( old_state != state ) 
-        _log "enter! #{@state.to_a.inspect}"
-        @state.enter!(self, args)
+      if old_state != state
+        state.ancestors.reverse.each do | s |
+          unless old_state && s.is_a_substate_of?(old_state)
+            _log "enter! #{s.inspect}"
+            s.enter!(self, args)
+          end
+        end
       end
 
       # Behavior: doActivity.
-      @state.doActivity!(self, args)
+      state.doActivity!(self, args)
 
       self
 

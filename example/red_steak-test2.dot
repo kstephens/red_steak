@@ -27,35 +27,67 @@ subgraph cluster_x2 {
 // } #<RedSteak::Statemachine test2::a>
 
 // #<RedSteak::State test2 b>
-  node [ shape="box", label="b", style="filled,rounded", color=black, fillcolor=white, fontcolor=black ] x6;
+
+// {#<RedSteak::Statemachine test2::b>
+subgraph cluster_x6 {
+  label="b"; 
+  shape="box"; 
+  style="filled,rounded"; 
+  fillcolor=white; 
+  fontcolor=black; 
+  node [ shape="circle", label="", style=filled, fillcolor=black ] x6_START; 
+
+// #<RedSteak::State test2::b b::a>
+  node [ shape="box", label="a", style="filled,rounded", color=black, fillcolor=white, fontcolor=black ] x7;
+
+// #<RedSteak::State test2::b b::b>
+  node [ shape="box", label="b", style="filled,rounded", color=black, fillcolor=white, fontcolor=black ] x8;
+}
+// } #<RedSteak::Statemachine test2::b>
 
 // #<RedSteak::State test2 c>
-  node [ shape="box", label="c", style="filled,rounded", color=black, fillcolor=white, fontcolor=black ] x7;
+  node [ shape="box", label="c", style="filled,rounded", color=black, fillcolor=white, fontcolor=black ] x9;
 
 // #<RedSteak::State test2 end>
-  node [ shape="doublecircle", label="end", style="filled,rounded", color=black, fillcolor=black, fontcolor=white ] x8;
+  node [ shape="doublecircle", label="end", style="filled,rounded", color=black, fillcolor=black, fontcolor=white ] x10;
 
 // #<RedSteak::Transition test2 b->c b -> c>
-x6 -> x7 [ label="b->c", color=black, fontcolor=black ];
+x6_START -> x9 [ label="b->c", color=black, fontcolor=black ];
 
 // #<RedSteak::Transition test2 c->end c -> end>
-x7 -> x8 [ label="c->end", color=black, fontcolor=black ];
-x1_START -> x9;
+x9 -> x10 [ label="c->end", color=black, fontcolor=black ];
+x1_START -> x12;
 
 // #<RedSteak::Transition test2::a a::a->b a::a -> b>
-x3 -> x6 [ label="a::a->b", color=black, fontcolor=black ];
+x3 -> x6_START [ label="a::a->b", color=black, fontcolor=black ];
 
 // #<RedSteak::Transition test2::a a::a->a::c a::a -> a::c>
 x3 -> x5 [ label="a::a->a::c", color=black, fontcolor=black ];
 
+// #<RedSteak::Transition test2::a a::a->c a::a -> c>
+x3 -> x9 [ label="a::a->c", color=black, fontcolor=black ];
+
 // #<RedSteak::Transition test2::a a::b->c a::b -> c>
-x4 -> x7 [ label="a::b->c", color=black, fontcolor=black ];
+x4 -> x9 [ label="a::b->c", color=black, fontcolor=black ];
 
 // #<RedSteak::Transition test2::a a::b->a::c a::b -> a::c>
 x4 -> x5 [ label="a::b->a::c", color=black, fontcolor=black ];
 
 // #<RedSteak::Transition test2::a a::c->c a::c -> c>
-x5 -> x7 [ label="a::c->c", color=black, fontcolor=black ];
+x5 -> x9 [ label="a::c->c", color=black, fontcolor=black ];
 x2_START -> x3;
+
+// #<RedSteak::Transition test2::b b::a->a b::a -> a>
+x7 -> x2_START [ label="b::a->a", color=black, fontcolor=black ];
+
+// #<RedSteak::Transition test2::b b::a->c b::a -> c>
+x7 -> x9 [ label="b::a->c", color=black, fontcolor=black ];
+
+// #<RedSteak::Transition test2::b b::a->b::b b::a -> b::b>
+x7 -> x8 [ label="b::a->b::b", color=black, fontcolor=black ];
+
+// #<RedSteak::Transition test2::b b::b->a::b b::b -> a::b>
+x8 -> x4 [ label="b::b->a::b", color=black, fontcolor=black ];
+x6_START -> x7;
 }
 // } #<RedSteak::Statemachine test2>

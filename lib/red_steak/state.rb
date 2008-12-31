@@ -116,6 +116,16 @@ module RedSteak
     end
 
 
+    # Returns an array of all ancestor states.
+    def ancestors
+      x = [ self ]
+      if ss = superstate
+        x.push(*ss.ancestors)
+      end
+      x
+    end
+
+
     # Called by Machine when State is entered.
     def enter! machine, args
       _behavior! :enter, machine, args

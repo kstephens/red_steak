@@ -62,6 +62,12 @@ module RedSteak
     end
 
 
+    # Returns the outer-most StateMachine.
+    def rootStateMachine
+      @submachineState ? superstatemachine.rootStateMachine : self
+    end
+
+
     # Sets the start state.
     def start_state= x
       @start_state = x
