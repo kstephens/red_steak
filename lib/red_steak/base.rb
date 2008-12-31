@@ -1,6 +1,8 @@
 
 
 module RedSteak
+
+  # Copies object graphs with referential integrity.
   class Copier
     def self.copy x
       self.new.copy(x)
@@ -12,17 +14,25 @@ module RedSteak
       @map = { }
     end
 
+    # Copies x deeply.
+    #
+    # 1) Dups x as xx
+    # 2) calls xx.deepen_copy! copier, x
+    #
     def copy x
       return x if ! x
-      xx = @map[x]
-      return xx if xx 
+
+      if xx = @map[x]
+        return xx 
+      end
+
       xx = @map[x] = (x.dup rescue x)
       xx.deepen_copy!(self, x) if xx.respond_to?(:deepen_copy!)
+
       xx
     end
 
     alias :[] :copy
-
   end
 
 
@@ -31,18 +41,13 @@ module RedSteak
     # The name of this object.
     attr_accessor :name
     
-    # The original object, if cloned.
-    attr_reader :_proto
-    
     # Options not captured by setters.
     attr_reader :options
 
     def initialize opts = EMPTY_HASH
       @name = nil
-      @_proto = nil
       @options = nil
       self.options = opts
-      @_proto ||= self
     end
 
 
@@ -128,7 +133,26 @@ module RedSteak
 
     # Returns the class and the name as a String.
     def inspect
-      "#<#{self.class} #{self.to_s}>"
+      "#<#{self.class} #{to_s}>"
+    end
+
+
+    def validate errors = nil
+      errors ||= [ ]
+
+      e = [ ] 
+      _validate e
+
+      e.each do | msg |
+        errors << [ msg, self ]
+      end
+
+      errors
+    end
+
+
+    def _validate e
+      self
     end
   end # class
 
@@ -179,11 +203,17 @@ module RedSteak
     end
 
 
+    def select &blk
+      self.class.new(@a.select(&blk), @axis)
+    end
+
+
     def method_missing sel, *args, &blk
       @a.send(sel, *args, &blk)
     end
 
 
+    # Deepens elements through a Copier.
     def deepen_copy! copier, src
       @a = @a.map { | x | copier[x] }
     end
@@ -192,6 +222,9 @@ module RedSteak
     def to_a
       @a
     end
+
+
+    EMPTY = self.new([ ].freeze)
   end # class
 
 end # module

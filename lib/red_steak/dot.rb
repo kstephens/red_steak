@@ -98,7 +98,7 @@ module RedSteak
         if s.start_state?
           stream.puts "#{(dot_name(s.statemachine) + '_START')} -> #{dot_name(s)};"
         end
-        if ssm = s.substatemachine
+        if ssm = s.submachine
           render_transitions(ssm)
         end
       end
@@ -145,8 +145,6 @@ module RedSteak
       }
 
       case
-        # when @substatemachine
-        # :egg
       when s.end_state?
         dot_opts[:shape] = :doublecircle
         dot_opts[:fillcolor] = :black
@@ -186,7 +184,7 @@ module RedSteak
 
       if ! s.substates.empty?
         render_Statemachine(s, dot_opts)
-      elsif ssm = s.substatemachine
+      elsif ssm = s.submachine
         render_Statemachine(ssm)
         # stream.puts %Q{#{dot_name(s)} -> #{(dot_name(ssm) + '_START')} [ label="substate", style=dashed ];}
       else
@@ -206,12 +204,12 @@ module RedSteak
       }
 
       source_name = "#{dot_name(t.source)}"
-      if ssm = t.source.substatemachine
+      if ssm = t.source.submachine
         source_name = "#{dot_name(ssm)}_START"
       end
 
       target_name   = "#{dot_name(t.target)}"
-      if ssm = t.target.substatemachine
+      if ssm = t.target.submachine
         target_name = "#{dot_name(ssm)}_START"
       end
 

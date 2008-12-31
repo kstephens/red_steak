@@ -94,7 +94,7 @@ module RedSteak
 
       # Attach state to substate machine.
       if superstate
-        superstate.substatemachine = sm 
+        superstate.submachine = sm 
         sm.superstate = superstate
       end
 

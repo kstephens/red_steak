@@ -170,6 +170,8 @@ describe RedSteak do
   it 'should build a statemachine' do
     sm = statemachine
 
+    sm.inspect.should == "#<RedSteak::Statemachine test>"
+
     sm.states.
       map{ | s | s.name }.
       sort { | a, b | a.to_s <=> b.to_s }.
@@ -192,7 +194,7 @@ describe RedSteak do
     sm.states[:end].inspect.should == 
       "#<RedSteak::State test end>"
 
-    sm.states[:d].substatemachine.states[:d1].inspect.should == 
+    sm.states[:d].submachine.states[:d1].inspect.should == 
       "#<RedSteak::State test::d d::d1>"
 
     e = sm.states[:end]
@@ -205,7 +207,7 @@ describe RedSteak do
 
     sm.validate.should == [ ]
 
-    ssm = sm.states[:d].substatemachine
+    ssm = sm.states[:d].submachine
     ssm.should_not == nil
     ssm.start_state.name.should == :d1
     ssm.end_state.name.should == :end
@@ -288,7 +290,7 @@ describe RedSteak do
     m.state.should === :a
 
     c._machine.should == m
-    c._state.should == m.states[:a]
+    c._state.should == m.stateMachine.states[:a]
     c._transition.should == nil
     c._guard.should == nil
     c._effect.should == nil
@@ -408,19 +410,18 @@ describe RedSteak do
   end
 
 
-  it 'should handle substatemachines' do
+  it 'should handle submachines' do
     m = machine_with_context
 
     m.start!
     m.state.name.should == :a
-    m.at_start?.should == true
-    m.at_end?.should == false
-    m.state.substatemachine.should == nil
+    m.state.submachine.should == nil
 
     m.transition_to! :d
     m.state.name.should == :d
     m.state.should === :d
     m.state.should === "d"
+    m.state.submachine.should_not == nil
 
     # start transitions in substates of State :d.
     ssm = m.sub
@@ -430,7 +431,7 @@ describe RedSteak do
     ssm.state.should === :d1
     ssm.state.should === "d::d1"
     ssm.state.should === /^d::/
-    ssm.state.should === m.states[:d]
+    ssm.state.should === m.stateMachine.states[:d]
     ssm.at_start?.should == true
 
     ssm.transition_to! :d2

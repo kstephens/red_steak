@@ -13,7 +13,8 @@ module RedSteak
     attr_accessor :sup
 
     # The Statemachine.
-    attr_accessor :statemachine
+    attr_accessor :stateMachine # UML
+    alias :statemachine :stateMachine # not UML
 
     # The current state in the statemachine.
     attr_reader :state
@@ -60,7 +61,7 @@ module RedSteak
 
 
     def initialize opts
-      @statemachine = nil
+      @stateMachine = nil
       @sub = @sup = nil
       @state = nil
       @history = nil
@@ -79,18 +80,6 @@ module RedSteak
     end
 
  
-    # Returns the states of the statemachine.
-    def states
-      @statemachine.states
-    end
-
-
-    # Returns the transitions of the statemachine.
-    def transitions
-      @statemachine.transitions
-    end
-
-
     # Returns true if #start! has been called.
     def started?
       ! @state.nil?
@@ -99,20 +88,20 @@ module RedSteak
 
     # Returns ture if we are at the start state.
     def at_start?
-      @state == @statemachine.start_state
+      @state == @stateMachine.start_state
     end
 
 
     # Returns true if we are at the end state.
     def at_end?
-      @state == @statemachine.end_state
+      @state == @stateMachine.end_state
     end
 
 
     # Go to the start state.
     def start! *args
       @state = nil
-      goto_state! @statemachine.start_state, args
+      goto_state! @stateMachine.start_state, args
       self
     end
 
@@ -123,7 +112,7 @@ module RedSteak
       when State
         state = x
       else
-        state = @statemachine.states[x]
+        state = @stateMachine.states[x]
       end
       goto_state! state
       
@@ -136,7 +125,7 @@ module RedSteak
     def guard? trans, *args
       trans = trans.to_sym unless Symbol === trans
 
-      trans = statemachine.transitions.select do | t |
+      trans = @stateMachine.transition.select do | t |
         t.from_state == @state &&
         t.guard?(self, args)
       end
@@ -158,14 +147,10 @@ module RedSteak
     def transitions_to state, *args
       state = state.to_sym unless Symbol === state
 
-      # $stderr.puts "  #{@state.inspect} transitions_from => #{@state.transitions_from.inspect}"
-
       trans = @state.outgoing.select do | t |
         t.target === state &&
         t.guard?(self, args)
       end
-
-      # $stderr.puts "  #{@state.inspect} transitions_to(#{state.inspect}) => #{trans.inspect}"
 
       trans
     end
@@ -236,7 +221,7 @@ module RedSteak
 
 
     def inspect
-      "#<#{self.class} #{@statemachine.name.inspect} #{to_a.inspect}>"
+      "#<#{self.class} #{@stateMachine.name.inspect} #{to_a.inspect}>"
     end
 
 
@@ -352,11 +337,11 @@ module RedSteak
       # Move to next state.
       @state = state
 
-      # If the state has a substatemachine,
+      # If the state has a submachine,
       # start! it.
-      if ssm = @state.substatemachine
+      if ssm = @state.submachine
         # Create a submachine.
-        @sub = self.class.new(:sup => self, :statemachine => ssm)
+        @sub = self.class.new(:sup => self, :stateMachine => ssm)
 
         # Start the submachine.
         @sub.start!

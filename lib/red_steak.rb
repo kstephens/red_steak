@@ -25,15 +25,22 @@ module RedSteak
 
 end # module
 
+# Support
 require 'red_steak/error'
 require 'red_steak/base'
 
+# UML Metamodel
+require 'red_steak/named_element'
 require 'red_steak/statemachine'
 require 'red_steak/vertex'
 require 'red_steak/state'
 require 'red_steak/transition'
+
+# API
 require 'red_steak/builder'
 require 'red_steak/machine'
+
+# Rendering
 require 'red_steak/dot'
 
 

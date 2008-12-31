@@ -9,6 +9,7 @@ module RedSteak
     # This state's superstate.
     attr_accessor :superstate
 
+
     def intialize opts = { }
       @kind = nil
       @superstate = nil
@@ -52,7 +53,7 @@ module RedSteak
     def transitions
       @transitions ||= 
         NamedArray.new(
-                       statemachine.transitions.select { | t | 
+                       stateMachine.transitions.select { | t | 
                          t.source == self || t.target == self
                        }.freeze
                        )
@@ -129,7 +130,7 @@ module RedSteak
 
 
     def inspect
-      "#<#{self.class} #{@statemachine.to_s} #{to_s}>"
+      "#<#{self.class} #{@stateMachine.to_s} #{to_s}>"
     end
 
 

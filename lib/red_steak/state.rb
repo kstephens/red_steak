@@ -9,7 +9,7 @@ module RedSteak
     attr_accessor :state_type
 
     # This state's substates.
-    attr_reader   :substates
+    attr_reader   :substates # not UML
 
     # The behavior executed upon entry to the transtion.
     attr_accessor :enter
@@ -20,12 +20,13 @@ module RedSteak
     # The behavior executed when it is transitioned out of.
     attr_accessor :exit
 
-    # This state's substatemachine, or nil.
-    attr_accessor :substatemachine
+    # This state's submachine, or nil.
+    attr_accessor :submachine # UML
 
 
     # For state <-> substate traversal.
-    alias :states :substates
+    alias :states :substates # NOT UML
+    alias :state :states # UML
 
 
     def initialize opts = { }
@@ -35,7 +36,7 @@ module RedSteak
       @exit = nil
       @superstate = nil
       @substates = NamedArray.new([ ], :states)
-      @substatemachine = nil
+      @submachine = nil
       super
       # $stderr.puts "initialize: @substates = #{@substates.inspect}"
     end
@@ -46,7 +47,7 @@ module RedSteak
 
       @superstate = copier[@superstate]
       @substates = copier[@substates]
-      @substatemachine = copier[@substatemachine]
+      @submachine = copier[@submachine]
     end
 
 
@@ -60,7 +61,7 @@ module RedSteak
 
       @substates << s
       s.superstate = self
-      s.statemachine = @statemachine
+      s.statemachine = @stateMachine
 
       # Attach to superstate.
       if ss = superstate
@@ -79,7 +80,7 @@ module RedSteak
     # Also removes any Transitions associated with the State.
     # List of Transitions removed is returned.
     def remove_substate! s
-      _log "remove_substate! #{state.inspect}"
+      _log "remove_substate! #{s.inspect}"
 
       transitions = s.transitions
 
@@ -99,6 +100,38 @@ module RedSteak
     alias :remove_state! :remove_substate!
 
 
+    # Adds a Pseudostate to this State.
+    def add_connectionPoint! s
+      _log "add_connectionPoint! #{s.inspect}"
+
+      if @connectionPoint.find { | x | x.name == s.name }
+        raise ArgumentError, "connectionPoint named #{s.name.inspect} already exists"
+      end
+
+      @connectionPoint << s
+      s.state = self
+
+      # Notify.
+      s.connectionPoint_added! self
+
+      s
+    end
+
+
+    # Removes a Pseudostate from this State.
+    def remove_connectionPoint! s
+      _log "remove_connectionPoint! #{s.inspect}"
+
+      @connectionPoint.delete(s)
+      s.state = nil
+
+      # Notify.
+      s.connectionPoint_removed! self
+
+      self
+    end
+
+
     # Returns true if this a start state.
     def start_state?
       @state_type == :start
@@ -111,7 +144,7 @@ module RedSteak
     end
 
 
-    # Returns true if this State matches x.
+    # Returns true if this State matches x or is a substate of x.
     def === x
       # $stderr.puts "#{self.inspect} === #{x.inspect}"
       case x
@@ -178,15 +211,22 @@ module RedSteak
     end
 
 
-=begin
-    # Delegate other methods to substatemachine, if exists.
-    def method_missing sel, *args, &blk
-      if @substatemachine && @substatemachine.respond_to?(sel)
-        return @substatemachine.send(sel, *args, &blk)
+    def _validate errors
+      errors << :state_without_transitions unless transitionsize != 0
+      case
+      when end_state?
+        errors << :end_state_cannot_be_reached unless sourceselect{|x| x != s}.size != 0
+        errors << :end_state_has_outbound_transitions unless targetsize == 0
+      when start_state?
+        errors << :start_state_has_no_outbound_transitions unless targetsize != 0
+      else
+        errors << :state_has_no_inbound_transitions unless sourceselect{|x| x != s}.size != 0
+        errors << :state_has_no_outbound_transitions unless targetselect{|x| x != s}.size != 0
       end
-      super
+      if submachine
+        errors << :end_state_has_substates unless ! end_state?
+      end
     end
-=end
 
   end # class
 
