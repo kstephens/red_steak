@@ -3,9 +3,7 @@
 
 * Things to do:
 ** Machine#state=(String|Array).
-** Trigger State#enter and State#exit on superstates for transitions between Substates with disjoint superstates.
 ** Add :elapsed_time to history Hash - has performance implication.
-** Use UML nomenclature for can_transition?, before_transition!, after_transition!: i.e.: :guard and triggers (enter, exit).
 ** Support Statemachine#freeze to avoid accidental changes to a running Statemachine.
 
 * Jeremy's Comments:

@@ -26,7 +26,7 @@ module RedSteak
     # * guard(machine, trans, *args)
     # * effect(machine, trans, *args)
     #
-    # * enter(machine, state, *args)
+    # * entry(machine, state, *args)
     # * exit(machine, state, *args)
     # * doActivity(machine, state, *args)
     #
@@ -287,7 +287,7 @@ module RedSteak
     # 1) Transition's effect behavior is performed.
     # 2) Old State's exit behavior is performed.
     # 3) transition history is logged.
-    # 4) New State's enter behavior is performed.
+    # 4) New State's entry behavior is performed.
     # 5) New State's doAction behavior is performed.
     #
     def execute_transition! trans, *args
@@ -337,7 +337,7 @@ module RedSteak
     #
     # 1) Performs old State's exit behavior.
     # 2) If a block is given, yield to it after entering new state.
-    # 3) Performs new State's enter behavior.
+    # 3) Performs new State's entry behavior.
     #
     def _goto_state! state, args
       old_state = @state
@@ -367,11 +367,11 @@ module RedSteak
       # Yield to block.
       yield if block_given?
       
-      # Behavior: enter state.
+      # Behavior: entry state.
       if old_state != state
         (to - from).reverse.each do | s | 
-          _log "enter! #{s.inspect}"
-          s.enter!(self, args)
+          _log "entry! #{s.inspect}"
+          s.entry!(self, args)
         end
       end
 

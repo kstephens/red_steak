@@ -8,13 +8,13 @@ module RedSteak
     attr_accessor :state_type # NOT UML AT ALL
 
     # The behavior executed upon entry to the transtion.
-    attr_accessor :enter
-
-    # The behavior executed when it is transitioned into.
-    attr_accessor :doActivity
+    attr_accessor :entry
 
     # The behavior executed when it is transitioned out of.
     attr_accessor :exit
+
+    # The behavior executed when it is transitioned into.
+    attr_accessor :doActivity
 
     # This state's submachine, or nil.
     attr_accessor :submachine # UML
@@ -22,7 +22,7 @@ module RedSteak
 
     def initialize opts = { }
       @state_type = nil
-      @enter = nil
+      @entry = nil
       @doActivity = nil
       @exit = nil
       @submachine = nil
@@ -130,8 +130,8 @@ module RedSteak
 
 
     # Called by Machine when State is entered.
-    def enter! machine, args
-      _behavior! :enter, machine, args
+    def entry! machine, args
+      _behavior! :entry, machine, args
     end
 
 
