@@ -2,18 +2,20 @@
 module RedSteak
 
   # A Statemachine object.
-  class Statemachine < Base
+  class Statemachine < Namespace
 
-    # The list of all states.
+    # List of State objects.
+    # subsets ownedMember
     attr_reader :states # not UML
     alias :state :states # UML
 
-    # The list of all transitions.
+    # List of Pseudostate objects.
+    # subsets ownedMember
+    attr_reader :connectionPoint # UML
+
+    # List of Transition objects.
     attr_reader :transitions # not UML
     alias :transition :transitions # UML
-
-    # The list of Pseudostates.
-    attr_reader :connectionPoint # UML
 
     # The enclosing State if this is a submachine.
     attr_accessor :submachineState # UML
@@ -52,10 +54,9 @@ module RedSteak
     def deepen_copy! copier, src
       super
 
-      @submachineState = copier[@submachineState]
-
       @states = copier[@states]
       @transitions = copier[@transitions]
+      @submachineState = copier[@submachineState]
 
       @start_state = copier[@start_state]
       @end_state   = copier[@end_state]
@@ -114,6 +115,7 @@ module RedSteak
         raise ArgumentError, "state named #{s.name.inspect} already exists"
       end
 
+      add_ownedMember!(s)
       @states << s
       s.stateMachine = self
 
@@ -132,6 +134,7 @@ module RedSteak
 
       transitions = s.transitions
 
+      remove_ownedMember!(s)
       @states.delete(s)
       s.stateMachine = nil
 
@@ -154,6 +157,7 @@ module RedSteak
         raise ArgumentError, "connectionPoint named #{s.name.inspect} already exists"
       end
 
+      @ownedMember << s
       @connectionPoint << s
       s.stateMachine = self
 
@@ -168,6 +172,7 @@ module RedSteak
     def remove_connectionPoint! s
       _log "remove_Connection! #{s.inspect}"
 
+      @ownedMember.delete(s)
       @connectionPoint.delete(s)
       s.stateMachine = nil
 
@@ -274,11 +279,16 @@ module RedSteak
 
     ##################################################################
 
+    def inspect
+      "#<#{self.class} #{to_s}>"
+    end
+
+
 
     def _log *args
       case 
       when IO === @logger
-        @logger.puts "#{self.to_a.inspect} #{(state && state.to_a).inspect} #{args * " "}"
+        @logger.puts "#{self.to_s} #{args * " "}"
       when defined?(::Log4r) && (Log4r::Logger === @logger)
         @logger.send(log_level || :debug, *args)
       when (x = superstatemachine)

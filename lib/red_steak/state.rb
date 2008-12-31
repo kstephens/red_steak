@@ -19,6 +19,9 @@ module RedSteak
     # This state's submachine, or nil.
     attr_accessor :submachine # UML
 
+    # List of Pseudostates.
+    attr_reader :connectionPoint # UML
+
 
     def initialize opts = { }
       @state_type = nil
@@ -26,6 +29,7 @@ module RedSteak
       @doActivity = nil
       @exit = nil
       @submachine = nil
+      @connectionPoint = NamedArray.new([ ])
       super
     end
 
@@ -34,6 +38,7 @@ module RedSteak
       super
 
       @submachine = copier[@submachine]
+      @connectionPoint = copier[@connectionPoint]
     end
 
 
@@ -124,7 +129,8 @@ module RedSteak
           if ss = superstate
             x.push(*ss.ancestors)
           end
-          x
+          
+          NamedArray.new(x.freeze, :state)
         end
     end
 
@@ -155,6 +161,40 @@ module RedSteak
     # Called after a State removed from its StateMachine.
     def state_removed! statemachine
       transitions_changed!
+    end
+
+
+    # Adds a Pseudostate to this State.
+    def add_connectionPoint! s
+      _log "add_connectionPoint! #{s.inspect}"
+
+      if @connectionPoint.find { | x | x.name == s.name }
+        raise ArgumentError, "connectionPoint named #{s.name.inspect} already exists"
+      end
+
+      @ownedMember << s # ownedElement?!?!
+      @connectionPoint << s
+      s.state = self
+
+      # Notify.
+      s.connectionPoint_added! self
+
+      s
+    end
+
+
+    # Removes a Pseudostate from this Statemachine.
+    def remove_connectionPoint! s
+      _log "remove_Connection! #{s.inspect}"
+
+      @ownedMember.delete(s) # ownedElement?!?!
+      @connectionPoint.delete(s)
+      s.state = nil
+
+      # Notify.
+      s.connectionPoint_removed! self
+
+      self
     end
 
 

@@ -278,13 +278,18 @@ module RedSteak
     # Determine what object should own
     # a new State if one is created.
     def _owner
-      @context[:statemachine]
+      @context[:statemachine] ||
+        (raise Exception, "statemachine is unknown")
     end
 
 
     # Locates a state by name or creates a new object.
-    def _find_state opts, create = true, owner = nil, namespaces = nil
-      # $stderr.puts "_find_state #{opts.inspect}, #{create.inspect} from #{caller(1).first}" if ! create
+    def _find_state opts, param = EMPTY_HASH
+      create = param[:create] != false
+      owner = param[:owner]
+      cls = param[:class] || State
+
+      _log "_find_state #{opts.inspect}, #{param.inspect}"
 
       # Parse opts.
       name = nil
@@ -300,12 +305,10 @@ module RedSteak
         raise ArgumentError, "invalid opts, given #{opts.inspect}"
       end
 
+      # Split Strings on "::"
       name = name.split(SEP) if String === name
  
-      # @logger = $stderr if name == :a
-
       # Determine owner.
-      owner ||= opts.delete(:_owner) if opts[:_owner]
       owner ||= _owner unless owner
       raise Exception, "Cannot determine owner for new State #{name.inspect}" unless owner
 
@@ -322,8 +325,7 @@ module RedSteak
         _log "  looking for State #{name.inspect} in path #{path.inspect}"
         path.each do | e |
           break unless owner
-          # $stderr.puts "  owner = #{owner.inspect}"
-          owner = _find_state(e.to_sym, create, owner)
+          owner = _find_state(e.to_sym, :owner => owner)
         end
         raise ArgumentError, "Cannot locate State #{name.inspect} in #{owner.inspect}" unless owner
 
@@ -345,7 +347,7 @@ module RedSteak
       _log "  state = #{state.inspect} in #{owner.inspect}"
 
 =begin
-      $stderr.puts "owner = #{owner.inspect}"
+      $stderr.puts "  owner = #{owner.inspect}"
       $stderr.puts "caller = #{caller(0)[0 .. 4] * "\n  "}"
       $stderr.puts "state = #{state.inspect}"
 =end
@@ -353,10 +355,13 @@ module RedSteak
       # Create a new one, if requested.
       if create && ! state
         opts[:name] = name
-        opts[:statemachine] ||= @context[:statemachine]
-        state = State.new opts
+        _log "  creating #{cls} #{opts.inspect} for #{owner.inspect}"
+        state = cls.new opts
+        if State === owner
+          owner = owner.submachine
+        end
         owner.add_state! state
-        _log "  created #{state.inspect}"
+        _log "  created #{state.inspect} for #{owner.inspect}"
       else
         if state
           state.options = opts
@@ -373,10 +378,10 @@ module RedSteak
       blk = t[:block]
       opts = t[:opts]
 
-      _log "\n\n_create_transition! #{opts.inspect}"
+      _log "\n\n_create_transition! #{t.inspect}"
 
-      opts[:source] = _find_state opts[:source], :create, owner
-      opts[:target] = _find_state opts[:target], :create, owner
+      opts[:source] = _find_state opts[:source], :owner => owner
+      opts[:target] = _find_state opts[:target], :owner => owner
 
       _log "  #{opts.inspect}"
        

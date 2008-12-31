@@ -114,7 +114,7 @@ module RedSteak
     # Returns an Array representation of this State.
     # Includes superstates and substates.
     def to_a
-      if ss = @stateMachine.submachineState
+      if ss = @stateMachine && @stateMachine.submachineState
         ss.to_a << @name
       else
         [ @name ]

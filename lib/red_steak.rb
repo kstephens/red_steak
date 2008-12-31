@@ -32,6 +32,7 @@ require 'red_steak/base'
 
 # UML Metamodel
 require 'red_steak/named_element'
+require 'red_steak/namespace'
 require 'red_steak/statemachine'
 require 'red_steak/vertex'
 require 'red_steak/state'

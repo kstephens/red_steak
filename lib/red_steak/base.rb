@@ -2,40 +2,6 @@
 
 module RedSteak
 
-  # Copies object graphs with referential integrity.
-  class Copier
-    def self.copy x
-      self.new.copy(x)
-    end
-
-    attr_reader :map
-
-    def initialize
-      @map = { }
-    end
-
-    # Copies x deeply.
-    #
-    # 1) Dups x as xx
-    # 2) calls xx.deepen_copy! copier, x
-    #
-    def copy x
-      return x if ! x
-
-      if xx = @map[x]
-        return xx 
-      end
-
-      xx = @map[x] = (x.dup rescue x)
-      xx.deepen_copy!(self, x) if xx.respond_to?(:deepen_copy!)
-
-      xx
-    end
-
-    alias :[] :copy
-  end
-
-
   # Base class for RedSteak objects.
   class Base 
     # The name of this object.
@@ -157,83 +123,11 @@ module RedSteak
   end # class
 
 
-  # Simple Array proxy for looking up States and Transitions by name.
-  class NamedArray
-    def initialize a = [ ], axis = nil
-      @a = a
-      @axis = axis
-    end
-
-
-    def [] pattern
-      case pattern
-      when Integer
-        @a[pattern]
-      when Array
-        case pattern.size
-        when 0
-          nil
-        when 1
-          self[pattern.first]
-        else
-          x = self[pattern.first]
-          x = x.send(@axis) if @axis
-          x[pattern[1 .. -1]]
-        end
-      when String
-        self[pattern.split(SEP).map{|x| x.to_sym}]
-      else
-        @a.find { | e | e === pattern }
-      end
-    end
-
-
-    def []=(i, v)
-      case i
-      when Integer
-        if v
-          @a[i] = v
-        else
-          @a.delete(i)
-        end
-      else
-        @a.delete_if { | x | x === i }
-        @a << v if v
-      end
-    end
-
-
-    def select &blk
-      self.class.new(@a.select(&blk), @axis)
-    end
-
-
-    def + x
-      @a + x.to_a
-    end
-
-
-    def method_missing sel, *args, &blk
-      @a.send(sel, *args, &blk)
-    end
-
-
-    # Deepens elements through a Copier.
-    def deepen_copy! copier, src
-      @a = @a.map { | x | copier[x] }
-    end
-
-
-    def to_a
-      @a
-    end
-
-
-    EMPTY = self.new([ ].freeze)
-  end # class
-
 end # module
 
+
+require 'red_steak/copier'
+require 'red_steak/named_array'
 
 ###############################################################################
 # EOF

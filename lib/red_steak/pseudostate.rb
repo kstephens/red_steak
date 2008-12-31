@@ -3,7 +3,17 @@ module RedSteak
 
   # 
   class Pseudostate < Vertex
-    # See PseudostateKind
+    # See PseudostateKind.
+    # initial
+    # deepHistory
+    # shallowHistory
+    # join
+    # fork
+    # junction
+    # choice
+    # entryPoint
+    # exitPoint
+    # teminate
     attr_accessor :kind
 
     # The state associated with this Pseudostate.

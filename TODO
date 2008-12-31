@@ -5,6 +5,7 @@
 ** Machine#state=(String|Array).
 ** Add :elapsed_time to history Hash - has performance implication.
 ** Support Statemachine#freeze to avoid accidental changes to a running Statemachine.
+** Support UML Pseudostates.
 
 * Jeremy's Comments:
 ** Builder#start_state and #end_state is confusing,

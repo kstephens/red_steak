@@ -2,7 +2,7 @@
 module RedSteak
 
   # Represents a transition from one state to another state in a statemachine.
-  class Transition < NamedElement
+  class Transition < Namespace
     # See TransitionKind.
     attr_accessor :kind
 
@@ -62,7 +62,7 @@ module RedSteak
 
 
     def inspect
-      "#<#{self.class} #{stateMachine.to_s} #{name} #{source.to_s} -> #{target.to_s}>" 
+      "#<#{self.class} #{@stateMachine.to_s} #{name} #{source.to_s} -> #{target.to_s}>" 
     end
 
   end # class

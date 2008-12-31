@@ -3,12 +3,16 @@ module RedSteak
 
   # Base class for all elements in a Statemachine.
   class NamedElement < Base
+    # The Namespace of this NamedElement.
+    attr_accessor :namespace
+
     # The StateMachine that owns this object.
     attr_accessor :stateMachine # UML
     alias :statemachine :stateMachine # not UML
     alias :statemachine= :stateMachine= # not UML
     
     def intialize opts
+      @namespace = nil
       @stateMachine = nil
       super
     end
@@ -16,7 +20,17 @@ module RedSteak
     
     def deepen_copy! copier, src
       super
+      @namespace = copier[@namespace]
       @stateMachine = copier[@stateMachine]
+    end
+
+
+    
+    def ownedMember_added! ns
+    end
+
+
+    def ownedMember_removed! ns
     end
     
     

@@ -105,11 +105,11 @@ describe RedSteak do
     # There can only one.
     return Thread.current[:statemachine] if Thread.current[:statemachine]
 
-    b = RedSteak::Builder.new
+    b = RedSteak::Builder.new(:logger => false && $stderr)
     # breakpointer
     
     b.build do
-      statemachine :test do
+      statemachine :test, :logger => false && $stderr do
         initial :a
         final :end
     
@@ -208,7 +208,7 @@ describe RedSteak do
     e.targets.to_a.should == [ ]
     e.sources.to_a.map{|s| s.to_s}.should == [ 'c', 'd', 'd::end' ]
 
-    sm.states.find{|s| s.name == :a}.options[:option_foo].should == :foo
+    sm.states[:a].options[:option_foo].should == :foo
 
     sm.validate.should == [ ]
 
@@ -527,9 +527,10 @@ describe RedSteak do
 
 
   it 'should handle transitions across substates and states' do
+    logger = nil && $stderr
     sm = RedSteak::Statemachine.
-      new(:name => :test2).
-      build(:logger => false && $stderr) do
+      new(:name => :test2, :logger => logger).
+      build(:logger => logger) do
       initial :a
       final :end
       
