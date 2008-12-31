@@ -8,15 +8,12 @@
 ** Support UML Pseudostates.
 
 * Jeremy's Comments:
-** Builder#start_state and #end_state is confusing,
-Use #initial and #final or the UML metamodel names for these
-   concepts.
 ** Having to call start! explicitly is troublesome.
-** Setting Machine#context more than once could cause confusing.
+** Setting Machine#context more than once could cause confusion.
 ** Need a way to do Statemachine#freeze, which will throw errors if new states/transitions are added.
 ** When you enter into a substate, lazyly create a Submachine.
+  "This will not be implemented as it is counter to UML semantics"
 ** Need to have a way to disable Machine#context= and Machine#state= to prevent foolishness.
 ** There is an implied nil "start!" transition in the Machine#history,
 not sure what to do about this.
-** Make the Machine#history an Object or an Array, specify the method to call with options[:history_add].
 
