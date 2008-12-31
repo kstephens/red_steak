@@ -36,26 +36,26 @@ subgraph cluster_x2 {
   node [ shape="doublecircle", label="end", style="filled,rounded", color=black, fillcolor=black, fontcolor=white ] x8;
 
 // #<RedSteak::Transition test2 b->c b -> c>
-x6 -> x7 [ label="b->c", color=gray, fontcolor=gray ];
+x6 -> x7 [ label="b->c", color=black, fontcolor=black ];
 
 // #<RedSteak::Transition test2 c->end c -> end>
-x7 -> x8 [ label="c->end", color=gray, fontcolor=gray ];
+x7 -> x8 [ label="c->end", color=black, fontcolor=black ];
 x1_START -> x9;
 
 // #<RedSteak::Transition test2::a a::a->b a::a -> b>
-x3 -> x6 [ label="a::a->b", color=gray, fontcolor=gray ];
+x3 -> x6 [ label="a::a->b", color=black, fontcolor=black ];
 
 // #<RedSteak::Transition test2::a a::a->a::c a::a -> a::c>
-x3 -> x5 [ label="a::a->a::c", color=gray, fontcolor=gray ];
+x3 -> x5 [ label="a::a->a::c", color=black, fontcolor=black ];
 
 // #<RedSteak::Transition test2::a a::b->c a::b -> c>
-x4 -> x7 [ label="a::b->c", color=gray, fontcolor=gray ];
+x4 -> x7 [ label="a::b->c", color=black, fontcolor=black ];
 
 // #<RedSteak::Transition test2::a a::b->a::c a::b -> a::c>
-x4 -> x5 [ label="a::b->a::c", color=gray, fontcolor=gray ];
+x4 -> x5 [ label="a::b->a::c", color=black, fontcolor=black ];
 
 // #<RedSteak::Transition test2::a a::c->c a::c -> c>
-x5 -> x7 [ label="a::c->c", color=gray, fontcolor=gray ];
+x5 -> x7 [ label="a::c->c", color=black, fontcolor=black ];
 x2_START -> x3;
 }
 // } #<RedSteak::Statemachine test2>

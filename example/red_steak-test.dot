@@ -41,50 +41,50 @@ subgraph cluster_x5 {
 // #<RedSteak::State test end>
   node [ shape="doublecircle", label="end", style="filled,rounded", color=black, fillcolor=black, fontcolor=white ] x10;
 
-// #<RedSteak::Transition :foo a -> a>
+// #<RedSteak::Transition test foo a -> a>
 x2 -> x2 [ label="foo", color=black, fontcolor=black ];
 
-// #<RedSteak::Transition :bar a -> a>
+// #<RedSteak::Transition test bar a -> a>
 x2 -> x2 [ label="bar", color=black, fontcolor=black ];
 
-// #<RedSteak::Transition :a_to_b a -> b>
+// #<RedSteak::Transition test a_to_b a -> b>
 x2 -> x3 [ label="a_to_b", color=black, fontcolor=black ];
 
-// #<RedSteak::Transition :"b->c" b -> c>
+// #<RedSteak::Transition test b->c b -> c>
 x3 -> x4 [ label="b->c", color=black, fontcolor=black ];
 
-// #<RedSteak::Transition :c2 b -> c>
+// #<RedSteak::Transition test c2 b -> c>
 x3 -> x4 [ label="c2", color=black, fontcolor=black ];
 
-// #<RedSteak::Transition :"c->a" c -> a>
+// #<RedSteak::Transition test c->a c -> a>
 x4 -> x2 [ label="c->a", color=black, fontcolor=black ];
 
-// #<RedSteak::Transition :"c->end" c -> end>
+// #<RedSteak::Transition test c->end c -> end>
 x4 -> x10 [ label="c->end", color=black, fontcolor=black ];
 
-// #<RedSteak::Transition :"a->d" a -> d>
+// #<RedSteak::Transition test a->d a -> d>
 x2 -> x5_START [ label="a->d", color=black, fontcolor=black ];
 
-// #<RedSteak::Transition :"d->end" d -> end>
+// #<RedSteak::Transition test d->end d -> end>
 x5_START -> x10 [ label="d->end", color=black, fontcolor=black ];
 x1_START -> x2;
 
-// #<RedSteak::Transition :"d::d1->d::d2" d::d1 -> d::d2>
+// #<RedSteak::Transition test::d d::d1->d::d2 d::d1 -> d::d2>
 x6 -> x7 [ label="d::d1->d::d2", color=black, fontcolor=black ];
 
-// #<RedSteak::Transition :"d::d1->d::end" d::d1 -> d::end>
+// #<RedSteak::Transition test::d d::d1->d::end d::d1 -> d::end>
 x6 -> x9 [ label="d::d1->d::end", color=black, fontcolor=black ];
 
-// #<RedSteak::Transition :"d::d2->d::d1" d::d2 -> d::d1>
+// #<RedSteak::Transition test::d d::d2->d::d1 d::d2 -> d::d1>
 x7 -> x6 [ label="d::d2->d::d1", color=black, fontcolor=black ];
 
-// #<RedSteak::Transition :"d::d2->d::end" d::d2 -> d::end>
+// #<RedSteak::Transition test::d d::d2->d::end d::d2 -> d::end>
 x7 -> x9 [ label="d::d2->d::end", color=black, fontcolor=black ];
 
-// #<RedSteak::Transition :"d::d3->d::d1" d::d3 -> d::d1>
+// #<RedSteak::Transition test::d d::d3->d::d1 d::d3 -> d::d1>
 x8 -> x6 [ label="d::d3->d::d1", color=black, fontcolor=black ];
 
-// #<RedSteak::Transition :"d::d2->d::d3" d::d2 -> d::d3>
+// #<RedSteak::Transition test::d d::d2->d::d3 d::d2 -> d::d3>
 x7 -> x8 [ label="d::d2->d::d3", color=black, fontcolor=black ];
 x5_START -> x6;
 }

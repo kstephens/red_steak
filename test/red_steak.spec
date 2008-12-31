@@ -337,14 +337,17 @@ describe RedSteak do
     m.transition! :"c->a"
     m.state.name.should == :a
     m.history.size.should == 4
+    m.state.outgoing.map{|t| t.name}.should == [ :foo, :bar, :a_to_b, :'a->d' ] 
 
     m.transition! "foo"
     m.state.name.should == :a
     m.history.size.should == 5
+    m.state.outgoing.map{|t| t.name}.should == [ :foo, :bar, :a_to_b, :"a->d" ]
 
     m.transition! :bar
     m.state.name.should == :a
     m.history.size.should == 6
+    m.state.outgoing.map{|t| t.name}.should == [ :foo, :bar, :a_to_b, :"a->d" ]
 
     m.transition! "foo"
     m.state.name.should == :a
@@ -431,7 +434,7 @@ describe RedSteak do
     ssm.state.should === :d1
     ssm.state.should === "d::d1"
     ssm.state.should === /^d::/
-    ssm.state.should === m.stateMachine.states[:d]
+    ssm.state.should === ssm.state.superstate
     ssm.at_start?.should == true
 
     ssm.transition_to! :d2
@@ -503,32 +506,34 @@ describe RedSteak do
 
     m.transition_to! :end
     m.state.name.should == :end
-
+    
     render_graph m, :show_history => true
-
+    
   end
 
 
-  it 'should handle substates' do
+  it 'should handle transitions across substates and states' do
     sm = RedSteak::Statemachine.
-    new(:name => :test2).
-    build(:logger => nil && $stderr) do
+      new(:name => :test2).
+      build(:logger => false && $stderr) do
       initial :a
       final :end
-
+      
       state :a do
-        initial :a
+        submachine do
+          initial :a
+          
+          state :a # same as "a::a"
+          transition [ :b ] # same as "b"
+          transition :c
+    
+          state :b          # same as "a:;b"
+          transition [ :c ] # same as "c"
+          transition :c
 
-        state :a          # same as "a::a"
-        transition [ :b ] # same as "b"
-        transition :c
-
-        state :b          # same as "a:;b"
-        transition [ :c ] # same as "c"
-        transition :c
-
-        state :c          # same as "a::c"
-        transition "c"
+          state :c          # same as "a::c"
+          transition "c"
+        end
       end
 
       state :b
@@ -538,19 +543,39 @@ describe RedSteak do
       transition :end
     end
 
+    render_graph sm
 
     # $stderr.puts "transitions = #{sm.transitions.inspect}"
-      
-    sm.states[:a].substates.map{|s| s.to_s}.should == [ "a::a", "a::b", "a::c" ]
-    sm.states["a::a"].superstate.should == sm.states["a"]
+    sm.state[:a].should == sm.state['a']
+    sm.state[:b].should == sm.state['b']
+    sm.state[:c].should == sm.state['c']
 
-    sm.states["a::a"].targets.map{|s| s.to_s}.should == [ "b", "a::c" ]
-    sm.states["a::b"].targets.map{|s| s.to_s}.should == [ "c", "a::c" ]
-    sm.states["a::c"].targets.map{|s| s.to_s}.should == [ "c" ]
 
-    sm.states[:c].sources.map{|s| s.to_s}.should == [ 'a::b', 'a::c', 'b' ]
+    sm.state[:a].source.map{|s| s.to_s}.should == [ ]
+    sm.state[:a].target.map{|s| s.to_s}.should == [ ]
+    
+    sm.state[:a].state.map{|s| s.to_s}.should == [ "a::a", "a::b", "a::c" ]
+    sm.state["a::a"].superstate.should == sm.states["a"]
+    sm.state["a::a"].should === sm.states["a"]
+
+    sm.state["a::a"].target.map{|s| s.to_s}.should == [ "b", "a::c" ]
+    sm.state["a::a"].source.map{|s| s.to_s}.should == [ ]
+  
+    sm.state["a::b"].target.map{|s| s.to_s}.should == [ "c", "a::c" ]
+    sm.state["a::b"].source.map{|s| s.to_s}.should == [ ]
+
+    sm.state["a::c"].target.map{|s| s.to_s}.should == [ "c" ]
+    sm.state["a::c"].source.map{|s| s.to_s}.should == [ "a::a", "a::b" ]
+
+    sm.state[:b].state.map{|s| s.to_s}.should == [ ]
+    sm.state[:b].source.map{|s| s.to_s}.should == [ 'a::a' ]
+    sm.state[:b].target.map{|s| s.to_s}.should == [ 'c' ]
+
+    sm.state[:c].state.map{|s| s.to_s}.should == [ ]
+    sm.state[:c].source.map{|s| s.to_s}.should == [ 'a::b', 'a::c', 'b' ]
 
     render_graph sm, :show_history => true
+
   end
   
 end # describe

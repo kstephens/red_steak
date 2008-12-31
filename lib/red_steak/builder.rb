@@ -1,9 +1,9 @@
 
 module RedSteak
 
-  # DSL for building state machines.
+  # DSL for building StateMachine objects.
   class Builder
-    # The top-level statemachine.
+    # The top-level StateMachine.
     attr_accessor :result
 
     # Logger
@@ -14,6 +14,8 @@ module RedSteak
       @context_stack = { }
       @previous = { }
       @logger = nil
+      @states = [ ]
+      @transitions = [ ]
 
       opts.each do | k, v |
         s = "#{k}="
@@ -39,7 +41,7 @@ module RedSteak
     # DSL methods
     #
 
-    # Creates a new statemachine or augments an existing one.
+    # Creates a new StateMachine or augments an existing one.
     #
     # Create syntax:
     #
@@ -101,29 +103,40 @@ module RedSteak
       _with_context(:state, nil) do
         _with_context(:initial, nil) do 
           _with_context(:final, nil) do
-            _with_context(:transitions, [ ]) do
-              _with_context(:namespace, sm) do
-                _with_context(:statemachine, sm) do 
-                  instance_eval &blk if blk
+            _with_context(:namespace, sm) do
+              _with_context(:statemachine, sm) do 
+                instance_eval &blk if blk
                 
                 # Set start, end states.
                 sm.start_state = _find_state(@context[:initial]) if @context[:initial]
                 sm.end_state   = _find_state(@context[:final])   if @context[:final]
                 
-#=begin
+              end # statemachine
+
+              # Outermost statemachine?
+              if @context[:statemachine] == nil
+                _log "\n\nCreating transitions:"
                 # Create transitions.
-                @context[:transitions].each do | t |
+                @transitions.each do | t |
                   _create_transition! t
                 end
-#=end
-              end # statemachine
-              end # namespace
-            end # transitions
+                @transitions.clear
+              end
+            end # namespace
           end # end_state
         end # start_state
       end # state
       
       sm
+    end
+
+    
+    # Defines a submachine inside a State.
+    def submachine opts = { }, &blk
+      raise ArgumentError, "submachine only valid inside a state" unless State === @current
+      raise ArgumentError, "submachine only valid once inside a state" if @current.submachine
+      name = @current.name
+      statemachine name, opts, &blk
     end
 
 
@@ -135,7 +148,7 @@ module RedSteak
     end
 
 
-    # Defines the finial state.
+    # Defines the final state.
     def final name, opts = { }
       opts[:name] = name
       @context[:final] = opts
@@ -143,6 +156,7 @@ module RedSteak
     end
 
 
+    # Definse a Pseudostate.
     def pseudostate kind, name, opts = { }
       raise NotImplemented
     end
@@ -155,11 +169,15 @@ module RedSteak
     #   state :name
     #   state :name, :option_1 => 'foo'
     #   state :name do
-    #     state :substate_1
-    #     state :substate_2
+    #     submachine do 
+    #       state :substate_1
+    #       state :substate_2
+    #     end
     #   end
     #
     def state name, opts = { }, &blk
+      raise ArgumentError, "states must be defined within a statemachine or submachine" unless Statemachine === @current
+
       opts[:name] = name
 
       s = _find_state opts
@@ -217,25 +235,15 @@ module RedSteak
       raise ArgumentError, "target state not given" unless opts[:target]
       
       opts[:statemachine] = @context[:statemachine]
-      @context[:transitions] << {
+      @transitions << {
         :block => blk,
         :owner => _owner,
         :opts => opts,
       }
-      # _find_transition opts
       
       self
     end
     
-
-    # Dispatches method to the current context.
-    def method_missing sel, *args, &blk
-      if @current && @current.respond_to?(sel)
-        return @current.send(sel, *args, &blk)
-      end
-      super
-    end
-
 
     private
 
@@ -270,11 +278,14 @@ module RedSteak
     # Determine what object (a Statemachine or a (super)State) should own
     # a new State if one is created.
     def _owner
+=begin
       # If the current object is a State,
       # the owner is the current superstate.
       # Else:
       # The owner of the State is the current Statemachine.
       owner = @context[:state] || @context[:statemachine]
+=end
+      owner = @context[:statemachine]
       
       owner
     end
@@ -283,8 +294,6 @@ module RedSteak
 
     # Locates a state by name or creates a new object.
     def _find_state opts, create = true, owner = nil, namespaces = nil
-      raise ArgumentError, "invalid opts #{opts.inspect}" unless opts
-
       # $stderr.puts "_find_state #{opts.inspect}, #{create.inspect} from #{caller(1).first}" if ! create
 
       # Parse opts.
@@ -298,7 +307,7 @@ module RedSteak
       when State
         return opts
       else
-        raise ArgumentError, "given #{opts.inspect}"
+        raise ArgumentError, "invalid opts, given #{opts.inspect}"
       end
 
       name = name.split(SEP) if String === name
@@ -320,7 +329,7 @@ module RedSteak
         path = name
         name = path.pop.to_sym
         owner = @result
-        _log "  looking for path #{path.inspect} name #{name.inspect}"
+        _log "  looking for State #{name.inspect} in path #{path.inspect}"
         path.each do | e |
           break unless owner
           # $stderr.puts "  owner = #{owner.inspect}"
@@ -337,7 +346,7 @@ module RedSteak
 
         # Try owner first.
         if owner
-          _log "  looking for #{name.inspect} directly in owner = #{owner.inspect}:"
+          _log "  looking for State #{name.inspect} directly in owner = #{owner.inspect}:"
           state = owner.states[name]
         end
       end
@@ -370,19 +379,19 @@ module RedSteak
 
     # Called after all States have been created.
     def _create_transition! t
-      namespaces = t[:namespaces]
       owner = t[:owner]
       blk = t[:block]
       opts = t[:opts]
 
-      _log "_create_transition! #{opts.inspect}"
+      _log "\n\n_create_transition! #{opts.inspect}"
 
-      opts[:source] = _find_state opts[:source], :create, owner, namespaces
-      opts[:target] = _find_state opts[:target], :create, owner, namespaces
+      opts[:source] = _find_state opts[:source], :create, owner
+      opts[:target] = _find_state opts[:target], :create, owner
 
       _log "  #{opts.inspect}"
        
       t = _find_transition opts
+
       _with_context :transition, t do        
         instance_eval &blk if blk
       end
@@ -397,14 +406,14 @@ module RedSteak
       opts[:target] = _find_state opts[:target]
       opts[:name] ||= "#{opts[:source].to_s}->#{opts[:target].to_s}".to_sym
 
-      t = @context[:statemachine].transitions.find do | x |
+      t = opts[:statemachine].transitions.find do | x |
         opts[:name] == x.name
       end
       
       unless t
-        opts[:statemachine] = @context[:statemachine]
+        # opts[:statemachine] ||= @context[:statemachine]
         t = Transition.new opts
-        @context[:statemachine].add_transition! t
+        opts[:statemachine].add_transition! t
       else
         if t
           opts.delete(:name)

@@ -1,12 +1,13 @@
 # require 'debug'
 
-# An extensible, instantiable, cloneable statemachine.
+# An extensible, instantiable, cloneable statemachine written in Ruby.
 #
 # Features:
 #
+# * Implements UML 2.x StateMachines (partially).
 # * Statemachines can be instantiated then cloned via #dup.
-# * Substatemachines are supported, a state may have an imbedded statemachine.
-# * Builder DSL simplifies construction of DSL.
+# * Submachines are supported, a state may have an imbedded statemachine.
+# * Builder DSL simplifies construction of complex statemachines.
 # * Statemachines can be serialized.
 # * Statemachines can be modified on-the-fly.
 # * Context objects can be notfied of transitions.

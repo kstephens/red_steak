@@ -4,7 +4,9 @@ module RedSteak
   # Renders a Statemachine as a Dot syntax stream.
   class Dot < Base
     # The root statemachine to be rendered.
-    attr_accessor :statemachine
+    attr_accessor :stateMachine
+    alias :statemachine  :stateMachine  # not UML
+    alias :statemachine= :stateMachine= # not UML
 
     # The output stream.
     attr_accessor :stream
@@ -21,9 +23,9 @@ module RedSteak
     def dot_name x
       case 
       when Statemachine
-        x.superstate ? "#{dot_name(x.superstate)}#{SEP}#{x.name}" : x.name.to_s
+        x.submachineState ? "#{dot_name(x.submachineState)}#{SEP}#{x.name}" : x.name.to_s
       when State
-        "#{dot_name(x.statemachine)}#{SEP}#{x.name}" # x.inspect
+        "#{dot_name(x.stateMachine)}#{SEP}#{x.name}" # x.inspect
 #      when Transition
       else
         raise ArgumentError, x
@@ -39,10 +41,10 @@ module RedSteak
     # Returns the Dot label for the object.
     def dot_label x
       case
-      when Statemachine
-        x.superstate ? "#{dot_label(x.superstatemachine)}#{SEP}#{x.name}" : x.name.to_s
-#      when State
-#      when Transition
+      when Statemachine, State, Transition
+        x.to_s
+      when String, Integer
+        x.to_s
       else
         raise ArgumentError, x
       end
@@ -50,11 +52,11 @@ module RedSteak
 
 
     # Renders object as Dot syntax.
-    def render x = @statemachine
+    def render x = @stateMachine
       case x
       when Machine
         options[:history] ||= x.history
-        render x.statemachine
+        render x.stateMachine
       when Statemachine
         render_root x
       when State
@@ -68,7 +70,7 @@ module RedSteak
 
 
     def render_root sm
-      @statemachine ||= sm
+      @stateMachine ||= sm
       stream.puts "\n// {#{sm.inspect}"
       stream.puts "digraph #{dot_name(sm)} {"
 
@@ -96,7 +98,7 @@ module RedSteak
       sm.transitions.each { | t | render(t) }
       sm.states.each do | s |
         if s.start_state?
-          stream.puts "#{(dot_name(s.statemachine) + '_START')} -> #{dot_name(s)};"
+          stream.puts "#{(dot_name(s.stateMachine) + '_START')} -> #{dot_name(s)};"
         end
         if ssm = s.submachine
           render_transitions(ssm)
@@ -182,10 +184,8 @@ module RedSteak
       end
 
 
-      if ! s.substates.empty?
-        render_Statemachine(s, dot_opts)
-      elsif ssm = s.submachine
-        render_Statemachine(ssm)
+      if ssm = s.submachine
+        render_Statemachine(ssm, dot_opts)
         # stream.puts %Q{#{dot_name(s)} -> #{(dot_name(ssm) + '_START')} [ label="substate", style=dashed ];}
       else
         stream.puts %Q{  node [ shape="#{dot_opts[:shape]}", label=#{dot_opts[:label].inspect}, style="#{dot_opts[:style]},rounded", color=#{dot_opts[:color]}, fillcolor=#{dot_opts[:fillcolor]}, fontcolor=#{dot_opts[:fontcolor]} ] #{dot_name(s)};}
@@ -217,7 +217,7 @@ module RedSteak
       sequence = [ ]
 
       if options[:show_history] && options[:history]
-        # $stderr.puts "\n  trans = #{t.inspect}, sm = #{t.statemachine.inspect}"
+        # $stderr.puts "\n  trans = #{t.inspect}, sm = #{t.stateMachine.inspect}"
         options[:history].each_with_index do | hist, i |
           if hist[:transition] === t
             # $stderr.puts "  #{i} hist = #{hist.inspect}"

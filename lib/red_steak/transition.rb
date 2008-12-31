@@ -24,6 +24,7 @@ module RedSteak
 
       @source = copier[@source]
       @target = copier[@target]
+      @participant = nil
     end
 
 
@@ -39,8 +40,10 @@ module RedSteak
     end
 
 
-    def participants
-      NamedArray.new([ @source, @target ].uniq, :states)
+    # Returns the source and target.
+    def participant
+      @participant ||=
+        NamedArray.new([ @source, @target ].uniq, :state)
     end
 
 
@@ -59,12 +62,7 @@ module RedSteak
 
 
     def inspect
-      "#<#{self.class} #{name.inspect} #{source.to_s} -> #{target.to_s}>" 
-    end
-
-
-    def _log *args
-      statemachine._log(*args)
+      "#<#{self.class} #{stateMachine.to_s} #{name} #{source.to_s} -> #{target.to_s}>" 
     end
 
   end # class

@@ -208,6 +208,11 @@ module RedSteak
     end
 
 
+    def + x
+      @a + x.to_a
+    end
+
+
     def method_missing sel, *args, &blk
       @a.send(sel, *args, &blk)
     end

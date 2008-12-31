@@ -6,21 +6,27 @@ module RedSteak
     # This vertex kind.
     attr_accessor :kind
 
-    # This state's superstate.
-    attr_accessor :superstate
+    # List of Transitions into this Vertex.
+    attr_reader :incoming
+
+    # List of Transitions away from this Vertex.
+    attr_reader :outgoing
 
 
-    def intialize opts = { }
+    def initialize opts = { }
       @kind = nil
-      @superstate = nil
+      transitions_changed!
+      @incoming = NamedArray.new([ ], :state)
+      @outgoing = NamedArray.new([ ], :state)
       super
     end
 
 
     def deepen_copy! copier, src
       super
-
       transitions_changed!
+      @incoming = copier[@incoming]
+      @outgoing = copier[@outgoing]
     end
 
 
@@ -28,76 +34,63 @@ module RedSteak
     def transitions_changed!
       # $stderr.puts "  #{name.inspect} transitions_changed!"
 
-      @transitions =
-        @outgoing =
-        @incoming = 
-        @targets =
-        @sources =
+      @transition =
+        @target =
+        @source =
         nil
     end
 
 
     # Called after a Transition is connected to this state.
-    def transition_added! statemachine
+    def transition_added! transition
       transitions_changed!
-     end
+      if self == transition.target
+        @incoming << transition unless @incoming.include?(transition)
+      end
+      if self == transition.source
+        @outgoing << transition unless @outgoing.include?(transition)
+      end
+
+      # $stderr.puts "transition_added! #{self.inspect} #{@incoming.inspect} #{@outgoing.inspect}"
+    end
 
 
     # Called after a Transition removed from this state.
-    def transition_removed! statemachine
+    def transition_removed! transition
       transitions_changed!
     end
 
 
-    # Returns a list of Transitions incoming or outgoing this State.
-    def transitions
-      @transitions ||= 
+    # Returns a list of Transitions incoming to or outgoing from this State.
+    def transition
+      @transition ||= 
         NamedArray.new(
-                       stateMachine.transitions.select { | t | 
-                         t.source == self || t.target == self
-                       }.freeze
+                       (incoming + outgoing).uniq.freeze                
                        )
     end
-
-
-    # Returns a list of Transitions incoming to this State.
-    # May include outgoing Transitions than return to this State.
-    def incoming
-      @incoming ||=
-        NamedArray.new(
-                       transitions.select { | t | t.target == self }.freeze
-                       )
-    end
-
-
-    # Returns a list of Transitions outgoing from this State.
-    # May include incoming Transitions that return to this State.
-    def outgoing
-      @outgoing ||=
-        NamedArray.new(
-                       transitions.select { | t | t.source == self }.freeze
-                       )
-    end
+    alias :transitions :transition
 
 
     # Returns a list of States that are immediately transitional from this one.
-    def targets
-      @targets ||=
+    def target
+      @target ||=
         NamedArray.new(
                        outgoing.map { | t | t.target }.uniq.freeze,
-                       :states
+                       :state
                        )
     end
+    alias :targets :target
 
 
     # Returns a list of States that are immediately transitional to this one.
-    def sources
-      @sources ||=
+    def source
+      @source ||=
         NamedArray.new(
                        incoming.map { | t | t.source }.uniq.freeze,
-                       :states
+                       :state
                        )
     end
+    alias :sources :source
 
 
     # Returns true if this matches x.
@@ -121,21 +114,11 @@ module RedSteak
     # Returns an Array representation of this State.
     # Includes superstates and substates.
     def to_a
-      if superstate
-        superstate.to_a << @name
+      if ss = @stateMachine.submachineState
+        ss.to_a << @name
       else
         [ @name ]
       end
-    end
-
-
-    def inspect
-      "#<#{self.class} #{@stateMachine.to_s} #{to_s}>"
-    end
-
-
-    def _log *args
-      statemachine._log(*args)
     end
 
   end # class

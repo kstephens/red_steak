@@ -21,8 +21,8 @@ module RedSteak
     
     
     # Called by subclasses to notify/query the context object for specific actions.
-    # Will get the method from local options or the statemachine's options Hash.
-    # The context is either the local object's context or the statemachine's context.
+    # Will get the method from local options or the StateMachine's options Hash.
+    # The context is either the local object's context or the StateMachine's context.
     def _behavior! action, machine, args
       raise ArgumentError, 'action is not a Symbol' unless Symbol === action
       
@@ -47,6 +47,16 @@ module RedSteak
       end
     end
     
+
+    def inspect
+      "#<#{self.class} #{@stateMachine.to_s} #{to_s}>"
+    end
+
+
+    def _log *args
+      stateMachine._log(*args)
+    end
+
   end # class
 
 end # module

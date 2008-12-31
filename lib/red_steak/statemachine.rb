@@ -15,9 +15,10 @@ module RedSteak
     # The list of Pseudostates.
     attr_reader :connectionPoint # UML
 
-    # The superstate if this is a submachine.
-    attr_accessor :superstate # not UML
-    alias :submachineState :superstate # UML
+    # The enclosing State if this is a submachine.
+    attr_accessor :submachineState # UML
+    alias :superstate :submachineState # not UML
+    alias :superstate= :submachineState= # not UML
 
     # The start state.
     attr_accessor :start_state # not UML
@@ -34,9 +35,9 @@ module RedSteak
 
 
     def initialize opts
-      @states = NamedArray.new([ ], :states)
+      @states = NamedArray.new([ ], :state)
       @transitions = NamedArray.new([ ])
-      @superstate = nil
+      @submachineState = nil
       @start_state = nil
       @end_state = nil
 
@@ -51,7 +52,7 @@ module RedSteak
     def deepen_copy! copier, src
       super
 
-      @superstate = copier[@superstate]
+      @submachineState = copier[@submachineState]
 
       @states = copier[@states]
       @transitions = copier[@transitions]
@@ -95,7 +96,7 @@ module RedSteak
 
     # Returns the superstatemachine of this State.
     def superstatemachine
-      @superstate && @superstate.stateMachine
+      @submachineState && @submachineState.stateMachine
     end
 
 
@@ -109,11 +110,6 @@ module RedSteak
 
       @states << s
       s.stateMachine = self
-
-      # Attach to superstate.
-      if ss = superstate
-        s.superstate = ss
-      end
 
       # Notify.
       s.state_added! self
@@ -208,13 +204,13 @@ module RedSteak
 
       # Notify.
       if t.source
-        t.source = nil
         t.source.transition_removed! t
+        t.source = nil
       end
 
       if t.target
-        t.target = nil
         t.target.transition_removed! t
+        t.target = nil
       end
 
       self
