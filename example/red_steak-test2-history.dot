@@ -55,5 +55,6 @@ x6 -> x7 [ label="b->c", color=gray, fontcolor=gray ];
 
 // #<RedSteak::Transition :"c->end" c -> end>
 x7 -> x8 [ label="c->end", color=gray, fontcolor=gray ];
+x1_START -> x2;
 }
 // } #<RedSteak::Statemachine test2>

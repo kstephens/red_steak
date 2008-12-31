@@ -99,16 +99,16 @@ module RedSteak
       end
 
       _with_context(:state, nil) do
-        _with_context(:start_state, nil) do 
-          _with_context(:end_state, nil) do
+        _with_context(:initial, nil) do 
+          _with_context(:final, nil) do
             _with_context(:transitions, [ ]) do
               _with_context(:namespace, sm) do
                 _with_context(:statemachine, sm) do 
                   instance_eval &blk if blk
                 
                 # Set start, end states.
-                sm.start_state = _find_state(@context[:start_state]) if @context[:start_state]
-                sm.end_state   = _find_state(@context[:end_state])   if @context[:end_state]
+                sm.start_state = _find_state(@context[:initial]) if @context[:initial]
+                sm.end_state   = _find_state(@context[:final])   if @context[:final]
                 
 #=begin
                 # Create transitions.
@@ -127,17 +127,24 @@ module RedSteak
     end
 
 
-    # Defines the start state.
-    def start_state state
-      @context[:start_state] = state
+    # Defines the initial state.
+    def initial name, opts = { }
+      opts[:name] = name
+      @context[:initial] = opts
       self
     end
 
 
-    # Defines the end state.
-    def end_state state
-      @context[:end_state] = state
+    # Defines the finial state.
+    def final name, opts = { }
+      opts[:name] = name
+      @context[:final] = opts
       self
+    end
+
+
+    def pseudostate kind, name, opts = { }
+      raise NotImplemented
     end
 
 

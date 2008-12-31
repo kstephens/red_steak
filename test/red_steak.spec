@@ -104,8 +104,8 @@ describe RedSteak do
     
     b.build do
       statemachine :test do
-        start_state :a
-        end_state :b
+        initial :a
+        final :b
     
         state :a, :option_foo => :foo
         transition :a, :name => 'foo'
@@ -130,8 +130,8 @@ describe RedSteak do
         transition :end
         state :d do
           statemachine do
-            start_state :d1
-            end_state :end
+            initial :d1
+            final :end
             
             state :d1
             transition :d2
@@ -149,7 +149,7 @@ describe RedSteak do
           end
         end
 
-        end_state :end
+        final :end
       end
     end
     
@@ -513,10 +513,12 @@ describe RedSteak do
     sm = RedSteak::Statemachine.
     new(:name => :test2).
     build(:logger => nil && $stderr) do
-      start_state 'a::a'
-      end_state :end
+      initial :a
+      final :end
 
       state :a do
+        initial :a
+
         state :a          # same as "a::a"
         transition [ :b ] # same as "b"
         transition :c
@@ -534,8 +536,6 @@ describe RedSteak do
 
       state :c 
       transition :end
-
-      state :end
     end
 
 
