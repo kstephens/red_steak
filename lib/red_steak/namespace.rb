@@ -28,7 +28,7 @@ module RedSteak
 
 
     def add_ownedMember! m
-      _log "add_ownedMember! #{m.inspect}"
+      _log { "add_ownedMember! #{m.inspect}" }
 
       if @ownedMember.find { | x | x.class == m.class && x.name == m.name }
         raise ArgumentError, "object named #{m.name.inspect} already exists"
@@ -45,7 +45,7 @@ module RedSteak
 
 
     def remove_ownedMember! m
-      _log "remove_ownedMember! #{m.inspect}"
+      _log { "remove_ownedMember! #{m.inspect}" }
 
       @ownedMember.delete(m)
       m.namespace = nil
@@ -60,17 +60,18 @@ module RedSteak
     ##################################################################
 
 
-    def _log *args
+    def _log msg = nil
       case 
       when IO === @logger
-        @logger.puts "#{self.to_a.inspect} #{(state && state.to_a).inspect} #{args * " "}"
+        msg ||= yield
+        @logger.puts "#{self.self} #{msg}"
       when defined?(::Log4r) && (Log4r::Logger === @logger)
+        msg ||= yield
         @logger.send(log_level || :debug, *args)
       when (x = @namespace)
-        x._log *args
+        x._log(msg) { yield }
       end
     end
-
 
 
   end # class

@@ -115,7 +115,7 @@ module RedSteak
 
               # Outermost statemachine?
               if @context[:statemachine] == nil
-                _log "\n\nCreating transitions:"
+                _log { "\n\nCreating transitions:" }
                 # Create transitions.
                 @transitions.each do | t |
                   _create_transition! t
@@ -289,7 +289,7 @@ module RedSteak
       owner = param[:owner]
       cls = param[:class] || State
 
-      _log "_find_state #{opts.inspect}, #{param.inspect}"
+      _log { "_find_state #{opts.inspect}, #{param.inspect}" }
 
       # Parse opts.
       name = nil
@@ -322,7 +322,7 @@ module RedSteak
         path = name
         name = path.pop.to_sym
         owner = @result
-        _log "  looking for State #{name.inspect} in path #{path.inspect}"
+        _log { "  looking for State #{name.inspect} in path #{path.inspect}" }
         path.each do | e |
           break unless owner
           owner = _find_state(e.to_sym, :owner => owner)
@@ -338,13 +338,13 @@ module RedSteak
 
         # Try owner first.
         if owner
-          _log "  looking for State #{name.inspect} directly in owner = #{owner.inspect}:"
+          _log { "  looking for State #{name.inspect} directly in owner = #{owner.inspect}:" }
           state = owner.state[name]
         end
       end
 
 
-      _log "  state = #{state.inspect} in #{owner.inspect}"
+      _log { "  state = #{state.inspect} in #{owner.inspect}" }
 
 =begin
       $stderr.puts "  owner = #{owner.inspect}"
@@ -355,13 +355,10 @@ module RedSteak
       # Create a new one, if requested.
       if create && ! state
         opts[:name] = name
-        _log "  creating #{cls} #{opts.inspect} for #{owner.inspect}"
+        _log { "  creating #{cls} #{opts.inspect} for #{owner.inspect}" }
         state = cls.new opts
-        if State === owner
-          owner = owner.submachine
-        end
         owner.add_state! state
-        _log "  created #{state.inspect} for #{owner.inspect}"
+        _log { "  created #{state.inspect} for #{owner.inspect}" }
       else
         if state
           state.options = opts
@@ -378,12 +375,12 @@ module RedSteak
       blk = t[:block]
       opts = t[:opts]
 
-      _log "\n\n_create_transition! #{t.inspect}"
+      _log { "\n\n_create_transition! #{t.inspect}" }
 
       opts[:source] = _find_state opts[:source], :owner => owner
       opts[:target] = _find_state opts[:target], :owner => owner
 
-      _log "  #{opts.inspect}"
+      _log { "  #{opts.inspect}" }
        
       t = _find_transition opts
 
@@ -420,9 +417,10 @@ module RedSteak
     end
 
 
-    def _log msg
+    def _log msg = nil
       case @logger
       when ::IO
+        msg ||= yield
         msg = "#{self.class} #{msg}"
         @logger.puts msg
       end

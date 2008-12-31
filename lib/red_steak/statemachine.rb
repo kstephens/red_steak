@@ -109,7 +109,7 @@ module RedSteak
 
     # Adds a State to this Statemachine.
     def add_state! s
-      _log "add_state! #{s.inspect}"
+      _log { "add_state! #{s.inspect}" }
 
       if @states.find { | x | x.name == s.name }
         raise ArgumentError, "state named #{s.name.inspect} already exists"
@@ -130,7 +130,7 @@ module RedSteak
     # Also removes any Transitions associated with the State.
     # List of Transitions removed is returned.
     def remove_state! s
-      _log "remove_state! #{s.inspect}"
+      _log { "remove_state! #{s.inspect}" }
 
       transitions = s.transitions
 
@@ -151,7 +151,7 @@ module RedSteak
 
     # Adds a Pseudostate to this Statemachine.
     def add_connectionPoint! s
-      _log "add_connectionPoint! #{s.inspect}"
+      _log { "add_connectionPoint! #{s.inspect}" }
 
       if @connectionPoint.find { | x | x.name == s.name }
         raise ArgumentError, "connectionPoint named #{s.name.inspect} already exists"
@@ -170,7 +170,7 @@ module RedSteak
 
     # Removes a Pseudostate from this Statemachine.
     def remove_connectionPoint! s
-      _log "remove_Connection! #{s.inspect}"
+      _log { "remove_Connection! #{s.inspect}" }
 
       @ownedMember.delete(s)
       @connectionPoint.delete(s)
@@ -189,7 +189,7 @@ module RedSteak
 
     # Adds a Transition to this Statemachine.
     def add_transition! t
-      _log "add_transition! #{t.inspect}"
+      _log { "add_transition! #{t.inspect}" }
 
       if @transitions.find { | x | x.name == t.name }
         raise ArgumentError, "transition named #{s.name.inspect} already exists"
@@ -284,18 +284,18 @@ module RedSteak
     end
 
 
-
-    def _log *args
+    def _log msg = nil
       case 
       when IO === @logger
-        @logger.puts "#{self.to_s} #{args * " "}"
+        msg ||= yield
+        @logger.puts "#{self.to_s} #{msg}"
       when defined?(::Log4r) && (Log4r::Logger === @logger)
-        @logger.send(log_level || :debug, *args)
+        msg ||= yield
+        @logger.send(log_level || :debug, msg)
       when (x = superstatemachine)
-        x._log *args
+        x._log(msg) { yield }
       end
     end
-
 
 
   end # class

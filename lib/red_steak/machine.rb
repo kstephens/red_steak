@@ -193,7 +193,7 @@ module RedSteak
         trans = name
         name = trans.name
 
-        _log "transition! #{name.inspect}"
+        _log { "transition! #{name.inspect}" }
         
         trans = nil unless @state === trans.source && trans.guard?(self, args)
       else
@@ -201,7 +201,7 @@ module RedSteak
         
         # start! unless @state
         
-        _log "transition! #{name.inspect}"
+        _log { "transition! #{name.inspect}" }
         
         # Find a valid outgoing transition.
         trans = @state.outgoing.select do | t |
@@ -239,14 +239,16 @@ module RedSteak
     end
 
 
-    def _log *args
+    def _log msg = nil
       case 
       when IO === @logger
-        @logger.puts "#{self.to_s} #{state.to_s} #{args * " "}"
+        msg ||= yield
+        @logger.puts "#{self.to_s} #{state.to_s} #{msg}"
       when defined?(::Log4r) && (Log4r::Logger === @logger)
-        @logger.send(log_level || :debug, *args)
+        msg ||= yield
+        @logger.send(log_level || :debug, msg)
       when @sup
-        @sup._log *args
+        @sup._log(msg) { yield }
       end
     end
 
@@ -291,7 +293,7 @@ module RedSteak
     # 5) New State's doAction behavior is performed.
     #
     def execute_transition! trans, *args
-      _log "execute_transition! #{trans.inspect}"
+      _log { "execute_transition! #{trans.inspect}" }
 
       old_state = @state
 
@@ -356,7 +358,7 @@ module RedSteak
       # Behavior: exit state.
       if old_state && old_state != state
         (from - to).each do | s |
-          _log "exit! #{s.inspect}"
+          _log { "exit! #{s.inspect}" }
           s.exit!(self, args)
         end
       end
@@ -370,7 +372,7 @@ module RedSteak
       # Behavior: entry state.
       if old_state != state
         (to - from).reverse.each do | s | 
-          _log "entry! #{s.inspect}"
+          _log { "entry! #{s.inspect}" }
           s.entry!(self, args)
         end
       end

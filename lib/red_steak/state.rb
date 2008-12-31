@@ -55,7 +55,7 @@ module RedSteak
 
     # Adds a Pseudostate to this State.
     def add_connectionPoint! s
-      _log "add_connectionPoint! #{s.inspect}"
+      _log { "add_connectionPoint! #{s.inspect}" }
 
       if @connectionPoint.find { | x | x.name == s.name }
         raise ArgumentError, "connectionPoint named #{s.name.inspect} already exists"
@@ -73,7 +73,7 @@ module RedSteak
 
     # Removes a Pseudostate from this State.
     def remove_connectionPoint! s
-      _log "remove_connectionPoint! #{s.inspect}"
+      _log { "remove_connectionPoint! #{s.inspect}" }
 
       @connectionPoint.delete(s)
       s.state = nil
@@ -166,7 +166,7 @@ module RedSteak
 
     # Adds a Pseudostate to this State.
     def add_connectionPoint! s
-      _log "add_connectionPoint! #{s.inspect}"
+      _log { "add_connectionPoint! #{s.inspect}" }
 
       if @connectionPoint.find { | x | x.name == s.name }
         raise ArgumentError, "connectionPoint named #{s.name.inspect} already exists"
@@ -185,7 +185,7 @@ module RedSteak
 
     # Removes a Pseudostate from this Statemachine.
     def remove_connectionPoint! s
-      _log "remove_Connection! #{s.inspect}"
+      _log { "remove_connectionPoint! #{s.inspect}" }
 
       @ownedMember.delete(s) # ownedElement?!?!
       @connectionPoint.delete(s)

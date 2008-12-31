@@ -67,8 +67,8 @@ module RedSteak
     end
 
 
-    def _log *args
-      stateMachine._log(*args)
+    def _log msg = nil, &blk
+      @stateMachine._log(msg, &blk)
     end
 
   end # class
