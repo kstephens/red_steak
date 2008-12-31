@@ -350,13 +350,14 @@ module RedSteak
         end
       end
 
+      from = old_state ? old_state.ancestors : EMPTY_ARRAY
+      to = state ? state.ancestors : EMPTY_ARRAY
+
       # Behavior: exit state.
       if old_state && old_state != state
-        old_state.ancestors.each do | s |
-          unless s.is_a_substate_of?(state)
-            _log "exit! #{s.inspect}"
-            s.exit!(self, args)
-          end
+        (from - to).each do | s |
+          _log "exit! #{s.inspect}"
+          s.exit!(self, args)
         end
       end
 
@@ -368,11 +369,9 @@ module RedSteak
       
       # Behavior: enter state.
       if old_state != state
-        state.ancestors.reverse.each do | s |
-          unless old_state && s.is_a_substate_of?(old_state)
-            _log "enter! #{s.inspect}"
-            s.enter!(self, args)
-          end
+        (to - from).reverse.each do | s | 
+          _log "enter! #{s.inspect}"
+          s.enter!(self, args)
         end
       end
 
