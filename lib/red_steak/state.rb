@@ -118,11 +118,14 @@ module RedSteak
 
     # Returns an array of all ancestor states.
     def ancestors
-      x = [ self ]
-      if ss = superstate
-        x.push(*ss.ancestors)
-      end
-      x
+      @ancestors ||=
+        begin
+          x = [ self ]
+          if ss = superstate
+            x.push(*ss.ancestors)
+          end
+          x
+        end
     end
 
 

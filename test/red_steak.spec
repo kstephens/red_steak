@@ -19,18 +19,23 @@ describe RedSteak do
     # For debugging.
     attr_accessor :logger
 
+    def initialize
+      clear!
+    end
+
     def clear!
       @_machine = 
         @_args =
         @_transition =
-        @_guard =
-        @_effect =
-        @_state =
-        @_enter =
-        @_exit =
-        @_doActivity =
         @_a_to_b =
         nil
+
+      @_guard = [ ]
+      @_effect = [ ]
+      @_state = [ ]
+      @_enter = [ ]
+      @_exit = [ ] 
+      @_doActivity = [ ]
     end
 
 
@@ -38,17 +43,15 @@ describe RedSteak do
     def guard(machine, trans, *args)
       @_machine = machine
       @_transition = trans
-      @_guard = @_args = args
+      @_guard << (@_args = args)
       _log
       nil # Ok
     end
 
+    # Special Guard.
     def a_to_b?(machine, trans, *args)
-      @_machine = machine
-      @_transition = trans
-      @_guard = @_args = args
+      guard(machine, trans, *args)
       @_a_to_b = args
-      _log
       true
     end
 
@@ -56,7 +59,7 @@ describe RedSteak do
     def effect(machine, trans, *args)
       @_machine = machine
       @_transition = trans
-      @_effect = @_args = args
+      @_effect << (@_args = args)
       _log
     end
 
@@ -64,7 +67,8 @@ describe RedSteak do
     def enter(machine, state, *args)
       @_machine = machine
       @_state = state
-      @_enter = @_args = args
+      @_args = args
+      @_enter << [ state.to_s, *args ]
       _log
     end
 
@@ -72,7 +76,8 @@ describe RedSteak do
     def exit(machine, state, *args)
       @_machine = machine
       @_state = state
-      @_exit = @_args = args
+      @_args = args
+      @_exit << [ state.to_s, *args ]
       _log
     end
 
@@ -80,7 +85,8 @@ describe RedSteak do
     def doActivity(machine, state, *args)
       @_machine = machine
       @_state = state
-      @_doActivity = @_args = args
+      @_args = args
+      @_doActivity << [ state.to_s, *args ]
       _log
     end
 
@@ -296,11 +302,11 @@ describe RedSteak do
     c._machine.should == m
     c._state.should == m.stateMachine.states[:a]
     c._transition.should == nil
-    c._guard.should == nil
-    c._effect.should == nil
-    # c._enter.should == [ ]
-    c._exit.should == nil
-    c._doActivity.should == [ ]
+    c._guard.should == [ ]
+    c._effect.should == [ ]
+    c._enter.should == [ [ "a" ] ]
+    c._exit.should == [ ]
+    c._doActivity.should == [ [ "a" ] ]
     m.history.size.should == 1
 
     #################################
@@ -308,7 +314,7 @@ describe RedSteak do
     #
 
     c.clear!
-    m.transition! "a_to_b", :arg
+    m.transition! "a_to_b", :arg1
     m.at_start?.should == false
     m.at_end?.should == false
 
@@ -317,13 +323,13 @@ describe RedSteak do
 
     c._machine.should == m
     c._transition.name.should == :a_to_b
-    c._guard.should == [ :arg ]
-    c._a_to_b.should == [ :arg ]
-    c._effect.should == [ :arg ]
+    c._guard.should == [ [ :arg1 ] ]
+    c._a_to_b.should == [ :arg1 ]
+    c._effect.should == [ [ :arg1 ] ]
     c._state.name.should == :b
-    c._enter.should == [ :arg ]
-    c._exit.should == [ :arg ]
-    c._doActivity.should == [ :arg ]
+    c._enter.should == [ [ "b", :arg1 ] ]
+    c._exit.should == [ [ "a", :arg1 ] ]
+    c._doActivity.should == [ [ "b", :arg1 ] ]
     m.history.size.should == 2
 
     #################################
@@ -504,8 +510,8 @@ describe RedSteak do
     m.state.name.should == :a
     c._machine.should == m
     c._state.name.should == :a
-    c._enter.should == [ :foo, :bar ]
-    c._exit.should == nil
+    c._enter.should == [ [ "a", :foo, :bar ] ]
+    c._exit.should == [ ]
  
     render_graph m, :show_history => true
 
@@ -596,14 +602,34 @@ describe RedSteak do
     sm.state[:c].state.map{|s| s.to_s}.should == [ ]
     sm.state[:c].source.map{|s| s.to_s}.should == ["a::a", "a::b", "a::c", "b", "b::a"]
 
-    m = sm.machine
-    m.history = [ ]
+    m = machine_with_context(sm)
+    c = m.context
     m.logger = $stderr
+
+    c.clear!
     m.start!
+    c._exit.should == [ ]
+    c._enter.should == [ [ "a" ], [ "a::a" ] ]
+
+    c.clear!
     m.transition_to! "b"
+    c._exit.should == [["a::a"], ["a"]]
+    c._enter.should == [ [ "b" ], [ "b::a" ] ]
+
+    c.clear!
     m.transition_to! "b::b"
+    c._exit.should == [["b::a"]]
+    c._enter.should == [["b::b"]]
+
+    c.clear!
     m.transition_to! "a::b"
+    c._exit.should == [["b::b"], ["b"]]
+    c._enter.should == [["a"], ["a::b"]] 
+
+    c.clear!
     m.transition_to! "c"
+    c._exit.should == [["a::b"], ["a"]]
+    c._enter.should == [["c"]]
 
     render_graph m, :show_history => true
 
