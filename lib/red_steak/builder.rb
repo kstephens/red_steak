@@ -209,12 +209,12 @@ module RedSteak
       raise ArgumentError, "source state not given" unless opts[:source]
       raise ArgumentError, "target state not given" unless opts[:target]
       
-      opts[:_block] = blk if block_given?
-      opts[:_owner] = _owner
-      # opts[:_namespaces] = @context[:namespaces].reverse
       opts[:statemachine] = @context[:statemachine]
-      
-      @context[:transitions] << opts
+      @context[:transitions] << {
+        :block => blk,
+        :owner => _owner,
+        :opts => opts,
+      }
       # _find_transition opts
       
       self
@@ -362,10 +362,11 @@ module RedSteak
 
 
     # Called after all States have been created.
-    def _create_transition! opts
-      namespaces = opts.delete(:_namespaces)
-      owner = opts.delete(:_owner)
-      blk = opts.delete(:_block)
+    def _create_transition! t
+      namespaces = t[:namespaces]
+      owner = t[:owner]
+      blk = t[:block]
+      opts = t[:opts]
 
       _log "_create_transition! #{opts.inspect}"
 
