@@ -29,7 +29,7 @@ module RedSteak
     end
 
 
-    # Begins building Statemachine by evaluating block.
+    # Begins building StateMachine by evaluating block.
     def build &blk
       raise ArgumentError, "expected block" unless block_given?
       instance_eval &blk
@@ -81,14 +81,14 @@ module RedSteak
       raise(ArgumentError, 'invalid name') unless name
 
       case name
-      when Statemachine
+      when StateMachine
         sm = name
         name = sm.name
       else
         name = name.to_sym unless Symbol === name
         
         opts[:name] = name
-        sm = Statemachine.new opts
+        sm = StateMachine.new opts
       end
 
       # Save the result.
@@ -176,7 +176,7 @@ module RedSteak
     #   end
     #
     def state name, opts = { }, &blk
-      raise ArgumentError, "states must be defined within a statemachine or submachine" unless Statemachine === @current
+      raise ArgumentError, "states must be defined within a statemachine or submachine" unless StateMachine === @current
 
       opts[:name] = name
 
@@ -317,7 +317,7 @@ module RedSteak
       when nil
         raise ArgumentError, "State name not specified" unless name
 
-      # If Array is given, start at root Statemachine.
+      # If Array is given, start at root StateMachine.
       when Array
         path = name
         name = path.pop.to_sym

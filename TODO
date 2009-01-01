@@ -4,7 +4,7 @@
 * Things to do:
 ** Machine#state=(String|Array).
 ** Add :elapsed_time to history Hash - has performance implication.
-** Support Statemachine#freeze to avoid accidental changes to a running Statemachine.
+** Support StateMachine#freeze to avoid accidental changes to a running StateMachine.
 ** Support UML Pseudostates.
 
 * Jeremy's Comments:
@@ -13,7 +13,7 @@ Use #initial and #final or the UML metamodel names for these
    concepts.
 ** Having to call start! explicitly is troublesome.
 ** Setting Machine#context more than once could cause confusing.
-** Need a way to do Statemachine#freeze, which will throw errors if new states/transitions are added.
+** Need a way to do StateMachine#freeze, which will throw errors if new states/transitions are added.
 ** When you enter into a substate, lazyly create a Submachine.
 ** Need to have a way to disable Machine#context= and Machine#state= to prevent foolishness.
 ** There is an implied nil "start!" transition in the Machine#history,

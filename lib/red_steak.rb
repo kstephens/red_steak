@@ -5,17 +5,17 @@
 # Features:
 #
 # * Implements UML 2.x StateMachines (partially).
-# * Statemachines can be instantiated then cloned via #dup.
+# * StateMachines can be instantiated then cloned via #dup.
 # * Submachines are supported, a state may have an imbedded statemachine.
 # * Builder DSL simplifies construction of complex statemachines.
-# * Statemachines can be serialized.
-# * Statemachines can be modified on-the-fly.
+# * StateMachines can be serialized.
+# * StateMachines can be modified on-the-fly.
 # * Context objects can be notfied of transitions.
 # * Context objects can be used to create transition guards.
-# * Statemachines, States and Transitions are objects that can be extended with metadata.
+# * StateMachines, States and Transitions are objects that can be extended with metadata.
 # * History of transitions can be kept.
 # * Multiple machines can walk the same statemachine without side-effects.
-# * Statemachines can be rendered as Dot syntax.
+# * StateMachines can be rendered as Dot syntax.
 #
 module RedSteak
   EMPTY_ARRAY = [ ].freeze
@@ -33,7 +33,7 @@ require 'red_steak/base'
 # UML Metamodel
 require 'red_steak/named_element'
 require 'red_steak/namespace'
-require 'red_steak/statemachine'
+require 'red_steak/state_machine'
 require 'red_steak/vertex'
 require 'red_steak/state'
 require 'red_steak/transition'

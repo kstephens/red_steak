@@ -1,7 +1,7 @@
 
 module RedSteak
 
-  # Base class for all elements in a Statemachine.
+  # Base class for all elements in a StateMachine.
   class NamedElement < Base
     # The Namespace of this NamedElement.
     attr_accessor :namespace

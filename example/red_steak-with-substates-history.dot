@@ -1,5 +1,5 @@
 
-// {#<RedSteak::Statemachine test>
+// {#<RedSteak::StateMachine test>
 digraph x1 {
   label="test"; 
   node [ shape="circle", label="", style=filled, fillcolor=black ] x1_START; 
@@ -15,7 +15,7 @@ digraph x1 {
 
 // #<RedSteak::State test d>
 
-// {#<RedSteak::Statemachine test::d>
+// {#<RedSteak::StateMachine test::d>
 subgraph cluster_x5 {
   label="d"; 
   shape="box"; 
@@ -36,7 +36,7 @@ subgraph cluster_x5 {
 // #<RedSteak::State test::d d::end>
   node [ shape="doublecircle", label="end", style="filled,rounded", color=black, fillcolor=grey, fontcolor=black ] x9;
 }
-// } #<RedSteak::Statemachine test::d>
+// } #<RedSteak::StateMachine test::d>
 
 // #<RedSteak::State test end>
   node [ shape="doublecircle", label="end", style="filled,rounded", color=black, fillcolor=grey, fontcolor=black ] x10;
@@ -91,4 +91,4 @@ x7 -> x8 [ label="d::d2->d::d3", color=gray, fontcolor=gray ];
 x9 -> x10 [ label="(5) d::end->end", color=black, fontcolor=black ];
 x5_START -> x6;
 }
-// } #<RedSteak::Statemachine test>
+// } #<RedSteak::StateMachine test>

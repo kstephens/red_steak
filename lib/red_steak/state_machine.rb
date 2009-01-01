@@ -1,8 +1,8 @@
 
 module RedSteak
 
-  # A Statemachine object.
-  class Statemachine < Namespace
+  # A StateMachine object.
+  class StateMachine < Namespace
 
     # List of State objects.
     # subsets ownedMember
@@ -107,7 +107,7 @@ module RedSteak
     end
 
 
-    # Adds a State to this Statemachine.
+    # Adds a State to this StateMachine.
     def add_state! s
       _log { "add_state! #{s.inspect}" }
 
@@ -126,7 +126,7 @@ module RedSteak
     end
 
 
-    # Removes a State from this Statemachine.
+    # Removes a State from this StateMachine.
     # Also removes any Transitions associated with the State.
     # List of Transitions removed is returned.
     def remove_state! s
@@ -149,7 +149,7 @@ module RedSteak
     end
 
 
-    # Adds a Pseudostate to this Statemachine.
+    # Adds a Pseudostate to this StateMachine.
     def add_connectionPoint! s
       _log { "add_connectionPoint! #{s.inspect}" }
 
@@ -168,7 +168,7 @@ module RedSteak
     end
 
 
-    # Removes a Pseudostate from this Statemachine.
+    # Removes a Pseudostate from this StateMachine.
     def remove_connectionPoint! s
       _log { "remove_Connection! #{s.inspect}" }
 
@@ -187,7 +187,7 @@ module RedSteak
     end
 
 
-    # Adds a Transition to this Statemachine.
+    # Adds a Transition to this StateMachine.
     def add_transition! t
       _log { "add_transition! #{t.inspect}" }
 
@@ -206,7 +206,7 @@ module RedSteak
     end
 
 
-    # Removes a Transition from this Statemachine.
+    # Removes a Transition from this StateMachine.
     def remove_transition! t
       _log "remove_transition! #{t.inspect}"
 
@@ -256,7 +256,7 @@ module RedSteak
     end
 
 
-    # Creates a new Builder to augment an existing Statemachine.
+    # Creates a new Builder to augment an existing StateMachine.
     # Executes block in builder, if given.
     def builder opts = { }, &blk
       b = Builder.new(opts)
@@ -270,7 +270,7 @@ module RedSteak
     alias :build :builder
 
 
-    # Creates a new Machine for this Statemachine.
+    # Creates a new Machine for this StateMachine.
     def machine opts = { }
       opts[:stateMachine] ||= self
       Machine.new(opts)

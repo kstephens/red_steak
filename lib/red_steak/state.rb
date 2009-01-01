@@ -183,7 +183,7 @@ module RedSteak
     end
 
 
-    # Removes a Pseudostate from this Statemachine.
+    # Removes a Pseudostate from this StateMachine.
     def remove_connectionPoint! s
       _log { "remove_connectionPoint! #{s.inspect}" }
 

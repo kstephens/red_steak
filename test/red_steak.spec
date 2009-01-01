@@ -4,7 +4,7 @@ require 'red_steak'
 
 describe RedSteak do
 
-  # A test context for the Statemachine.
+  # A test context for the StateMachine.
   class RedSteak::TestContext
     attr_accessor :_machine, :_args
 
@@ -100,7 +100,7 @@ describe RedSteak do
   end
 
 
-  # Returns the test Statemachine using the Builder.
+  # Returns the test StateMachine using the Builder.
   def statemachine
     # There can only one.
     return Thread.current[:statemachine] if Thread.current[:statemachine]
@@ -175,7 +175,7 @@ describe RedSteak do
   it 'should build a statemachine' do
     sm = statemachine
 
-    sm.inspect.should == "#<RedSteak::Statemachine test>"
+    sm.inspect.should == "#<RedSteak::StateMachine test>"
 
     sm.states.
       map{ | s | s.name }.
@@ -225,7 +225,7 @@ describe RedSteak do
   end
 
 
-  # Returns a Machine that can walk a Statemachine with context object.
+  # Returns a Machine that can walk a StateMachine with context object.
   def machine_with_context sm = nil
     sm ||= statemachine
 
@@ -248,7 +248,7 @@ describe RedSteak do
     case x
     when RedSteak::Machine
       sm = x.statemachine
-    when RedSteak::Statemachine
+    when RedSteak::StateMachine
       sm = x
     end
 
@@ -528,7 +528,7 @@ describe RedSteak do
 
   it 'should handle transitions across substates and states' do
     logger = nil && $stderr
-    sm = RedSteak::Statemachine.
+    sm = RedSteak::StateMachine.
       new(:name => :test2, :logger => logger).
       build(:logger => logger) do
       initial :a

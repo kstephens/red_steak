@@ -3,7 +3,7 @@
 require 'red_steak'
 
 module RedSteak
-  # Machine walks the Transitions between States of a Statemachine.
+  # Machine walks the Transitions between States of a StateMachine.
   # It can record history.
   class Machine < Base
     # The submachine, if any.
@@ -12,14 +12,14 @@ module RedSteak
     # The supermachine, if any.
     attr_accessor :sup
 
-    # The Statemachine.
+    # The StateMachine.
     attr_accessor :stateMachine # UML
     alias :statemachine :stateMachine # not UML
 
     # The current state in the statemachine.
     attr_reader :state
     
-    # The receiver of all methods missing inside Statemachine, State, and Transition.
+    # The receiver of all methods missing inside StateMachine, State, and Transition.
     #
     # This object also recieves transition notifications:
     #

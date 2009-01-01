@@ -1,7 +1,7 @@
 
 module RedSteak
 
-  # Renders a Statemachine as a Dot syntax stream.
+  # Renders a StateMachine as a Dot syntax stream.
   class Dot < Base
     # The root statemachine to be rendered.
     attr_accessor :stateMachine
@@ -22,7 +22,7 @@ module RedSteak
     # Returns the Dot name for the object.
     def dot_name x
       case 
-      when Statemachine
+      when StateMachine
         x.submachineState ? "#{dot_name(x.submachineState)}#{SEP}#{x.name}" : x.name.to_s
       when State
         "#{dot_name(x.stateMachine)}#{SEP}#{x.name}" # x.inspect
@@ -41,7 +41,7 @@ module RedSteak
     # Returns the Dot label for the object.
     def dot_label x
       case
-      when Statemachine, State, Transition
+      when StateMachine, State, Transition
         x.to_s
       when String, Integer
         x.to_s
@@ -57,7 +57,7 @@ module RedSteak
       when Machine
         options[:history] ||= x.history
         render x.stateMachine
-      when Statemachine
+      when StateMachine
         render_root x
       when State
         render_State x
@@ -107,8 +107,8 @@ module RedSteak
     end
 
 
-    # Renders the Statemachine as Dot syntax.
-    def render_Statemachine sm, dot_opts = { }
+    # Renders the StateMachine as Dot syntax.
+    def render_StateMachine sm, dot_opts = { }
       stream.puts "\n// {#{sm.inspect}"
       type = "subgraph cluster_#{dot_name(sm)}"
 
@@ -185,7 +185,7 @@ module RedSteak
 
 
       if ssm = s.submachine
-        render_Statemachine(ssm, dot_opts)
+        render_StateMachine(ssm, dot_opts)
         # stream.puts %Q{#{dot_name(s)} -> #{(dot_name(ssm) + '_START')} [ label="substate", style=dashed ];}
       else
         stream.puts %Q{  node [ shape="#{dot_opts[:shape]}", label=#{dot_opts[:label].inspect}, style="#{dot_opts[:style]},rounded", color=#{dot_opts[:color]}, fillcolor=#{dot_opts[:fillcolor]}, fontcolor=#{dot_opts[:fontcolor]} ] #{dot_name(s)};}
