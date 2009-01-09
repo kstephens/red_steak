@@ -49,7 +49,7 @@ module RedSteak
     #     statemachine :my_statemachine do
     #       start_state :a
     #       end_state   :end
-    #       state :a
+    #       state :a, :do => :a_behavior
     #       state :b
     #       state :c do
     #         state :substate_1
@@ -164,21 +164,34 @@ module RedSteak
 
     # Creates a state.
     #
+    # States have a name and three behaviors:
+    #
+    #   :entry - action performed when state is entered.
+    #   :do - action peformed during state.
+    #   :exit - action performed when state is exited.
+    #
+    # :do is an alias for :doActivity.
+    #
     # Syntax:
     #
     #   state :name
     #   state :name, :option_1 => 'foo'
     #   state :name do
     #     submachine do 
-    #       state :substate_1
-    #       state :substate_2
+    #       state :substate_1, :do => :method_on_context, :exit => :method1
+    #       state :substate_2, :entry => :method2
     #     end
     #   end
+    #
     #
     def state name, opts = { }, &blk
       raise ArgumentError, "states must be defined within a statemachine or submachine" unless Statemachine === @current
 
       opts[:name] = name
+
+      if x = opts.delete(:do)
+        opts[:doActivity] = x
+      end
 
       s = _find_state opts
 

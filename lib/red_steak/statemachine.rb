@@ -256,6 +256,17 @@ module RedSteak
     end
 
 
+    def self.build opts = { }, &blk
+      b = Builder.new(opts)
+      if block_given?
+        b.build &blk
+        b.result
+      else
+        b
+      end
+    end
+
+
     # Creates a new Builder to augment an existing Statemachine.
     # Executes block in builder, if given.
     def builder opts = { }, &blk
