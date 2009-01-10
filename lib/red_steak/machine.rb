@@ -103,18 +103,18 @@ module RedSteak
 
 
     # Go to the start State.
-    # The States entry and doActivity are executed.
-    # Begin running any pending transitions.
+    # The State's entry and doActivity are executed.
+    # Any transitions in doActivity are queued;
+    # Queued transitions are fired only by !run.
     def start! *args
       @state = nil
-      run! do
-        goto_state! @stateMachine.start_state, args
-      end
+      goto_state! @stateMachine.start_state, args
     end
 
 
     # Begins running pending transitions.
     # Only the top-level run! will process pending transitions.
+    # If single is true, only one transition is fired.
     def run! single = false
       in_run_save = @in_run
       if @in_run
@@ -126,6 +126,12 @@ module RedSteak
       end
     ensure
       @in_run = in_run_save
+    end
+
+
+    # Returns true if current State is processing its doActivity.
+    def in_doActivity?
+      ! ! @in_doActivity
     end
 
 
@@ -244,8 +250,9 @@ module RedSteak
       end
 
       if trans
-        run! do
-          queue_transition!(trans, args)
+        queue_transition!(trans, args)
+        if ! @in_doActivity
+          run! :single
         end
       else
         raise Error::CannotTransition, name
@@ -433,7 +440,7 @@ module RedSteak
       end
 
       # Behavior: doActivity.
-      state.doActivity!(self, args)
+      _doActivity!(args)
 
       self
 
@@ -441,6 +448,16 @@ module RedSteak
       # Revert back to old state.
       @state = old_state
       raise err
+    end
+
+
+    def _doActivity! args
+      in_doActivity_save = @in_doActivity
+      @in_doActivity = true
+      
+      @state.doActivity!(self, args)
+    ensure
+      @in_doActivity = in_doActivity_save
     end
 
   end # class

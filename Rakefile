@@ -6,6 +6,7 @@ end
 
 desc "Runs tests"
 task :test do
+  sh "mkdir -p example"
   ENV['RUBYLIB'] = ($: + [ 'lib' ]) * ':'
   Dir['test/*.spec'].each do | t |
     sh "spec -f specdoc #{t}"

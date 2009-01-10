@@ -76,6 +76,12 @@ describe RedSteak do
     # m.context._logger = $stderr
 
     m.start!
+    m.transition_queue.size.should == 1
+    m.run! :single
+    m.state.name.should == :b
+    m.transition_queue.size.should == 1
+    m.run! 
+    m.at_end?.should == true
 
     m.context.history.should ==
       [
