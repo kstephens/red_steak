@@ -252,7 +252,7 @@ module RedSteak
       if trans
         queue_transition!(trans, args)
         if ! @in_doActivity
-          run! :single
+          run!
         end
       else
         raise Error::CannotTransition, name
