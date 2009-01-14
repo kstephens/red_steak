@@ -6,6 +6,7 @@ end
 
 desc "Runs tests"
 task :test do
+  sh "mkdir -p example"
   ENV['RUBYLIB'] = ($: + [ 'lib' ]) * ':'
   Dir['test/*.spec'].each do | t |
     sh "spec -f specdoc #{t}"
@@ -27,6 +28,7 @@ task :p4_git_pull do
   sh "git pull origin master"
   git_revision
   sh "find . -type f | grep -v ./.git | xargs p4 add"
+  sh "p4 revert example/..."
   sh "p4 revert -a ..."
 end
 

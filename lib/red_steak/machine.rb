@@ -46,9 +46,11 @@ module RedSteak
     attr_accessor :history
 
     # Method called on history to append new record.
+    # Defaults to :<<, as applicable to an Array.
     attr_accessor :history_append
 
     # Method called on history to clear history.
+    # Defaults to :clear, as applicable to an Array.
     attr_accessor :history_clear
 
     # The logging object.
@@ -59,11 +61,15 @@ module RedSteak
     # Defaults to :debug.
     attr_accessor :log_level
 
+    # The queue of pending transitions.
+    attr_reader :transition_queue
+
 
     def initialize opts
       @stateMachine = nil
       @sub = @sup = nil
       @state = nil
+      @transition_queue = [ ]
       @history = nil
       @history_append = :<<
       @history_clear = :clear
@@ -86,7 +92,7 @@ module RedSteak
     end
 
 
-    # Returns ture if we are at the start state.
+    # Returns true if we are at the start state.
     def at_start?
       @state == @stateMachine.start_state
     end
@@ -99,15 +105,43 @@ module RedSteak
     end
 
 
-    # Go to the start state.
+    # Go to the start State.
+    # The State's entry and doActivity are executed.
+    # Any transitions in doActivity are queued;
+    # Queued transitions are fired only by !run.
     def start! *args
       @state = nil
       goto_state! @stateMachine.start_state, args
-      self
     end
 
- 
+
+    # Begins running pending transitions.
+    # Only the top-level run! will process pending transitions.
+    # If single is true, only one transition is fired.
+    def run! single = false
+      in_run_save = @in_run
+      if @in_run
+        yield if block_given?
+      else 
+        @in_run = true
+        yield if block_given?
+        process_transitions! single
+      end
+    ensure
+      @in_run = in_run_save
+    end
+
+
+    # Returns true if current State is processing its doActivity.
+    def in_doActivity?
+      ! ! @in_doActivity
+    end
+
+
     # Forcefully sets state.
+    # The State's entry and doActivity are triggered.
+    # Any pending transitions triggered in doActivity are queued.
+    # Callers should probably call run! after calling this method.
     def state= x
       case x
       when State
@@ -116,11 +150,11 @@ module RedSteak
         state = @stateMachine.states[x]
       end
       goto_state! state
-      
-      self
+      # run!
     end
 
 
+    # Coerces a String or Symbol to a State.
     def to_state state
       case state
       when State, nil
@@ -242,7 +276,10 @@ module RedSteak
       end
 
       if trans
-        execute_transition!(trans, *args)
+        queue_transition!(trans, args)
+        if ! @in_doActivity
+          run!
+        end
       else
         raise Error::CannotTransition, name
       end
@@ -308,15 +345,42 @@ module RedSteak
 
     private
 
+    # Returns true if there are transitions pending.
+    def pending_transitions?
+      ! @transition_queue.empty?
+    end
+
+
+    # Queues a transition for execution.
+    # This prevents recursion from the State's doActivity.
+    def queue_transition! trans, args
+      _log { "queue_transition! #{trans.inspect}" }
+      @transition_queue.clear
+      @transition_queue << [ trans, args ]
+      self
+    end
+
+
+    # Processes pending transitions.
+    def process_transitions! single = false
+      _log { "process_transitions!" }
+      while ! at_end? && (x = @transition_queue.shift)
+        execute_transition! *x
+        break if single
+      end
+      self
+    end
+
+
     # Executes transition.
     #
     # 1) Transition's effect behavior is performed.
     # 2) Old State's exit behavior is performed.
     # 3) transition history is logged.
     # 4) New State's entry behavior is performed.
-    # 5) New State's doAction behavior is performed.
+    # 5) New State's doActivity behavior is performed.
     #
-    def execute_transition! trans, *args
+    def execute_transition! trans, args
       _log { "execute_transition! #{trans.inspect}" }
 
       old_state = @state
@@ -344,17 +408,17 @@ module RedSteak
     #
     # Calls _goto_state!, clears history and adds initial history record.
     #
-    def goto_state! state, args, &blk
-      _goto_state! state, args, &blk
-
-      clear_history!
-      record_history!(self) do 
-        {
-          :time => Time.now.gmtime,
-          :previous_state => nil, 
-          :transition => nil, 
-          :new_state => @state,
-        }
+    def goto_state! state, args
+      _goto_state! state, args do
+        clear_history!
+        record_history!(self) do 
+          {
+            :time => Time.now.gmtime,
+            :previous_state => nil, 
+            :transition => nil, 
+            :new_state => @state,
+          }
+        end
       end
     end
 
@@ -364,6 +428,7 @@ module RedSteak
     # 1) Performs old State's exit behavior.
     # 2) If a block is given, yield to it after entering new state.
     # 3) Performs new State's entry behavior.
+    # 4) Performs new State's doActivity behavior.
     #
     def _goto_state! state, args
       old_state = @state
@@ -402,7 +467,7 @@ module RedSteak
       end
 
       # Behavior: doActivity.
-      state.doActivity!(self, args)
+      _doActivity!(args)
 
       self
 
@@ -410,6 +475,18 @@ module RedSteak
       # Revert back to old state.
       @state = old_state
       raise err
+    end
+
+
+    # Performs the current State's doActivity while setting a 
+    # lock to prevent recursive run!
+    def _doActivity! args
+      in_doActivity_save = @in_doActivity
+      @in_doActivity = true
+      
+      @state.doActivity!(self, args)
+    ensure
+      @in_doActivity = in_doActivity_save
     end
 
   end # class
