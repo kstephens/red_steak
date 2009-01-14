@@ -404,6 +404,7 @@ module RedSteak
     # 1) Performs old State's exit behavior.
     # 2) If a block is given, yield to it after entering new state.
     # 3) Performs new State's entry behavior.
+    # 4) Performs new State's doActivity behavior.
     #
     def _goto_state! state, args
       old_state = @state
@@ -453,6 +454,8 @@ module RedSteak
     end
 
 
+    # Performs the current State's doActivity while setting a 
+    # lock to prevent recursive run!
     def _doActivity! args
       in_doActivity_save = @in_doActivity
       @in_doActivity = true
