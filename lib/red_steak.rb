@@ -4,9 +4,9 @@
 #
 # Features:
 #
-# * Implements UML 2.x StateMachines (partially).
-# * StateMachines can be instantiated then cloned via #dup.
-# * Submachines are supported, a state may have an imbedded statemachine.
+# * Implements UML 2.1 StateMachines (partially).
+# * StateMachines can be instantiated then cloned via StateMachine#copy.
+# * Submachines are supported, a state may have an imbedded StateMachine.
 # * Builder DSL simplifies construction of complex statemachines.
 # * StateMachines can be serialized.
 # * StateMachines can be modified on-the-fly.
@@ -37,6 +37,7 @@ require 'red_steak/state_machine'
 require 'red_steak/vertex'
 require 'red_steak/state'
 require 'red_steak/transition'
+require 'red_steak/final_state'
 
 # API
 require 'red_steak/builder'

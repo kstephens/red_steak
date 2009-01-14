@@ -94,7 +94,8 @@ module RedSteak
 
     # Returns true if we are at the end state.
     def at_end?
-      @state == @stateMachine.end_state
+      FinalState === @state || # UML
+      @state == @stateMachine.end_state # not UML
     end
 
 
@@ -184,6 +185,29 @@ module RedSteak
       else
         raise Error::AmbiguousTransition, state
       end
+    end
+
+
+    # Returns a list of valid transitions from the current state.
+    def valid_transitions *args
+      @state.outgoing.select do | t |
+        t.guard?(self, args)
+      end
+    end
+
+    # Transitions if a non-ambigious transition is allowed.
+    # Returns the transition applied.
+    # Returns nil if no transition could be applied.
+    def transition_if_valid! *args
+      trans = valid_transitions *args
+
+      trans = trans.size == 1 ? trans.first : nil
+
+      if trans
+        execute_transition!(trans, *args)
+      end
+
+      trans
     end
 
 
