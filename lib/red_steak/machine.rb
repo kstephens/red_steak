@@ -238,7 +238,7 @@ module RedSteak
       trans = trans.size == 1 ? trans.first : nil
 
       if trans
-        execute_transition!(trans, *args)
+        execute_transition!(trans, args)
       end
 
       trans

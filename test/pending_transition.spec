@@ -48,7 +48,7 @@ describe RedSteak do
 
 
   it 'should queue transition executions inside doActions.' do
-    sm = RedSteak::Statemachine.build do 
+    sm = RedSteak::StateMachine.build do 
       statemachine :test2 do
         initial :a
         final :d

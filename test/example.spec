@@ -123,7 +123,7 @@ describe 'RedSteak LoanOfficer Example' do
           transition :customer_data
 
           state :customer_data,
-            :doActivity => :merge_customer_data,
+            :do => :merge_customer_data,
             :exit => :create_customer
           transition :customer_data,
             :guard => :customer_data_not_complete?
@@ -131,7 +131,7 @@ describe 'RedSteak LoanOfficer Example' do
             :guard => :customer_data_complete?
 
           state :loan_data,
-            :doActivity => :merge_loan_data,
+            :do => :merge_loan_data,
             :exit => :create_loan
           transition :loan_data,
             :guard => :loan_data_not_complete?
