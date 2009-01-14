@@ -46,9 +46,11 @@ module RedSteak
     attr_accessor :history
 
     # Method called on history to append new record.
+    # Defaults to :<<, as applicable to an Array.
     attr_accessor :history_append
 
     # Method called on history to clear history.
+    # Defaults to :clear, as applicable to an Array.
     attr_accessor :history_clear
 
     # The logging object.
@@ -90,7 +92,7 @@ module RedSteak
     end
 
 
-    # Returns ture if we are at the start state.
+    # Returns true if we are at the start state.
     def at_start?
       @state == @stateMachine.start_state
     end
