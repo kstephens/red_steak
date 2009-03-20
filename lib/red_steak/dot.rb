@@ -336,6 +336,21 @@ module RedSteak
       self
     end
 
+
+    # Returns SVG data of the graph, using a temporary file.
+    def render_graph_svg_data machine, opts = { }
+      require 'tempfile'
+      tmp = Tempfile.new("red_steak_dot")
+      self.file_dot = tmp.path + ".dot"
+      self.file_svg = nil
+      render_graph(machine, opts)
+      File.open(self.file_svg, "r") { | fh | fh.read }
+    ensure
+      tmp.unlink rescue nil
+      File.unlink(self.file_dot) rescue nil
+      File.unlink(self.file_svg) rescue nil
+    end
+
   end # class
 
 end # module

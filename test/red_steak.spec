@@ -648,6 +648,11 @@ describe RedSteak do
 
     render_graph m, :show_history => true
 
+    svg_data = RedSteak::Dot.new.render_graph_svg_data(m, :show_history => true)
+    # $stderr.puts svg_data
+    svg_data.should =~ /\A<\?xml/
+    svg_data.should =~ /<svg /
+    svg_data.should =~ /<\/svg>/
   end
   
 end # describe
