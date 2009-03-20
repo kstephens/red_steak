@@ -1,4 +1,6 @@
 
+require 'rubygems'
+
 
 desc "Runs tests"
 task :default => :test do
@@ -7,9 +9,10 @@ end
 desc "Runs tests"
 task :test do
   sh "mkdir -p example"
+  gem_bin_path = Gem.path.map{|x| "#{x}/bin"}
   ENV['RUBYLIB'] = ($: + [ 'lib' ]) * ':'
   Dir['test/*.spec'].each do | t |
-    sh "spec -f specdoc #{t}"
+    sh "PATH=#{gem_bin_path * ':'}:$PATH spec -f specdoc #{t}"
   end
 end
 

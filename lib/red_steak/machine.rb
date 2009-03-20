@@ -169,11 +169,8 @@ module RedSteak
 
     # Returns true if a transition is possible from the current state.
     # Queries the transitions' guard.
-    def guard? trans, *args
-      trans = trans.to_sym unless Symbol === trans
-
-      trans = @stateMachine.transition.select do | t |
-        t.from_state == @state &&
+    def guard? *args
+      trans = @state.outgoing.select do | t |
         t.guard?(self, args)
       end
 
@@ -202,6 +199,22 @@ module RedSteak
       trans
     end
 
+    # Find the sole transition whose guard is true and follow it. 
+    # If all outgoing transitions' guards are false or more than one 
+    # transition's guard is true, raise and error or return nil
+    # based on raise parameter.
+    def transition_to_next_state!(_raise = true, *args)
+      trans = valid_transitions(*args)
+      
+      if trans.size > 1 && _raise
+        raise Error::AmbiguousTransition, trans.join(', ')
+      elsif trans.size != 1
+        raise Error::UnknownTransition, state
+      end
+
+      transition! trans.first, *args
+    end
+
 
     # Attempt to transition from current state to another state.
     # This assumes that there is not more than one transition
@@ -217,7 +230,7 @@ module RedSteak
       when 1
         transition!(trans.first, *args)
       else
-        raise Error::AmbiguousTransition, state
+        raise Error::AmbiguousTransition, trans.join(', ')
       end
     end
 
@@ -269,7 +282,7 @@ module RedSteak
         end
 
         if trans.size > 1
-          raise Error::AmbiguousTransition, "from #{@state.name.inspect} to #{name.inspect}"
+          raise Error::AmbiguousTransition, trans.join(', ')
         end
 
         trans = trans.first
@@ -323,7 +336,11 @@ module RedSteak
     def clear_history!
       @history && @history.send(@history_clear)
     end
-
+    
+    def show_history
+      @history.each_with_index{|h, i| puts "#{i + 1}: #{h[:previous_state].to_s} ->  #{h[:new_state].to_s}"}
+      ""
+    end
 
     # Records a new history record.
     # Supermachines are also notified.

@@ -17,7 +17,7 @@ describe RedSteak do
     attr_accessor :_a_to_b
 
     # For debugging.
-    attr_accessor :logger
+    attr_accessor :_logger
 
     def initialize
       clear!
@@ -53,6 +53,14 @@ describe RedSteak do
       guard(machine, trans, *args)
       @_a_to_b = args
       true
+    end
+
+    def e_f_guard_true(machine, trans, *args)
+      true
+    end
+
+    def e_f_guard_false(machine, trans, *args)
+      false
     end
 
     # Called by Transition#effect
@@ -129,7 +137,16 @@ describe RedSteak do
         
         state :c
         transition :a
+        transition :c, :e, :name => :e1
         transition :end
+
+        state :e
+        transition :e, :f, :name => :tran_e_1, :guard => :e_f_guard_true
+        transition :e, :f, :name => :tran_e_2, :guard => :e_f_guard_false
+
+        state :f
+        transition :f, :d
+        transition :f, :end
         
         state :d
         transition :a, :d
@@ -149,7 +166,7 @@ describe RedSteak do
             
             state :d3
             transition :d1
-	    transition :d2, :d3
+            transition :d2, :d3
 
             state :end
             transition "end"
@@ -182,7 +199,7 @@ describe RedSteak do
       sort { | a, b | a.to_s <=> b.to_s }.
       should == 
       [
-       :a, :b, :c, :d, :end
+       :a, :b, :c, :d, :e, :end, :f
       ].sort { | a, b | a.to_s <=> b.to_s }
 
     sm.transitions.
@@ -190,7 +207,7 @@ describe RedSteak do
       sort { | a, b | a.to_s <=> b.to_s }.
       should == 
       [
-	:foo, :bar, :a_to_b, :'b->c', :c2, :'c->a', :'c->end', :'a->d', :'d->end'
+        :bar, :a_to_b, :'b->c', :c2, :'c->a', :'c->end', :'a->d', :'d->end', :e1, :"f->d", :"f->end", :foo, :tran_e_1, :tran_e_2
       ].sort { | a, b | a.to_s <=> b.to_s }
 
     sm.start_state.name.should == :a
@@ -204,9 +221,9 @@ describe RedSteak do
 
     e = sm.states[:end]
     e.should_not == nil
-    e.transitions.to_a.map{|t| t.name}.should == [ :'c->end', :'d->end', :'d::end->end' ]
+    e.transitions.to_a.map{|t| t.name}.should == [ :'c->end', :'f->end', :'d->end', :'d::end->end' ]
     e.targets.to_a.should == [ ]
-    e.sources.to_a.map{|s| s.to_s}.should == [ 'c', 'd', 'd::end' ]
+    e.sources.to_a.map{|s| s.to_s}.should == [ 'c', 'f', 'd', 'd::end' ]
 
     sm.states[:a].options[:option_foo].should == :foo
 
@@ -244,34 +261,10 @@ describe RedSteak do
 
 
   # Render graph.
-  def render_graph x, opts = { }
-    case x
-    when RedSteak::Machine
-      sm = x.statemachine
-    when RedSteak::StateMachine
-      sm = x
-    end
-
-    dir = opts[:dir] || File.expand_path(File.dirname(__FILE__) + '/../example')
-    file = "#{dir}/red_steak-"
-    opts[:name] ||= sm.name
-    file += opts[:name].to_s
-    file += '-history' if opts[:show_history]
-    file += ".dot"
-    File.open(file, 'w') do | fh |
-      opts[:stream] = fh
-      RedSteak::Dot.new(opts).render(x)
-    end
-    file_svg = "#{file}.svg"
-
-    cmd = "dot -V"
-    if system("#{cmd} >/dev/null 2>&1") == true
-      cmd = "dot -Tsvg:cairo:cairo #{file.inspect} -o #{file_svg.inspect}"
-      system(cmd).should == true
-      $stdout.puts "View file://#{file_svg}"
-    else
-      $stderr.puts "Warning: #{cmd} failed"
-    end
+  def render_graph sm, opts = { }
+    opts[:dir] ||= File.expand_path(File.dirname(__FILE__) + '/../example')
+    opts[:name_prefix] = 'red_steak-'
+    RedSteak::Dot.new.render_graph(sm, opts)
   end
 
   
@@ -286,6 +279,7 @@ describe RedSteak do
     c = m.context
 
     c.clear!
+    # c._logger = $stderr
 
     #################################
     # Start
@@ -308,6 +302,8 @@ describe RedSteak do
     c._exit.should == [ ]
     c._doActivity.should == [ [ "a" ] ]
     m.history.size.should == 1
+
+    m.guard?.should == true
 
     #################################
     # Transition 1
@@ -371,11 +367,20 @@ describe RedSteak do
     m.state.name.should == :c
     m.history.size.should == 9
 
+    m.transition! :e1
+    m.state.name.should == :e
+    m.history.size.should == 10
+
+    m.transition_to_next_state!
+    m.state.name.should == :f
+    m.history.size.should == 11
+
     m.transition_to! :end
     m.at_start?.should == false
     m.at_end?.should == true
+    m.guard?.should == false
     m.state.name.should == :end
-    m.history.size.should == 10
+    m.history.size.should == 12
 
     m.history.map { |h| h[:previous_state].to_s }.should ==
     [
@@ -389,6 +394,8 @@ describe RedSteak do
      "a",
      "b",
      "c",
+     "e",
+     "f",
     ]
 
     m.history.map { |h| h[:new_state].to_s }.should ==
@@ -402,6 +409,8 @@ describe RedSteak do
      "a",
      "b",
      "c",
+     "e",
+     "f",
      "end",
     ]
 
@@ -416,7 +425,9 @@ describe RedSteak do
       'foo',
       'a_to_b',
       'c2',
-      'c->end',
+      'e1',
+      'tran_e_1',
+      'f->end',
     ]
 
     render_graph m, :show_history => true
@@ -481,7 +492,7 @@ describe RedSteak do
     a.targets.map{|s| s.name}.should == [ :a, :b, :d ]
     e = sm.states[:end]
     e.should_not == nil
-    e.sources.map{|s| s.name}.should == [ :c, :d, :end ]
+    e.sources.map{|s| s.name}.should == [ :c, :f, :d, :end ]
 
     # Add state :f and transitions from :a and to :end.
     sm.builder do 
@@ -496,7 +507,7 @@ describe RedSteak do
     e.object_id.should == sm.states[:end].object_id
 
     sm.states[:a].targets.map{|s| s.name}.should == [ :a, :b, :d, :f ]
-    sm.states[:end].sources.map{|s| s.name}.should == [ :c, :d, :end, :f ]
+    sm.states[:end].sources.map{|s| s.name}.should == [ :c, :f, :d, :end ]
 
     ############################################
 

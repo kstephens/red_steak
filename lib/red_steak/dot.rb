@@ -11,7 +11,13 @@ module RedSteak
     # The output stream.
     attr_accessor :stream
 
+    # The output Dot file.
+    attr_accessor :file_dot
 
+    # The output SVG file.
+    attr_accessor :file_svg
+
+    
     def initialize opts = { }
       @dot_name = { }
       @dot_id = 0
@@ -255,6 +261,80 @@ module RedSteak
     end
 
 
+    # machine can be a Machine or a Statemachine object.
+    #
+    # Returns self.
+    #
+    # Options: 
+    #   :dir  
+    #     The directory to create the .dot and .dot.svg files.
+    #     Defaults to '.'
+    #   :name 
+    #     The base filename to use.  Defaults to the name of
+    #     StateMachine object.
+    #   :show_history
+    #     If true, the history stored in Machine is shown as
+    #     numbered transitions between states.
+    #
+    # Results:
+    #
+    #   file_dot
+    #     The *.dot file.
+    #
+    #   file_svg
+    #     The *.svg file.
+    #     Defaults to "#{file_dot}.svg"
+    #
+    def render_graph(machine, opts={})
+      case machine
+      when RedSteak::Machine
+        sm = machine.statemachine
+      when RedSteak::StateMachine
+        sm = machine
+      end
+
+      # Compute dot file name.
+      unless file_dot
+        dir = opts[:dir] || '.'
+        file = "#{dir}/"
+        file += opts[:name_prefix].to_s
+        opts[:name] ||= sm.name
+        file += opts[:name].to_s 
+        file += opts[:name_suffix].to_s
+        file += '-history' if opts[:show_history]
+        file += ".dot"
+        self.file_dot = file
+      end
+
+      # Write the dot file.
+      File.open(file_dot, 'w') do | fh |
+        opts[:stream] = fh
+        RedSteak::Dot.new(opts).render(machine)
+      end
+      opts[:stream] = nil
+
+      # Compute the SVG file name.
+      self.file_svg ||= "#{file_dot}.svg"
+
+      # Render dot to SVG.
+      cmd = "dot -V"
+      if system("#{cmd} >/dev/null 2>&1") == true
+        File.unlink(file_svg) rescue nil
+        cmd = "dot -Tsvg:cairo:cairo #{file_dot.inspect} -o #{file_svg.inspect}"
+        $stderr.puts cmd
+        result = `#{cmd} 2>&1`
+        if result =~ /Warning: language .* not recognized, use one of:/
+          cmd = "dot -Tsvg #{file_dot.inspect} -o #{file_svg.inspect}"
+          $stderr.puts cmd
+          result = `#{cmd} 2>&1`
+        end
+        $stdout.puts "View file://#{file_svg}"
+      else
+        $stderr.puts "Warning: #{cmd} failed"
+      end
+
+      self
+    end
 
   end # class
 
@@ -263,3 +343,4 @@ end # module
 
 ###############################################################################
 # EOF
+

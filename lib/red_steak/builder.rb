@@ -3,12 +3,13 @@ module RedSteak
 
   # DSL for building StateMachine objects.
   class Builder
-    # The top-level StateMachine.
+    # The top-level StateMachine generated.
     attr_accessor :result
 
     # Logger
     attr_accessor :logger
 
+    # Calls #build if a block is given.
     def initialize opts = EMPTY_HASH, &blk
       @context = { }
       @context_stack = { }
@@ -30,6 +31,7 @@ module RedSteak
 
 
     # Begins building StateMachine by evaluating block.
+    # Returns the generated StateMachine.
     def build &blk
       raise ArgumentError, "expected block" unless block_given?
       instance_eval &blk
