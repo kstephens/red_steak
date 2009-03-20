@@ -81,6 +81,7 @@ module RedSteak
 
     def deepen_copy! copier, src
       super
+      @transition_queue = @transition_queue.dup
       # Deepen history, if available.
       @history = @history && @history.dup
     end
@@ -143,18 +144,13 @@ module RedSteak
     # Any pending transitions triggered in doActivity are queued.
     # Callers should probably call run! after calling this method.
     def state= x
-      case x
-      when State
-        state = x
-      else
-        state = @stateMachine.states[x]
-      end
-      goto_state! state
-      # run!
+      goto_state! to_state(x)
     end
 
 
     # Coerces a String or Symbol to a State.
+    # Strings are rooted from the rootStateMachine.
+    # Symbols are looked up from this stateMachine.
     def to_state state
       case state
       when State, nil
@@ -170,11 +166,7 @@ module RedSteak
     # Returns true if a transition is possible from the current state.
     # Queries the transitions' guard.
     def guard? *args
-      trans = @state.outgoing.select do | t |
-        t.guard?(self, args)
-      end
-
-      trans.size > 0
+      valid_transitions(*args).size > 0
     end
 
 
@@ -200,16 +192,20 @@ module RedSteak
     end
 
     # Find the sole transition whose guard is true and follow it. 
+    #
     # If all outgoing transitions' guards are false or more than one 
-    # transition's guard is true, raise and error or return nil
-    # based on raise parameter.
+    # transition's guard is true:
+    # raise an error if _raise is true,
+    # or return nil.
     def transition_to_next_state!(_raise = true, *args)
       trans = valid_transitions(*args)
       
-      if trans.size > 1 && _raise
-        raise Error::AmbiguousTransition, trans.join(', ')
+      if trans.size > 1
+        raise Error::AmbiguousTransition, trans.join(', ') if _raise
+        return nil
       elsif trans.size != 1
-        raise Error::UnknownTransition, state
+        raise Error::UnknownTransition, state if _raise
+        return nil
       end
 
       transition! trans.first, *args

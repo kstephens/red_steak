@@ -382,6 +382,9 @@ describe RedSteak do
     m.state.name.should == :end
     m.history.size.should == 12
 
+    m.transition_to_next_state!(false).should == nil
+    lambda { m.transition_to_next_state!(true)}.should raise_error(RedSteak::Error::UnknownTransition)
+
     m.history.map { |h| h[:previous_state].to_s }.should ==
     [
      "", # nil.to_s
