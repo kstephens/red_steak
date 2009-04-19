@@ -6,8 +6,14 @@ module RedSteak
     # The top-level StateMachine generated.
     attr_accessor :result
 
-    # Logger
+    # The logging object.
+    # Can be a Log4r::Logger or IO object.
     attr_accessor :logger
+
+    # Log level method Symbol if Log4r::Logger === logger.
+    # Defaults to :debug.
+    attr_accessor :log_level
+
 
     # Calls #build if a block is given.
     def initialize opts = EMPTY_HASH, &blk
@@ -15,6 +21,7 @@ module RedSteak
       @context_stack = { }
       @previous = { }
       @logger = nil
+      @log_level = :debug
       @states = [ ]
       @transitions = [ ]
 
@@ -169,7 +176,7 @@ module RedSteak
     # States have a name and three behaviors:
     #
     #   :entry - action performed when state is entered.
-    #   :do - action peformed during state.
+    #   :doActivity - action peformed during state.
     #   :exit - action performed when state is exited.
     #
     # :do is an alias for :doActivity.
@@ -185,7 +192,7 @@ module RedSteak
     #     end
     #   end
     #
-    #
+    # 
     def state name, opts = { }, &blk
       raise ArgumentError, "states must be defined within a statemachine or submachine" unless StateMachine === @current
 
@@ -433,11 +440,14 @@ module RedSteak
 
 
     def _log msg = nil
-      case @logger
-      when ::IO
+      case
+      when ::IO === @logger
         msg ||= yield
         msg = "#{self.class} #{msg}"
         @logger.puts msg
+      when defined?(::Log4r) && (Log4r::Logger === @logger)
+        msg ||= yield
+        @logger.send(@log_level || :debug, msg)
       end
     end
 

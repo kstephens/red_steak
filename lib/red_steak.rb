@@ -7,15 +7,15 @@
 # * Implements UML 2.1 StateMachines (partially).
 # * StateMachines can be instantiated then cloned via StateMachine#copy.
 # * Submachines are supported, a state may have an imbedded StateMachine.
-# * Builder DSL simplifies construction of complex statemachines.
+# * Builder DSL simplifies construction and modification of complex statemachines.
 # * StateMachines can be serialized.
 # * StateMachines can be modified on-the-fly.
-# * Context objects can be notfied of transitions.
+# * Context objects can be notified of transitions.
 # * Context objects can be used to create transition guards.
 # * StateMachines, States and Transitions are objects that can be extended with metadata.
 # * History of transitions can be kept.
 # * Multiple machines can walk the same statemachine without side-effects.
-# * StateMachines can be rendered as Dot syntax.
+# * StateMachines and Machine#history can be rendered as Dot syntax and SVG.
 #
 module RedSteak
   EMPTY_ARRAY = [ ].freeze

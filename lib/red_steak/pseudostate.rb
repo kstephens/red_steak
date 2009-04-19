@@ -4,6 +4,7 @@ module RedSteak
   # 
   class Pseudostate < Vertex
     # See PseudostateKind.
+    # 
     # initial
     # deepHistory
     # shallowHistory
@@ -13,7 +14,7 @@ module RedSteak
     # choice
     # entryPoint
     # exitPoint
-    # teminate
+    # terminate
     attr_accessor :kind
 
     # The state associated with this Pseudostate.

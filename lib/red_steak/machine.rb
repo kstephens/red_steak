@@ -6,12 +6,6 @@ module RedSteak
   # Machine walks the Transitions between States of a StateMachine.
   # It can record history.
   class Machine < Base
-    # The submachine, if any.
-    attr_accessor :sub
-
-    # The supermachine, if any.
-    attr_accessor :sup
-
     # The StateMachine.
     attr_accessor :stateMachine # UML
     alias :statemachine :stateMachine # not UML
@@ -67,7 +61,6 @@ module RedSteak
 
     def initialize opts
       @stateMachine = nil
-      @sub = @sup = nil
       @state = nil
       @transition_queue = [ ]
       @history = nil
@@ -109,7 +102,7 @@ module RedSteak
     # Go to the start State.
     # The State's entry and doActivity are executed.
     # Any transitions in doActivity are queued;
-    # Queued transitions are fired only by !run.
+    # Queued transitions are fired only by #run!.
     def start! *args
       @state = nil
       goto_state! @stateMachine.start_state, args
@@ -117,7 +110,7 @@ module RedSteak
 
 
     # Begins running pending transitions.
-    # Only the top-level run! will process pending transitions.
+    # Only the top-level #run! will process pending transitions.
     # If single is true, only one transition is fired.
     def run! single = false
       in_run_save = @in_run
@@ -191,6 +184,7 @@ module RedSteak
       trans
     end
 
+
     # Find the sole transition whose guard is true and follow it. 
     #
     # If all outgoing transitions' guards are false or more than one 
@@ -237,6 +231,7 @@ module RedSteak
         t.guard?(self, args)
       end
     end
+
 
     # Transitions if a non-ambigious transition is allowed.
     # Returns the transition applied.
@@ -295,11 +290,10 @@ module RedSteak
     end
 
 
+    # Returns an Array representation of the state
+    # of this Machine.
     def to_a
       x = [ @state && @state.name ]
-      if sub
-        x += sub.to_a
-      end
       x
     end
 
@@ -311,14 +305,12 @@ module RedSteak
 
     def _log msg = nil
       case 
-      when IO === @logger
+      when ::IO === @logger
         msg ||= yield
         @logger.puts "#{self.to_s} #{state.to_s} #{msg}"
       when defined?(::Log4r) && (Log4r::Logger === @logger)
         msg ||= yield
         @logger.send(log_level || :debug, msg)
-      when @sup
-        @sup._log(msg) { yield }
       end
     end
 
@@ -345,11 +337,6 @@ module RedSteak
       if @history
         hash ||= yield
         @history.send(@history_append, hash)
-      end
-
-      if @sup
-        hash ||= yield
-        @sup.record_history! machine, hash
       end
 
       self
