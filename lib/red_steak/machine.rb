@@ -10,20 +10,24 @@ module RedSteak
     attr_accessor :stateMachine # UML
     alias :statemachine :stateMachine # not UML
 
-    # The current state in the statemachine.
+    # The current State in the statemachine.
     attr_reader :state
     
-    # The receiver of all methods missing inside StateMachine, State, and Transition.
+    # This object recieves Transition and State behavior callbacks:
     #
-    # This object also recieves transition notifications:
+    # Transition behaviors:
     #
     # * guard(machine, trans, *args)
     # * effect(machine, trans, *args)
+    #
+    # State behaviors:
     #
     # * entry(machine, state, *args)
     # * exit(machine, state, *args)
     # * doActivity(machine, state, *args)
     #
+    # A Transition's :guard query behavior may be called multiple times before
+    # a Transition is executed, therefore it should be free of side-effects.
     attr_accessor :context
 
     # History of all transitions.
