@@ -42,6 +42,12 @@ module RedSteak
     end
 
 
+    # Shorthand for self.options[...].
+    def [](*args)
+      options[*args]
+    end
+
+
     # Sets the name as a Symbol.
     def name= x
       @name = x && x.to_sym

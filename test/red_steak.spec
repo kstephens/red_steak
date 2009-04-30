@@ -213,6 +213,17 @@ describe RedSteak do
     sm.start_state.name.should == :a
     sm.end_state.name.should == :end
 
+    # Check State.options[] and State#[].
+    a = sm.states[:a]
+    a.should_not == nil
+    a.options[:option_foo].should_not == nil
+    a[:option_foo].should == a.options[:option_foo]
+
+    b = sm.states[:b]
+    b.should_not == nil
+    b.options[:option_foo].should == nil
+    b[:option_foo].should == b.options[:option_foo]
+
     sm.states[:end].inspect.should == 
       "#<RedSteak::State test end>"
 
