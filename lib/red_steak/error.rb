@@ -15,6 +15,8 @@ module RedSteak
     # More than one transitions between two states is possible.
     class AmbiguousTransition < self; end
 
+    # Unexpected recursion detected.
+    class UnexpectedRecursion < self; end
   end
 
 end

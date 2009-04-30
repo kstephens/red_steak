@@ -28,7 +28,7 @@ module RedSteak
 
     # History of all transitions.
     #
-    # An Array of Hash objects, each containing:
+    # An collection of Hash objects, each containing:
     # * :time - the Time the transition was completed.
     # * :transition - the Transtion object.
     # * :previous_state - the state before the transition.
@@ -39,11 +39,11 @@ module RedSteak
     #
     attr_accessor :history
 
-    # Method called on history to append new record.
+    # Method called on #history to append new record.
     # Defaults to :<<, as applicable to an Array.
     attr_accessor :history_append
 
-    # Method called on history to clear history.
+    # Method called on #history to clear history.
     # Defaults to :clear, as applicable to an Array.
     attr_accessor :history_clear
 
@@ -58,6 +58,9 @@ module RedSteak
     # The queue of pending transitions.
     attr_reader :transition_queue
 
+    # The currently executing Transition.
+    attr_reader :executing_transition
+
 
     def initialize opts
       @stateMachine = nil
@@ -68,6 +71,14 @@ module RedSteak
       @history_clear = :clear
       @logger = nil
       @log_level = :debug
+
+      @in_effect = false
+      @in_entry = false
+      @in_doActivity = false
+      @in_exit = false
+      @in_run = false
+      @executing_transition = nil
+
       super
     end
     
@@ -126,9 +137,45 @@ module RedSteak
     end
 
 
-    # Returns true if current State is processing its doActivity.
+    # Returns true if run! is executing.
+    def running?
+      ! ! @in_run
+    end
+
+
+    # Returns true if current State is processing its :entry behavior.
+    def in_entry?
+      ! ! @in_entry
+    end
+
+
+    # Returns true if current State is processing its :doActivity behavior.
     def in_doActivity?
       ! ! @in_doActivity
+    end
+
+
+    # Returns true if current State is processing its :exit behavior.
+    def in_exit?
+      ! ! @in_exit
+    end
+
+
+    # Returns the currently executing Transition.
+    def executing_transition
+      @executing_transition
+    end
+
+
+    # Returns true if this is executing a transition.
+    def transitioning?
+      ! ! @executing_transition
+    end
+
+
+    # Returns true if executing Transition is processing its :effect behavior.
+    def in_effect?
+      ! ! @in_effect
     end
 
 
@@ -324,11 +371,13 @@ module RedSteak
     def clear_history!
       @history && @history.send(@history_clear)
     end
+
     
     def show_history
       @history.each_with_index{|h, i| puts "#{i + 1}: #{h[:previous_state].to_s} ->  #{h[:new_state].to_s}"}
       ""
     end
+
 
     # Records a new history record.
     # Supermachines are also notified.
@@ -374,20 +423,30 @@ module RedSteak
 
     # Executes transition.
     #
-    # 1) Transition's effect behavior is performed.
-    # 2) Old State's exit behavior is performed.
-    # 3) transition history is logged.
-    # 4) New State's entry behavior is performed.
-    # 5) New State's doActivity behavior is performed.
+    # 1) active_transition is set.
+    # 2) Transition's :effect behavior is performed.
+    # 3) Old State's :exit behavior is performed, while #in_exit? is true.
+    # 4) active_transition is unset.
+    # 5) transition history is logged.
+    # 6) New State's :entry behavior is performed, while #in_entry? is true.
+    # 7) New State's :doActivity behavior is performed, while #in_doActivity? is true.
     #
     def execute_transition! trans, args
       _log { "execute_transition! #{trans.inspect}" }
 
+      raise RedSteak::Error::UnexpectedRecursion, "transition" if @executing_transition
+
       old_state = @state
 
+      @executing_transition = trans
+
       # Behavior: Transition effect.
+      raise RedSteak::Error::UnexpectedRecursion, "effect" if @in_effect
+      @in_effect = true
       trans.effect!(self, args)
-      
+      @in_effect = false
+
+      # Got to the new state.
       _goto_state!(trans.target, args) do 
         record_history!(self) do 
           {
@@ -399,8 +458,11 @@ module RedSteak
         end
         
       end
-      
+
       self
+    ensure
+      @executing_transition = nil
+      @in_effect = false
     end
 
 
@@ -425,10 +487,11 @@ module RedSteak
 
     # Moves from one state machine to another.
     #
-    # 1) Performs old State's exit behavior.
+    # 1) Performs old State's :exit behavior.
     # 2) If a block is given, yield to it after entering new state.
-    # 3) Performs new State's entry behavior.
-    # 4) Performs new State's doActivity behavior.
+    # 3) Performs new State's :entry behavior.
+    # 4) executing_transition is nil
+    # 5) Performs new State's :doActivity behavior.
     #
     def _goto_state! state, args
       old_state = @state
@@ -445,12 +508,15 @@ module RedSteak
       to = state ? state.ancestors : EMPTY_ARRAY
 
       # Behavior: exit state.
+      raise Error::UnexpectedRecursion, "exit" if @in_exit
+      @in_exit = true
       if old_state && old_state != state
         (from - to).each do | s |
           _log { "exit! #{s.inspect}" }
           s.exit!(self, args)
         end
       end
+      @in_exit = false
 
       # Move to next state.
       @state = state
@@ -459,12 +525,18 @@ module RedSteak
       yield if block_given?
       
       # Behavior: entry state.
+      raise Error::UnexpectedRecursion, "entry" if @in_entry
+      @in_entry = true
       if old_state != state
         (to - from).reverse.each do | s | 
           _log { "entry! #{s.inspect}" }
           s.entry!(self, args)
         end
       end
+      @in_entry = false
+
+      # Transition is no longer executing.
+      @executing_transition = nil
 
       # Behavior: doActivity.
       _doActivity!(args)
@@ -474,7 +546,13 @@ module RedSteak
     rescue Exception => err
       # Revert back to old state.
       @state = old_state
+
       raise err
+    ensure
+      # Clear statuses.
+      @in_exit = false
+      @in_entry = false
+      @executing_transition = nil
     end
 
 
@@ -482,6 +560,7 @@ module RedSteak
     # lock to prevent recursive run!
     def _doActivity! args
       in_doActivity_save = @in_doActivity
+      return nil if @in_doActivity
       @in_doActivity = true
       
       @state.doActivity!(self, args)

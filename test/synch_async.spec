@@ -59,7 +59,8 @@ describe "RedSteak Synchronous/Asynchronous Interactions" do
       @next_transition = s.outgoing.to_a
       @next_transition = @next_transition[rand(@next_transition.size)]
       if m.stateMachine.name == :synch
-        _exec!('m.transition_to_next_state!') unless m.at_end?
+        at_end = _exec!('  ', 'm.at_end?')
+        _exec!('  ', 'm.transition_to_next_state!') unless at_end
       end
     end
 
@@ -81,8 +82,10 @@ describe "RedSteak Synchronous/Asynchronous Interactions" do
     end
     
 
-    def _exec! expr
-      _interaction! expr
+    def _exec! *args
+      expr = args.pop
+      exec = "#{args * ' '}#{expr}"
+       _interaction! exec
       eval(expr)
     end
 

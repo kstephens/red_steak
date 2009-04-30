@@ -48,13 +48,17 @@ module RedSteak
         @stateMachine.options[action] || 
         action
 
-      # $stderr.puts "  _behavior! #{self.inspect} #{action.inspect} behavior = #{behavior.inspect}"
+      # $stderr.puts "  _behavior! #{self.inspect} #{action.inspect} #{machine.inspect}: behavior = #{behavior.inspect}"
+
       case
       when Proc === behavior
         behavior.call(machine, self, *args)
       when Symbol === behavior && 
           (c = machine.context) &&
           (c.respond_to?(behavior))
+
+        # $stderr.puts "  _behavior! #{self.inspect} #{action.inspect} #{machine.inspect}\n    => #{c}.send(#{behavior.inspect}, #{machine}, #{self.inspect}, *#{args.inspect})"
+
         c.send(behavior, machine, self, *args)
       else
         nil
