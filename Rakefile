@@ -91,6 +91,7 @@ task :p4_git_pull do
   git_revision
   sh "find . -type f | grep -v ./.git | xargs p4 add"
   sh "p4 revert example/..."
+  sh "p4 revert doc/..."
   sh "p4 revert -a ..."
 end
 
