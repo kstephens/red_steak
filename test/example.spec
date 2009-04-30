@@ -34,7 +34,7 @@ describe 'RedSteak LoanOfficer Example' do
        :email,
        ]
                        
-    def merge_customer_data m, state, *args
+    def do_merge_customer_data! m, state, *args
       _log
       @data.merge!(controller.params)
     end
@@ -51,10 +51,15 @@ describe 'RedSteak LoanOfficer Example' do
       x
     end
 
-    def create_customer m, trans, *args
+    def create_customer! m, trans, *args
       _log
       @customer = @data
     end
+
+    def customer_data_still_needed! m, trans, *args
+      _log
+    end
+
 
     ######################################3
     # Loan
@@ -66,7 +71,7 @@ describe 'RedSteak LoanOfficer Example' do
        :due_date,
        ]
 
-    def merge_loan_data m, state, *args
+    def do_merge_loan_data! m, state, *args
       _log
       @data.merge!(controller.params)
     end
@@ -83,7 +88,7 @@ describe 'RedSteak LoanOfficer Example' do
       x
     end
 
-    def create_loan m, trans, *args
+    def create_loan! m, trans, *args
       _log
       @loan = @data
     end
@@ -123,16 +128,17 @@ describe 'RedSteak LoanOfficer Example' do
           transition :customer_data
 
           state :customer_data,
-            :do => :merge_customer_data,
-            :exit => :create_customer
+            :do => :do_merge_customer_data!,
+            :exit => :create_customer!
           transition :customer_data,
-            :guard => :customer_data_not_complete?
+            :guard => :customer_data_not_complete?,
+            :effect => :customer_data_still_needed!
           transition :loan_data,
             :guard => :customer_data_complete?
 
           state :loan_data,
-            :do => :merge_loan_data,
-            :exit => :create_loan
+            :do => :do_merge_loan_data!,
+            :exit => :create_loan!
           transition :loan_data,
             :guard => :loan_data_not_complete?
           transition :risk_assessment,
@@ -149,6 +155,22 @@ describe 'RedSteak LoanOfficer Example' do
       end
     end
   end
+
+
+  def render_graph sm, opts = { }
+    opts[:dir] ||= File.expand_path(File.dirname(__FILE__) + '/../example')
+    opts[:name_prefix] = 'red_steak-'
+    RedSteak::Dot.new.render_graph(sm, opts)
+  end
+
+
+  ####################################################################
+
+
+  it 'should render Transition guards and effects' do
+    render_graph(LoanOfficer.new.sm, :show_guards => true, :show_effects => true)
+  end
+
 
   it 'transitions using transition_if_valid!' do
     lo = LoanOfficer.new

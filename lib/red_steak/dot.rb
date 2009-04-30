@@ -203,8 +203,35 @@ module RedSteak
     def render_Transition t
       stream.puts "\n// #{t.inspect}"
 
+      label = t.name.to_s
+
+      # See UML Spec 2.1 superstructure p. 574
+      # Put the Transition#guard in the label.
+      if options[:show_guards]
+        case x = t.guard
+        when nil
+          # NOTHING
+        when String, Symbol
+          label = "#{label} \n[#{x.inspect}]"
+        else
+          label = "#{label} \n[...]"
+        end
+      end
+
+      # Put the Transition#effect in the label.
+      if options[:show_effects]
+        case x = t.effect
+        when nil
+          # NOTHING
+        when String, Symbol
+          label = "#{label} \n/#{x.inspect}"
+        else
+          label = "#{dot_opts[:label]} \n/..."
+        end
+      end
+
       dot_opts = { 
-        :label => t.name.to_s,
+        :label => label,
         :color => options[:show_history] ? :gray : :black,
         :fontcolor => options[:show_history] ? :gray : :black,
       }

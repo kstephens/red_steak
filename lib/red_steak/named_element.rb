@@ -44,8 +44,9 @@ module RedSteak
 
       # Determine the behavior.
       behavior = 
-        send(action) || 
-        @stateMachine.options[action] || 
+        (force_send = 
+         (send(action) || 
+          @stateMachine.options[action])) || 
         action
 
       # $stderr.puts "  _behavior! #{self.inspect} #{action.inspect} #{machine.inspect}: behavior = #{behavior.inspect}"
@@ -54,12 +55,18 @@ module RedSteak
       when Proc === behavior
         behavior.call(machine, self, *args)
       when Symbol === behavior && 
-          (c = machine.context) &&
-          (c.respond_to?(behavior))
+          (c = machine.context)
 
-        # $stderr.puts "  _behavior! #{self.inspect} #{action.inspect} #{machine.inspect}\n    => #{c}.send(#{behavior.inspect}, #{machine}, #{self.inspect}, *#{args.inspect})"
+        # Don't force send unless the object responds.
+        unless force_send
+          force_send = c.respond_to?(behavior)
+        end
 
-        c.send(behavior, machine, self, *args)
+        if force_send
+          # $stderr.puts "  _behavior! #{self.inspect} #{action.inspect} #{machine.inspect}\n    => #{c}.send(#{behavior.inspect}, #{machine}, #{self.inspect}, *#{args.inspect})"
+
+          c.send(behavior, machine, self, *args)
+        end
       else
         nil
       end
