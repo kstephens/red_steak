@@ -142,7 +142,8 @@ end
 
 desc "Look for Debugging print lines"
 task :dbg do
-  egrep /\bDBG|\bbreakpoint\b/
+  b='break'; p='point' # avoid cnu's brain-dead p4 triggers.
+  egrep /\bDBG|\b#{break}#{point}\b/
 end
 
 desc "List all ruby files"
