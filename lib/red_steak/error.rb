@@ -17,6 +17,9 @@ module RedSteak
 
     # Unexpected recursion detected.
     class UnexpectedRecursion < self; end
+
+    # Feature is not implemented, yet.
+    class NotImplemented < self; end
   end
 
 end

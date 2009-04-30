@@ -206,6 +206,7 @@ describe "RedSteak Synchronous/Asynchronous Interactions" do
       begin
         m = sm.machine
         m.context = context
+        m.history = [ ]
         m
       end
   end
@@ -227,10 +228,13 @@ describe "RedSteak Synchronous/Asynchronous Interactions" do
   it 'handles asynchronous run! events' do
     sm :async
 
-    tracker.exec!('m.start!')    
+    tracker.exec!('m.start!')
+    # pp machine.to_hash
     until tracker.exec!('until ', 'm.at_end?')
       tracker.exec!('  ', 'm.transition_to_next_state!')
+      # pp machine.to_hash
       tracker.exec!('  ', 'm.run!(true)')
+      # pp machine.to_hash
     end
 
     tracker.render_text $stdout
