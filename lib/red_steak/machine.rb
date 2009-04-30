@@ -537,10 +537,10 @@ module RedSteak
 
     # Executes transition.
     #
-    # 1) active_transition is set.
+    # 1) self.executing_transition is set.
     # 2) Transition's :effect behavior is performed.
     # 3) Old State's :exit behavior is performed, while #in_exit? is true.
-    # 4) active_transition is unset.
+    # 4) self.executing_transition is unset.
     # 5) transition history is logged.
     # 6) New State's :entry behavior is performed, while #in_entry? is true.
     # 7) New State's :doActivity behavior is performed, while #in_doActivity? is true.
