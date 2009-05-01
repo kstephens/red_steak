@@ -20,39 +20,65 @@ module RedSteak
     
     def initialize opts = { }
       @dot_name = { }
+      @dot_label = { }
       @dot_id = 0
       super
     end
 
 
-    # Returns the Dot name for the object.
     def dot_name x
-      case 
-      when StateMachine
-        x.submachineState ? "#{dot_name(x.submachineState)}#{SEP}#{x.name}" : x.name.to_s
-      when State
-        "#{dot_name(x.stateMachine)}#{SEP}#{x.name}" # x.inspect
-#      when Transition
-      else
-        raise ArgumentError, x
-      end
-    end
-
-
-    def dot_name x
-      (@dot_name ||= { })[x] ||= "x#{@dot_id += 1}"
+      @dot_name[x] ||= 
+        "x#{@dot_id += 1}"
     end
 
 
     # Returns the Dot label for the object.
     def dot_label x
-      case
-      when StateMachine, State, Transition
+      @dot_label[x] ||=
+        _dot_label x
+    end
+
+
+    def _dot_label x
+      # $stderr.puts "  _dot_label #{x.inspect}"
+      case x
+      when StateMachine, State
         x.to_s
+
+      when Transition
+        label = x.name.to_s
+        
+        # See UML Spec 2.1 superstructure p. 574
+        # Put the Transition#guard and #effect in the label.
+        [ 
+         [ :show_guards,  :guard,  '[%s]' ],
+         [ :show_effects, :effect, '/%s' ],
+        ].each do | (opt, sel, fmt) |
+         
+          if options[opt]
+            case b = x.send(sel)
+            when nil
+              # NOTHING
+            when String, Symbol
+              b = b.inspect
+            else
+              b = '...'
+            end
+            if b
+              label = label + " \n" + (fmt % b)
+            end
+          end
+        end
+        
+        # $stderr.puts "  _dot_label #{x.inspect} => #{label.inspect}"
+        
+        label
+
       when String, Integer
         x.to_s
+
       else
-        raise ArgumentError, x
+        raise ArgumentError, x.inspect
       end
     end
 
@@ -70,7 +96,7 @@ module RedSteak
       when Transition
         render_Transition x
       else
-        raise ArgumentError, x
+        raise ArgumentError, x.inspect
       end
     end
 
@@ -147,13 +173,14 @@ module RedSteak
 
       dot_opts = {
         :color => :black,
-        :label => s.name.to_s,
+        :label => dot_label(s),
         :shape => :box,
         :style => :filled,
       }
 
       case
       when s.end_state?
+        dot_opts[:label] = ""
         dot_opts[:shape] = :doublecircle
         dot_opts[:fillcolor] = :black
         dot_opts[:fontcolor] = :white
@@ -178,9 +205,9 @@ module RedSteak
           end
         end
 
-        sequence.uniq!
-        sequence.sort!
         unless sequence.empty?
+          sequence.uniq!
+          sequence.sort!
           if options[:show_history_sequence] 
             dot_opts[:label] += ": (#{sequence * ', '})"
           end
@@ -203,35 +230,10 @@ module RedSteak
     def render_Transition t
       stream.puts "\n// #{t.inspect}"
 
-      label = t.name.to_s
-
-      # See UML Spec 2.1 superstructure p. 574
-      # Put the Transition#guard in the label.
-      if options[:show_guards]
-        case x = t.guard
-        when nil
-          # NOTHING
-        when String, Symbol
-          label = "#{label} \n[#{x.inspect}]"
-        else
-          label = "#{label} \n[...]"
-        end
-      end
-
-      # Put the Transition#effect in the label.
-      if options[:show_effects]
-        case x = t.effect
-        when nil
-          # NOTHING
-        when String, Symbol
-          label = "#{label} \n/#{x.inspect}"
-        else
-          label = "#{dot_opts[:label]} \n/..."
-        end
-      end
+      # $stderr.puts "  #{t.inspect}\n    #{options.inspect}"
 
       dot_opts = { 
-        :label => label,
+        :label => dot_label(t),
         :color => options[:show_history] ? :gray : :black,
         :fontcolor => options[:show_history] ? :gray : :black,
       }
@@ -241,15 +243,14 @@ module RedSteak
         source_name = "#{dot_name(ssm)}_START"
       end
 
-      target_name   = "#{dot_name(t.target)}"
+      target_name = "#{dot_name(t.target)}"
       if ssm = t.target.submachine
         target_name = "#{dot_name(ssm)}_START"
       end
 
-
-      sequence = [ ]
-
       if options[:show_history] && options[:history]
+        sequence = [ ]
+
         # $stderr.puts "\n  trans = #{t.inspect}, sm = #{t.stateMachine.inspect}"
         options[:history].each_with_index do | hist, i |
           if hist[:transition] === t
@@ -258,21 +259,19 @@ module RedSteak
           end
         end
 
-        sequence.sort!
-        sequence.uniq!
-      end
+        unless sequence.empty?
+          sequence.sort!
+          sequence.uniq!
 
-      unless sequence.empty?
-        dot_opts[:color] = :black
-        dot_opts[:fontcolor] = :black
-        sequence.each do | seq |
-          stream.puts "#{source_name} -> #{target_name} [ label=#{('(' + seq.to_s + ') ' + t.name.to_s).inspect}, color=#{dot_opts[:color]}, fontcolor=#{dot_opts[:fontcolor]} ];"
+          dot_opts[:color] = :black
+          dot_opts[:fontcolor] = :black
+          dot_opts[:label] = "(#{sequence * ','}) #{dot_opts[:label]}"
         end
-      else 
-        stream.puts "#{source_name} -> #{target_name} [ label=#{dot_opts[:label].inspect}, color=#{dot_opts[:color]}, fontcolor=#{dot_opts[:fontcolor]} ];"
-
       end
-      
+
+      stream.puts "#{source_name} -> #{target_name} [ label=#{dot_opts[:label].inspect}, color=#{dot_opts[:color]}, fontcolor=#{dot_opts[:fontcolor]} ];"
+
+      self
     end
 
 
@@ -280,6 +279,7 @@ module RedSteak
       case x
       when Hash
         x.keys.map do | k |
+          # HUH?
         end.join(', ')
       when Array
       else
@@ -373,7 +373,7 @@ module RedSteak
       render_graph(machine, opts)
       result = File.open(self.file_svg, "r") { | fh | fh.read }
       if opts[:xml_header] == false || options[:xml_header] == false
-        result.sub!(/^<\?xml([^\n\r>]+)>\s*[\n\r]+\s*/, '')
+        result.sub!(/\A.*?<svg /m, '<svg ')
       end
       # puts "#{result[0..200]}..."
       result
