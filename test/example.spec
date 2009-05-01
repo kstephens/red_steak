@@ -160,16 +160,24 @@ describe 'RedSteak LoanOfficer Example' do
   def render_graph sm, opts = { }
     opts[:dir] ||= File.expand_path(File.dirname(__FILE__) + '/../example')
     opts[:name_prefix] = 'red_steak-'
+    @graph_id ||= 0
+    opts[:name_suffix] = "-%02d" % (@graph_id += 1)
+
+    opts[:show_state_sequence] = true
+    opts[:show_transition_sequence] = true
+    opts[:highlight_state_history] = true
+    opts[:highlight_transition_history] = true
+    opts[:show_effect] = true
+    opts[:show_guard] = true
+    opts[:show_entry] = true
+    opts[:show_exit] = true
+    opts[:show_do] = true
+
     RedSteak::Dot.new.render_graph(sm, opts)
   end
 
 
   ####################################################################
-
-
-  it 'should render Transition guards and effects' do
-    render_graph(LoanOfficer.new.sm, :show_guards => true, :show_effects => true)
-  end
 
 
   it 'transitions using transition_if_valid!' do
@@ -181,57 +189,72 @@ describe 'RedSteak LoanOfficer Example' do
     m = lo.machine
     m.history = [ ]
     m.logger = lo._logger
+    render_graph(m)
+
     m.start!
+    render_graph(m)
+
     lo._log lo.data.inspect
     m.state.name.should == :start
     lo._log m.valid_transitions.inspect
     m.transition_if_valid!.should_not == nil
+    render_graph(m)
 
     lo._log lo.data.inspect
     m.state.name.should == :customer_data
     controller.params[:first_name] = 'Joe'
     lo._log m.valid_transitions.inspect
     m.transition_if_valid!.should_not == nil
+    render_graph(m)
 
     lo._log lo.data.inspect
     m.state.name.should == :customer_data
     controller.params[:last_name] = 'Borrower'
     m.transition_if_valid!.should_not == nil
+    render_graph(m)
 
     lo._log lo.data.inspect
     m.state.name.should == :customer_data
     controller.params[:ssn] = '123456789'
     controller.params[:email] = 'joeb@asdf.com'
     m.transition_if_valid!.should_not == nil
+    render_graph(m)
 
     m.transition_if_valid!.should_not == nil
+    render_graph(m)
 
     lo._log lo.data.inspect
     m.state.name.should == :loan_data
     lo.customer.should_not == nil
     controller.params[:amount] = 123.45
     m.transition_if_valid!.should_not == nil
+    render_graph(m)
 
     lo._log lo.data.inspect
     m.state.name.should == :loan_data
     controller.params[:due_date] = '2009/01/20'
     m.transition_if_valid!.should_not == nil
+    render_graph(m)
 
     m.transition_if_valid!.should_not == nil
+    render_graph(m)
 
     lo._log lo.data.inspect
     m.state.name.should == :risk_assessment
     lo.loan.should_not == nil
     m.transition_if_valid!.should_not == nil
+    render_graph(m)
 
     lo._log lo.data.inspect
     m.state.name.should == :sign_contract
     m.transition_if_valid!.should_not == nil
+    render_graph(m)
 
     lo._log lo.data
     m.state.name.should == :complete
     m.at_end?.should == true
     m.transition_if_valid!.should == nil
+    render_graph(m)
   end
 
 end # describe
