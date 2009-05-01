@@ -94,6 +94,9 @@ module RedSteak
     # Defaults to :debug.
     attr_accessor :log_level
 
+    # If true, transition! will execute run! if not active in a State's doActivity?.
+    attr_accessor :auto_run
+
     # The queue of pending transitions.
     attr_reader :transition_queue
 
@@ -110,6 +113,7 @@ module RedSteak
       @history_clear = :clear
       @logger = nil
       @log_level = :debug
+      @auto_run = false
 
       @in_effect = false
       @in_entry = false
@@ -382,7 +386,7 @@ module RedSteak
 
       if trans
         queue_transition!(trans, args)
-        if ! @in_doActivity
+        if @auto_run && ! @in_doActivity
           run!
         end
       else

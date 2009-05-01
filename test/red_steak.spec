@@ -287,6 +287,7 @@ describe RedSteak do
 
   it 'should handle transitions' do
     m = machine_with_context
+    m.auto_run = true
     c = m.context
 
     c.clear!
@@ -450,6 +451,7 @@ describe RedSteak do
 
   it 'should handle submachines' do
     m = machine_with_context
+    m.auto_run = true
     sm = m.stateMachine
 
     m.start!
@@ -526,6 +528,7 @@ describe RedSteak do
     ############################################
 
     m = machine_with_context(sm)
+    m.auto_run = true
     c = m.context
  
     m.start! :foo, :bar
@@ -629,6 +632,7 @@ describe RedSteak do
     sm.state[:c].source.map{|s| s.to_s}.should == ["a::a", "a::b", "a::c", "b", "b::a"]
 
     m = machine_with_context(sm)
+    m.auto_run = true
     c = m.context
     m.logger = $stderr
 
@@ -663,6 +667,12 @@ describe RedSteak do
     # $stderr.puts svg_data
     svg_data.should =~ /\A<\?xml/
     svg_data.should =~ /<svg /
+    svg_data.should =~ /<\/svg>/
+
+    svg_data = RedSteak::Dot.new.render_graph_svg_data(m, :show_history => true, :xml_header => false)
+    # $stderr.puts svg_data
+    svg_data.should_not =~ /\A<\?xml/
+    svg_data.should =~ /\A<svg /
     svg_data.should =~ /<\/svg>/
   end
   
