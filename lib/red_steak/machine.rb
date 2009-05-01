@@ -36,8 +36,10 @@ module RedSteak
   #   m.context = MyContext.new(...)
   #   m.start!
   #   until m.at_end?
+  #     application.do_something
   #     m.transition_to_next_state!
   #     m.run(:single)
+  #     application.do_something_else
   #   end
   #
   class Machine < Base
@@ -164,20 +166,63 @@ module RedSteak
 
 
     # Begins running pending transitions.
-    # Only the top-level #run! will process pending transitions.
-    # If single is true, only one transition is fired.
+    # 
+    # Only the top-level #run! will process pending transitions,
+    # run! has no effect if called recursively.
+    #
+    # If %single is true, only one transition is fired.
+    #
+    # Returns self if run! is at the top-level, nil if a run! is already active.
+    #
+    # Implementation and Semantics:
+    #
+    # 1) Statemachines cannot be self-recursive, therefore must employ a "transition queue".
+    #
+    # 2) Statemachines that do not have a queued transition cannot do anything.
+    #
+    # 3) The queuing of transitions may occur:
+    # A) as a side-effect of the entry, doActivity, exit and effect actions (see UML 2 Superstructure for definitions),
+    # B) or as stimuli external to the statemachine and it's implied context object.
+    #
+    # "A" describes what might be called a "synchronous" statemachine: 
+    # the statemachine was designed such that it should never pause for external stimulus; 
+    # there is always a unambiguous transition that is applicable until the end state is reached.  
+    # The statemachine assumes control of the application's execution thread.
+    #
+    # "B" describes an "asynchronous" statemachine: the statemachine may pause at a state 
+    # if there is no queued transition.  
+    # The statemachine must not assume control of the application's execution thread,
+    # because the application interacts asynchronously with external stimulus:
+    # i.e. a human user behind a web browser.
+    #
+    # In some cases a statemachine may need to be used synchronously and asynchronously 
+    # during a single lifetime. 
+    #
+    # The UML does not specify that a statemachine should or must *always* execute a transition 
+    # if a transition is possible.  The consequences are:
+    #
+    # 1) Machine#run! may not "do" anything, if no transitions were queued.
+    # 2) Machine#run! may return before the statemachine reaches the end date.
+    #
+    # The application or the statemachines's entry, doAction, exit or effect behaviors
+    # must explicitly queue a transition, this object will never automatically
+    # queue transitions.
+    #
     def run! single = false
       in_run_save = @in_run
       if @in_run
-        yield if block_given?
-      else 
+        nil
+      else
         @in_run = true
-        yield if block_given?
         process_transitions! single
       end
     ensure
       @in_run = in_run_save
     end
+
+
+    # Alias for run! for who do not read documentation.
+    alias :run_pending_transitions! :run!
 
 
     # Returns true if run! is executing.
@@ -519,11 +564,28 @@ module RedSteak
 
 
     # Queues a transition for execution.
-    # This prevents recursion from the State's doActivity.
+    #
+    # This prevents recursion into the Machine.
+    #
+    # This method is guaranteed to return immediately.
+    #
+    # This method will not cause any entry, doActivity, exit or effect behavior to
+    # be executed "now".
+    #
+    # The #run!, #process_transitions!, and #execute_transition! methods are responsible
+    # for executing the transition in the top-level #run! method.
+    #
+    # UnexpectedRecursion is thrown if entry, exit or effect behaviors are currently active.
+    #
     def queue_transition! trans, args
       _log { "queue_transition! #{trans.inspect}" }
+      if @in_entry || @in_exit || @in_effect
+        raise Error::UnexpectedRecursion, "in_entry #{@in_entry.inspect}, in_exit #{@in_exit.inspect}, in_effect #{@in_effect.inspect}"
+      end
+
       @transition_queue.clear
       @transition_queue << [ trans, args ]
+
       self
     end
 
