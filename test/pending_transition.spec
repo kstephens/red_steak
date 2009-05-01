@@ -23,7 +23,6 @@ describe RedSteak do
     def b machine, *args
       @history << :b
       _log
-      machine.transition_to! :c
     end
 
     def c machine, *args
@@ -47,8 +46,9 @@ describe RedSteak do
   end
 
 
-  it 'should queue transition executions inside doActions.' do
-    sm = RedSteak::StateMachine.build do 
+  def sm
+    @sm ||=
+      RedSteak::StateMachine.build do 
       statemachine :test2 do
         initial :a
         final :d
@@ -68,18 +68,82 @@ describe RedSteak do
         state :d, :do => :d
       end
     end
+  end
 
+
+  it 'should queue transition executions inside doActions in auto_run is enabled' do
     m = sm.machine
+    m.auto_run = true
     # m.logger = $stderr
     m.history = [ ]
     m.context = RedSteak::TestContext2.new
     # m.context._logger = $stderr
 
     m.start!
+    m.state.name.should == :a
     m.transition_queue.size.should == 1
+
     m.run! :single
     m.state.name.should == :b
+    m.transition_queue.size.should == 0
+
+    # Nothing pending so run! does nothing here.
+    m.run!
+    m.state.name.should == :b
+
+    # This transition should invoke run!
+    m.transition! :'b->c'
+    m.state.name.should == :d
+
+    m.run!
+    m.at_end?.should == true
+
+    m.context.history.should ==
+      [
+       :a,
+       :b,
+       :c,
+       :d,
+      ]
+
+    m.history.map { | h | h[:new_state].name }.should ==
+      [
+       :a,
+       :b,
+       :c,
+       :d,
+      ]
+  end
+  
+
+  it 'should not queue transition executions inside doActions in auto_run is disabled' do
+    m = sm.machine
+    m.auto_run = false
+    # m.logger = $stderr
+    m.history = [ ]
+    m.context = RedSteak::TestContext2.new
+    # m.context._logger = $stderr
+
+    m.start!
+    m.state.name.should == :a
     m.transition_queue.size.should == 1
+
+    m.run! :single
+    m.state.name.should == :b
+    m.transition_queue.size.should == 0
+
+    # Nothing queued.
+    m.run! 
+    m.state.name.should == :b
+
+    # auto_run is turned off, transition! should not auto run!
+    m.transition! :'b->c'
+    m.state.name.should == :b
+
+    # Explicit run is required.
+    m.run! :single
+    m.state.name.should == :c
+
     m.run! 
     m.at_end?.should == true
 
