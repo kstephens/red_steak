@@ -255,13 +255,13 @@ module RedSteak
     end
 
 
-    # Returns true if this is executing a transition.
+    # Returns true if this is executing a Transition.
     def transitioning?
       ! ! @executing_transition
     end
 
 
-    # Returns true if executing Transition is processing its :effect behavior.
+    # Returns true if an executing Transition is processing its :effect behavior.
     def in_effect?
       ! ! @in_effect
     end
@@ -335,7 +335,7 @@ module RedSteak
     end
 
 
-    # Find the sole transition whose guard is true and follow it. 
+    # Find the sole transition whose guard is true and queue it. 
     #
     # If all outgoing transitions' guards are false or more than one 
     # transition's guard is true:
@@ -356,7 +356,7 @@ module RedSteak
     end
 
 
-    # Attempt to transition from current state to another state.
+    # Queues transition from current state to another state.
     # This assumes that there is not more than one transition
     # from one state to another.
     def transition_to! state, *args
@@ -383,9 +383,9 @@ module RedSteak
     end
 
 
-    # Transitions if a non-ambigious transition is allowed.
-    # Returns the transition applied.
-    # Returns nil if no transition could be applied.
+    # Queues a non-ambigious Transition is allowed.
+    # Returns the Transition applied.
+    # Returns nil if no Transition could be applied.
     def transition_if_valid! *args
       trans = valid_transitions *args
 
@@ -604,10 +604,10 @@ module RedSteak
     # Executes transition.
     #
     # 1) self.executing_transition is set.
-    # 2) Transition's :effect behavior is performed.
+    # 2) Transition's :effect behavior is performed, while #in_effect? is true.
     # 3) Old State's :exit behavior is performed, while #in_exit? is true.
     # 4) self.executing_transition is unset.
-    # 5) transition history is logged.
+    # 5) Transition history is logged.
     # 6) New State's :entry behavior is performed, while #in_entry? is true.
     # 7) New State's :doActivity behavior is performed, while #in_doActivity? is true.
     #
@@ -738,6 +738,8 @@ module RedSteak
 
     # Performs the current State's doActivity while setting a 
     # lock to prevent recursive run!
+    # 
+    # FIXME?: Should this throw an UnexpectedRecursion if #in_doActivity?
     def _doActivity! args
       in_doActivity_save = @in_doActivity
       return nil if @in_doActivity
