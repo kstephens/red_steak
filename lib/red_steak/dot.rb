@@ -371,7 +371,12 @@ module RedSteak
       self.file_dot = tmp.path + ".dot"
       self.file_svg = nil
       render_graph(machine, opts)
-      File.open(self.file_svg, "r") { | fh | fh.read }
+      result = File.open(self.file_svg, "r") { | fh | fh.read }
+      if opts[:xml_header] == false || options[:xml_header] == false
+        result.sub!(/^<\?xml([^\n\r>]+)>\s*[\n\r]+\s*/, '')
+      end
+      # puts "#{result[0..200]}..."
+      result
     ensure
       tmp.unlink rescue nil
       File.unlink(self.file_dot) rescue nil
