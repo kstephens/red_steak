@@ -8,7 +8,7 @@ CURRENT_DIR = File.expand_path(File.dirname(__FILE__))
 PKG_Name = 'red_steak'
 PKG_Author = 'Kurt Stephens'
 PKG_Email = 'ruby-red_steak@umleta.com'
-PKG_DESCRIPTION = %{RedSteak - A UML 2 Compliant Statemachine.
+PKG_DESCRIPTION = %{RedSteak - A UML 2 Statemachine for Ruby.
 
 For more details, see:
 

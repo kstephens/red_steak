@@ -6,6 +6,7 @@
 ** Add :elapsed_time to history Hash - has performance implication.
 ** Support StateMachine#freeze to avoid accidental changes to a running StateMachine.
 ** Support UML Pseudostates.
+** Support UML Regions.
 
 * Jeremy's Comments:
 ** Having to call start! explicitly is troublesome.
@@ -16,4 +17,8 @@
 ** Need to have a way to disable Machine#context= and Machine#state= to prevent foolishness.
 ** There is an implied nil "start!" transition in the Machine#history,
 not sure what to do about this.
+
+* Dean's Comments:
+** Machine#run! is a terrible name since it may return before Machine#at_end? is true.
+
 
