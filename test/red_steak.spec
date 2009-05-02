@@ -277,7 +277,7 @@ describe RedSteak do
 
   # Render graph.
   def render_graph sm, opts = { }
-    opts[:dir] ||= File.expand_path(File.dirname(__FILE__) + '/../example')
+    opts[:dir] ||= File.expand_path(File.dirname(__FILE__) + '/../doc')
     opts[:name_prefix] = 'red_steak-'
     opts[:highlight_state_history] = true
     opts[:highlight_transition_history] = true

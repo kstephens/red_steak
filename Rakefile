@@ -34,7 +34,7 @@ end
 
 desc "Runs tests"
 task :test do
-  sh "mkdir -p example"
+  sh "mkdir -p doc"
   gem_bin_path = Gem.path.map{|x| "#{x}/bin"}
   ENV['RUBYLIB'] = ($: + [ 'lib' ]) * ':'
   Dir[ENV['test'] || 'test/*.spec'].each do | t |
