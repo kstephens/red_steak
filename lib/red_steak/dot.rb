@@ -2,7 +2,17 @@
 module RedSteak
 
   # Renders a StateMachine as a Dot syntax stream.
+  #
   # Can also render SVG to a file or a String, if graphvis is installed.
+  #
+  # Example output:
+  #
+  # link:example/red_steak-loan_application-09.dot.svg
+  #
+  # More examples here:
+  #
+  # link:example/
+  #
   class Dot < Base
     @@verbose = false
     def self.verbose; @@verbose; end

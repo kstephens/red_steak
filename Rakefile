@@ -34,7 +34,7 @@ end
 
 desc "Runs tests"
 task :test do
-  sh "mkdir -p doc"
+  sh "mkdir -p doc/example"
   gem_bin_path = Gem.path.map{|x| "#{x}/bin"}
   ENV['RUBYLIB'] = ($: + [ 'lib' ]) * ':'
   Dir[ENV['test'] || 'test/*.spec'].each do | t |
@@ -75,6 +75,8 @@ Rake::RDocTask.new(:docs) do |rd|
       rd.options << "-t" << title
     end
 
+
+task :docs => :test
 
 desc "Records current git commit id to .git_revision for p4 check-in"
 task :git_revision do

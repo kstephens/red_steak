@@ -210,7 +210,7 @@ describe 'RedSteak LoanOfficer Example' do
     #pp lo.data
     #pp sm.to_hash
 
-    opts[:dir] ||= File.expand_path(File.dirname(__FILE__) + '/../doc')
+    opts[:dir] ||= File.expand_path(File.dirname(__FILE__) + '/../doc/example')
     opts[:name_prefix] = 'red_steak-'
     @graph_id ||= 0
     opts[:name_suffix] = "-%02d" % (@graph_id += 1)

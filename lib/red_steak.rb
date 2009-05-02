@@ -15,7 +15,7 @@
 # * StateMachines, States and Transitions are objects that can be extended with metadata.
 # * History of transitions can be kept.
 # * Multiple machines can walk the same statemachine without side-effects.
-# * StateMachines and Machine#history can be rendered as Dot syntax and SVG.
+# * StateMachines and Machine#history can be rendered as Dot syntax and SVG.  link:example/red_steak-loan_application-09.dot.svg
 #
 module RedSteak
   EMPTY_ARRAY = [ ].freeze
