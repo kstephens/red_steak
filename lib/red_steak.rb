@@ -1,5 +1,3 @@
-# require 'debug'
-
 # An extensible, instantiable, cloneable statemachine written in Ruby.
 #
 # Features:
@@ -15,7 +13,7 @@
 # * StateMachines, States and Transitions are objects that can be extended with metadata.
 # * History of transitions can be kept.
 # * Multiple machines can walk the same statemachine without side-effects.
-# * StateMachines and Machine#history can be rendered as Dot syntax and SVG.  link:example/red_steak-loan_application-09.dot.svg
+# * StateMachines and Machine#history can be rendered as Dot syntax and SVG; See link:example/red_steak-loan_application-09.dot.svg.
 #
 module RedSteak
   EMPTY_ARRAY = [ ].freeze
@@ -34,6 +32,7 @@ require 'red_steak/base'
 require 'red_steak/named_element'
 require 'red_steak/namespace'
 require 'red_steak/state_machine'
+#require 'red_steak/region' # NOT IMPLEMENTED, YET!
 require 'red_steak/vertex'
 require 'red_steak/state'
 require 'red_steak/transition'
