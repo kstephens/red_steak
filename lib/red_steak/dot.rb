@@ -373,6 +373,24 @@ module RedSteak
     end
 
 
+    def dot_opts_for x, opts = { }
+      kind = 
+      case x
+      when State
+        :node
+      when Transition
+        :edge
+      else
+        nil
+      end
+      opts.update((options[:dot_options] || EMPTY_HASH)[kind] || EMPTY_HASH)
+      opts.update(x.options[:dot_options] || EMPTY_HASH)
+      opts.update((options[:dot_options] || EMPTY_HASH)[x.class] || EMPTY_HASH)
+      opts.update((options[:dot_options] || EMPTY_HASH)[x] || EMPTY_HASH)
+      opts
+    end
+
+
     def render_opts x, j = ', '
       case x
       when Hash
@@ -398,20 +416,41 @@ module RedSteak
     end
 
 
-    # machine can be a Machine or a Statemachine object.
+    # _machine_ can be a Machine or a Statemachine object.
     #
     # Returns self.
     #
-    # Options: 
+    # File Options: 
+    #
     #   :dir  
     #     The directory to create the .dot and .dot.svg files.
     #     Defaults to '.'
     #   :name 
     #     The base filename to use.  Defaults to the name of
     #     StateMachine object.
+    #
+    # History options:
+    #
     #   :show_history
     #     If true, the history stored in Machine is shown as
     #     numbered transitions between states.
+    #   :history
+    #     An enumeration of Hashes as stored in Machine#history.
+    #
+    # States Options:
+    #   :show_state_sequence
+    #   :show_entry
+    #   :show_exit
+    #   :show_do
+    #   :highlight_states
+    #     An enumeration of States to highlight.
+    #
+    # Transition Options:
+    #   :show_transition_sequence
+    #   :show_guard
+    #   :show_effect
+    #   :highlight_transitions
+    #     An enumeration of Transitions to highlight.
     #
     # Results:
     #
@@ -428,6 +467,8 @@ module RedSteak
         sm = machine.statemachine
       when RedSteak::StateMachine
         sm = machine
+      else
+        raise ArgumentError, "expected Machine or StateMachine, given #{machine.class}"
       end
 
       # Compute dot file name.

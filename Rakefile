@@ -71,6 +71,7 @@ Rake::RDocTask.new(:docs) do |rd|
       title = "#{name}-#{version} Documentation"
       title = "#{rubyforge_name}'s " + title if rubyforge_name != name
 
+      rd.options << "-S" << '-N'
       rd.options << "-t" << title
     end
 
