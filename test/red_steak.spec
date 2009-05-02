@@ -3,6 +3,10 @@
 require 'red_steak'
 
 describe RedSteak do
+  
+  before(:all) do
+    RedSteak::Dot.verbose = true
+  end
 
   # A test context for the StateMachine.
   class RedSteak::TestContext

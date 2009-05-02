@@ -4,6 +4,10 @@ module RedSteak
   # Renders a StateMachine as a Dot syntax stream.
   # Can also render SVG to a file or a String, if graphvis is installed.
   class Dot < Base
+    @@verbose = false
+    def self.verbose; @@verbose; end
+    def self.verbose= x; @@verbose = x; end
+
     # The root StateMachine to be rendered.
     attr_accessor :stateMachine
     alias :statemachine  :stateMachine  # not UML
@@ -21,11 +25,15 @@ module RedSteak
     # The output SVG file.
     attr_accessor :file_svg
 
-    
+    attr_accessor :logger
+    attr_accessor :log_level
+
     def initialize opts = { }
       @dot_name = { }
       @dot_label = { }
       @dot_id = 0
+      @logger = nil
+      @log_level = :debug
       super
     end
 
@@ -160,7 +168,7 @@ module RedSteak
         :show_effects => :show_effect,
       }.each do | k, v |
         if options.key?(k)
-          $stderr.puts "WARNING: #{self.class} option[#{k.inspect}] is deprecated, use option[#{v.inspect}]"
+          _log { "WARNING: #{self.class} option[#{k.inspect}] is deprecated, use option[#{v.inspect}]" }
           options[v] = options[k]
         end
       end
@@ -432,16 +440,16 @@ module RedSteak
       if system("#{cmd} >/dev/null 2>&1") == true
         File.unlink(file_svg) rescue nil
         cmd = "dot -Tsvg:cairo:cairo #{file_dot.inspect} -o #{file_svg.inspect}"
-        $stderr.puts cmd
+        _log { "Run: #{cmd}" }
         result = `#{cmd} 2>&1`
         if result =~ /Warning: language .* not recognized, use one of:/
           cmd = "dot -Tsvg #{file_dot.inspect} -o #{file_svg.inspect}"
-          $stderr.puts cmd
+          _log { "Run: #{cmd}" }
           result = `#{cmd} 2>&1`
         end
-        $stdout.puts "View file://#{file_svg}"
+        _log { "Generated: file://#{file_svg}" }
       else
-        $stderr.puts "Warning: #{cmd} failed"
+        _log { "Warning: #{cmd} failed" }
       end
 
       self
@@ -467,6 +475,18 @@ module RedSteak
       File.unlink(self.file_svg) rescue nil
     end
 
+
+    def _log msg = nil
+      case 
+      when ::IO === @logger || @@verbose
+        @logger ||= $stderr
+        msg ||= yield
+        @logger.puts "#{self.inspect} #{@stateMachine} #{msg}"
+      when defined?(::Log4r) && (Log4r::Logger === @logger)
+        msg ||= yield
+        @logger.send(log_level || :debug, msg)
+      end
+    end
   end # class
 
 end # module

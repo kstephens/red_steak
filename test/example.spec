@@ -6,6 +6,10 @@ require 'pp'
 
 describe 'RedSteak LoanOfficer Example' do
 
+  before(:all) do
+    RedSteak::Dot.verbose = true
+  end
+
   # A test context for the StateMachine.
   class LoanOfficer
     attr_accessor :_logger
@@ -189,6 +193,7 @@ describe 'RedSteak LoanOfficer Example' do
     m = lo.machine
     m.history = [ ]
     m.logger = lo._logger
+    m.auto_run = true
     render_graph(m)
 
     m.start!
@@ -200,6 +205,7 @@ describe 'RedSteak LoanOfficer Example' do
     m.transition_if_valid!.should_not == nil
     render_graph(m)
 
+    # pp m.to_hash
     lo._log lo.data.inspect
     m.state.name.should == :customer_data
     controller.params[:first_name] = 'Joe'

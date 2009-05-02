@@ -20,6 +20,9 @@ module RedSteak
 
     # Feature is not implemented, yet.
     class NotImplemented < self; end
+
+    # Transition is already pending.
+    class TransitionPending < self; end
   end
 
 end

@@ -58,7 +58,7 @@ describe "RedSteak Synchronous/Asynchronous Interactions" do
       @m = m
       @next_transition = s.outgoing.to_a
       @next_transition = @next_transition[rand(@next_transition.size)]
-      if m.stateMachine.name == :synch
+      if m.stateMachine.name == :synchronous
         at_end = _exec!('  ', 'm.at_end?')
         _exec!('  ', 'm.transition_to_next_state!') unless at_end
       end
@@ -78,15 +78,15 @@ describe "RedSteak Synchronous/Asynchronous Interactions" do
 
 
     def _interaction! expr
-      @tracker.interaction[:context] << { :exec => expr }
+      @tracker.context! expr
     end
     
 
     def _exec! *args
-      expr = args.pop
-      exec = "#{args * ' '}#{expr}"
-       _interaction! exec
-      eval(expr)
+      exec = args.pop
+      expr = "#{args * ' '}#{expr}"
+       _interaction! expr
+      eval(exec)
     end
 
 
@@ -95,7 +95,7 @@ describe "RedSteak Synchronous/Asynchronous Interactions" do
       when Array
         args.map{ | x | _format_arg x }.join(', ')
       else
-        raise ArgumentError
+        raise ArgumentError, args.inspect
       end
     end
 
@@ -128,46 +128,73 @@ describe "RedSteak Synchronous/Asynchronous Interactions" do
     def initialize
       @machine = nil
       @context = nil
-      @interactions = [ ]
+      @top_level = [ ]
     end
-
-    def interaction
-      @interactions[-1]
-    end
-
 
     def exec! *args
       expr = args.pop
       exec = "#{args * ' '}#{expr}"
-      @interactions << { :exec => exec, :context => [ ]}
+      top_level!(exec)
       eval(expr)
     end
 
 
+    def top_level! expr
+      #$stderr.puts "top_level! #{expr}"
+      @top_level << { :expr => expr, :machine => [ ]}
+    end
+
+    def machine! expr
+      #$stderr.puts "\t\tmachine! #{expr}"
+      @top_level[-1][:machine] << { :expr => expr, :context => [ ]}
+    end
+    
+    def context! expr
+      #$stderr.puts "\t\t\t\tcontext! #{expr}"
+      x = @top_level[-1][:machine]
+      #$stderr.puts __LINE__, x.inspect
+      x << { :expr => "", :context => [ ] } if x.empty?
+      x = x[-1][:context]
+      #$stderr.puts __LINE__, x.inspect
+      x << { :expr => expr }
+      #$stderr.puts __LINE__, x.inspect
+    end
+
+
     def render_text out
-      out.puts "top-level\tcontext"
-      out.puts "=========\t======="
-      @interactions.each do | i |
-        out.puts "#{i[:exec]}"
-        i[:context].each do | c |
-          out.puts "\t\t#{c[:exec]}"
+      out.puts "\n\n#{machine.stateMachine.name} interactions:"
+      out.write "\n"
+      out.puts "top-level\tmachine\t\tcontext"
+      out.puts "=========\t=======\t\t======="
+      @top_level.each do | i |
+        out.puts "#{i[:expr]}"
+        i[:machine].each do | m |
+          out.puts "\t\t#{m[:expr]}"
+          m[:context].each do | c |
+            out.puts "\t\t\t\t#{c[:expr]}"
+          end
         end
       end
+      out.write "\n\n"
     end
 
 
     def render_html out
+      out.puts "<h2>#{machine.stateMachine.name} interactions:</h2>"
       out.puts "<table>"
 
       out.puts "<thead>"
-      out.puts "<tr><th>top-level</th><th>context</th>"
+      out.puts "<tr><th>top-level</th><th>machine</th><th>context</th>"
       out.puts "</thead>"
 
       out.puts "</tbody>"
-      @interactions.each do | i |
-        out.puts "<tr><td><pre>#{i[:exec]}</pre></td><td></td></tr>"
-        i[:context].each do | c |
-          out.puts "<tr><td></td><td><pre>#{c[:exec]}</pre></td></tr>"
+      @top_level.each do | i |
+        out.puts "<tr><td><pre>#{i[:expr]}</pre></td><td></td></tr>"
+        i[:machine].each do | m |
+          out.puts "<tr><td></td><td><pre>#{m[:expr]}</pre></td><td></td></tr>"
+          i[:context].each do | c |
+            out.puts "<tr><td></td><td></td><td><pre>#{c[:expr]}</pre></td></tr>"
+          end
         end
       end
       out.puts "</tbody>"
@@ -196,6 +223,9 @@ describe "RedSteak Synchronous/Asynchronous Interactions" do
         t.context = context
         context.tracker = t
         t.machine = machine
+        machine.logger = lambda do | msg |
+          t.machine! "m.#{msg}"
+        end
         t
       end
   end
@@ -216,7 +246,7 @@ describe "RedSteak Synchronous/Asynchronous Interactions" do
 
 
   it 'handles synchronous run! events' do
-    sm :synch
+    sm :synchronous
 
     tracker.exec!('m.start!')
     tracker.exec!('m.run!')
@@ -226,14 +256,14 @@ describe "RedSteak Synchronous/Asynchronous Interactions" do
 
 
   it 'handles asynchronous run! events' do
-    sm :async
+    sm :asynchronous
 
     tracker.exec!('m.start!')
     # pp machine.to_hash
     until tracker.exec!('until ', 'm.at_end?')
       tracker.exec!('  ', 'm.transition_to_next_state!')
       # pp machine.to_hash
-      tracker.exec!('  ', 'm.run!(true)')
+      tracker.exec!('  ', 'm.run!(:single)')
       # pp machine.to_hash
     end
 
