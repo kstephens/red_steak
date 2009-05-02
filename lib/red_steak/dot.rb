@@ -264,28 +264,19 @@ module RedSteak
       
       if options[:history]
         options[:history].each_with_index do | hist, i |
-          if (s0 = hist[:previous_state] === s) || 
-             (s1 = hist[:new_state] === s)
-            # $stderr.puts "hist = #{hist.inspect} i = #{i.inspect}"
-            case
-            when s0 
-              sequence << i
-            when s1 
-              sequence << i + 1
-            end
+          if hist[:new_state] == s
+            sequence << i + 1
           end
         end
       end
 
       unless sequence.empty?
-        sequence.uniq!
-        sequence.sort!
-        if options[:show_state_sequence] 
-          dot_opts[:label] += "\\n(#{sequence_to_s(sequence)})\\r"
-        end
         if options[:highlight_state_history]
           dot_opts[:fillcolor] = :grey
           dot_opts[:fontcolor] = :black
+        end
+        if options[:show_state_sequence] 
+          dot_opts[:label] += "\\n(#{sequence_to_s(sequence)})\\r"
         end
       end
 
@@ -334,9 +325,6 @@ module RedSteak
             sequence << i
           end
         end
-
-        sequence.sort!
-        sequence.uniq!
       end
 
       unless sequence.empty?
@@ -357,6 +345,7 @@ module RedSteak
 
     def sequence_to_s s
       s = s.sort
+      s.uniq!
       if s.size <= 4
         t = s
       else

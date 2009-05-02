@@ -36,6 +36,7 @@ describe 'RedSteak LoanOfficer Example' do
        :last_name,
        :ssn,
        :email,
+       :income,
        ]
                        
     def do_merge_customer_data! m, state, *args
@@ -97,6 +98,26 @@ describe 'RedSteak LoanOfficer Example' do
       @loan = @data
     end
 
+    def start_risk_assessment! *args
+      @loan[:approved?] = 
+        @loan[:denied?] = false
+    end
+
+    def approve_loan? *args
+      @customer[:income] >= @loan[:amount] * 10
+    end
+
+    def deny_loan? *args
+      ! approve_loan?
+    end
+
+    def approve_loan! *args
+      @loan[:approved?] = true
+    end
+
+    def deny_loan! *args
+      @loan[:denied?] = true
+    end
 
     def machine
       @machine ||= 
@@ -148,10 +169,33 @@ describe 'RedSteak LoanOfficer Example' do
           transition :risk_assessment,
             :guard => :loan_data_complete?
 
-          state :risk_assessment
-          transition :sign_contract
+          state :risk_assessment,
+            :entry => :start_risk_assessment!
+          transition :display_contract,
+            :guard => :approve_loan?,
+            :effect => :approve_loan!
+          transition :loan_denied,
+            :guard => :deny_loan?,
+            :effect => :deny_loan!
 
-          state :sign_contract
+          state :display_contract
+          transition :loan_approved, 
+            :name => :sign_contract!
+          transition :loan_unsigned, 
+            :name => :loan_signature_timeout!
+ 
+ 
+          state :loan_approved
+          transition :complete
+
+          state :loan_denied
+          transition :complete
+          transition :customer_data,
+            :name => :revise_customer_data!
+          transition :loan_data,
+            :name => :revise_loan_data!
+ 
+          state :loan_unsigned
           transition :complete
 
           state :complete
@@ -162,6 +206,10 @@ describe 'RedSteak LoanOfficer Example' do
 
 
   def render_graph sm, opts = { }
+    lo._log lo.data.inspect
+    #pp lo.data
+    #pp sm.to_hash
+
     opts[:dir] ||= File.expand_path(File.dirname(__FILE__) + '/../example')
     opts[:name_prefix] = 'red_steak-'
     @graph_id ||= 0
@@ -178,14 +226,17 @@ describe 'RedSteak LoanOfficer Example' do
     opts[:show_do] = true
 
     RedSteak::Dot.new.render_graph(sm, opts)
+    # pp sm.history
   end
 
 
   ####################################################################
 
 
+  attr_accessor :lo
+
   it 'transitions using transition_if_valid!' do
-    lo = LoanOfficer.new
+    self.lo = LoanOfficer.new
     # lo._logger = $stdout
     controller = OpenStruct.new(:params => { })
     lo.controller = controller
@@ -198,69 +249,85 @@ describe 'RedSteak LoanOfficer Example' do
 
     m.start!
     render_graph(m)
-
-    lo._log lo.data.inspect
     m.state.name.should == :start
     lo._log m.valid_transitions.inspect
     m.transition_if_valid!.should_not == nil
-    render_graph(m)
 
-    # pp m.to_hash
-    lo._log lo.data.inspect
+    render_graph(m)
     m.state.name.should == :customer_data
     controller.params[:first_name] = 'Joe'
     lo._log m.valid_transitions.inspect
     m.transition_if_valid!.should_not == nil
-    render_graph(m)
 
-    lo._log lo.data.inspect
+    render_graph(m)
     m.state.name.should == :customer_data
     controller.params[:last_name] = 'Borrower'
     m.transition_if_valid!.should_not == nil
-    render_graph(m)
 
-    lo._log lo.data.inspect
+    render_graph(m)
     m.state.name.should == :customer_data
     controller.params[:ssn] = '123456789'
     controller.params[:email] = 'joeb@asdf.com'
+    controller.params[:income] = 1000
     m.transition_if_valid!.should_not == nil
-    render_graph(m)
 
+    render_graph(m)
     m.transition_if_valid!.should_not == nil
-    render_graph(m)
 
-    lo._log lo.data.inspect
+    render_graph(m)
     m.state.name.should == :loan_data
     lo.customer.should_not == nil
-    controller.params[:amount] = 123.45
+    controller.params[:amount] = 500
     m.transition_if_valid!.should_not == nil
-    render_graph(m)
 
-    lo._log lo.data.inspect
+    render_graph(m)
     m.state.name.should == :loan_data
     controller.params[:due_date] = '2009/01/20'
     m.transition_if_valid!.should_not == nil
-    render_graph(m)
 
+    render_graph(m)
     m.transition_if_valid!.should_not == nil
-    render_graph(m)
 
-    lo._log lo.data.inspect
+    render_graph(m)
     m.state.name.should == :risk_assessment
     lo.loan.should_not == nil
+    lo.loan[:approved?].should == false
+    lo.loan[:denied?].should == false
     m.transition_if_valid!.should_not == nil
-    render_graph(m)
 
-    lo._log lo.data.inspect
-    m.state.name.should == :sign_contract
+    render_graph(m)
+    m.state.name.should == :loan_denied
+    lo.loan.should_not == nil
+    lo.loan[:approved?].should == false
+    lo.loan[:denied?].should == true
+    m.transition! :revise_loan_data!
+
+    render_graph(m)
+    m.state.name.should == :loan_data
+    lo.loan[:amount] = 100
     m.transition_if_valid!.should_not == nil
-    render_graph(m)
 
-    lo._log lo.data
+    render_graph(m)
+    m.state.name.should == :risk_assessment
+    lo.loan[:approved?].should == false
+    lo.loan[:denied?].should == false
+    m.transition_if_valid!.should_not == nil
+
+    render_graph(m)
+    m.state.name.should == :display_contract
+    lo.loan[:approved?].should == true
+    lo.loan[:denied?].should == false
+    m.transition! :sign_contract!
+
+    render_graph(m)
+    m.state.name.should == :loan_approved
+    m.transition_if_valid!.should_not == nil
+
+    render_graph(m)
     m.state.name.should == :complete
+    (lo.loan[:approved?] || lo.loan[:denied?]).should == true
     m.at_end?.should == true
     m.transition_if_valid!.should == nil
-    render_graph(m)
   end
 
 end # describe
