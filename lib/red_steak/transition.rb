@@ -19,6 +19,12 @@ module RedSteak
     attr_accessor :effect
 
 
+    def initialize opts
+      @kind = :external
+      super
+    end
+
+
     def deepen_copy! copier, src
       super
 

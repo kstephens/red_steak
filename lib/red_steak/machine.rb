@@ -14,7 +14,22 @@ module RedSteak
   # Example:
   #
   #   sm = RedSteak::Builder.new.build do
-  #     ...
+  #     statemachine :my_sm do 
+  #       initial :start
+  #       final :end
+  #       state :start
+  #       transition :a
+  #       state :a
+  #       transition :b
+  #       transition :c
+  #       state :b
+  #       transition :c
+  #       transition :end
+  #       state :c
+  #       transition :b
+  #       transition :end
+  #       state :end
+  #     end
   #   end
   #
   #   class MyContext
@@ -47,7 +62,7 @@ module RedSteak
   #   m.start!
   #   m.transition!(:t1)
   #   m.run!(:single)
-  #   m.transition1(:t2)
+  #   m.transition!(:t2)
   #   m.run!(:single)
   #   ...
   #   
@@ -185,47 +200,37 @@ module RedSteak
     # Run pending transitions.
     # 
     # Only the top-level #run! will process pending transitions,
-    # run! has no effect if called recursively.
-    # Returns self if run! is at the top-level, nil if a run! is already active.
+    # #run! has no effect if called recursively, i.e. from a State #doActivity or Transition #effect.
+    # Returns self if #run! is at the top-level, nil if a #run! is already active.
     #
-    # If %single is true, only one Transition is executed.
+    # If _single_ is true, only one Transition is executed.
     #
     # Behavior:
     #
     # 1. If a Transition is pending,
-    #
     # 1.1. Execute the Transition.
-    #
-    # 1.2. Return immediately, if %single is true.
-    #
+    # 1.2. Return immediately, if _single_ is true.
     # 2. While not paused and not at end:
-    #
     # 2.1. Yield to block, if given.
-    #
     # 2.2. If a Transition is pending,
-    #
     # 2.2.1. Execute the Transition.
-    #
-    # 2.2.2. Return immediately, if %single is true.
-    #
+    # 2.2.2. Return immediately, if _single_ is true.
     # 2.3. Goto 2.
     #
     # Implementation and Semantics:
     #
-    # 1) Statemachines cannot be self-recursive, therefore must employ a "transition queue".
+    # 1. Statemachines cannot be self-recursive, therefore must employ a "transition queue".
+    # 2. Statemachines that do not have a queued transition cannot do anything.
+    # 3. The queuing of transitions may occur:
+    # 3.1. as a side-effect of the entry, doActivity, exit and effect actions (see UML 2 Superstructure for definitions),
+    # 3.2. or as stimuli external to the statemachine and it's implied context object.
     #
-    # 2) Statemachines that do not have a queued transition cannot do anything.
-    #
-    # 3) The queuing of transitions may occur:
-    # A) as a side-effect of the entry, doActivity, exit and effect actions (see UML 2 Superstructure for definitions),
-    # B) or as stimuli external to the statemachine and it's implied context object.
-    #
-    # "A" describes what might be called a "synchronous" statemachine: 
+    # "3.1." describes what might be called a "synchronous" statemachine: 
     # the statemachine was designed such that it should never pause for external stimulus; 
     # there is always a unambiguous transition that is applicable until the end state is reached.  
     # The statemachine assumes control of the application's execution thread.
     #
-    # "B" describes an "asynchronous" statemachine: the statemachine may pause at a state 
+    # "3.2." describes an "asynchronous" statemachine: the statemachine may pause at a state 
     # if there is no queued transition.  
     # The statemachine must not assume control of the application's execution thread,
     # because the application interacts asynchronously with external stimulus:
@@ -268,18 +273,20 @@ module RedSteak
     end
 
 
+    # Returns true if #pause! was called during #run!.
     def paused?
       @paused
     end
 
 
-    # Causes top-level #run! to return after processing of the active doActivity.
+    # Causes top-level #run! to return after the active doActivity.
     def pause!
       raise Error, "not in run!" unless @in_run
       @paused = true
     end
 
 
+    # Allows #run! to continue if #pause! was called during #run!.
     def resume!
       raise Error, "not in run!" unless @in_run
       @paused = false
@@ -450,7 +457,7 @@ module RedSteak
 
     # Queue a Transition from the current State.
     #
-    # %trans can be a Transition object or a name pattern.
+    # _trans_ can be a Transition object or a name pattern.
     #
     # The Transition's guard must be true.
     def transition! trans, *args
@@ -722,7 +729,7 @@ module RedSteak
       @in_effect = false
 
       # Got to the new state.
-      _goto_state!(trans.target, args) do 
+      _goto_state!(trans.target, trans, args) do 
         record_history!(self) do 
           {
             :time => Time.now.gmtime,
@@ -747,7 +754,7 @@ module RedSteak
     #
     def goto_state! state, args
       _log { "goto_state! #{state.inspect}" }
-      _goto_state! state, args do
+      _goto_state! state, nil, args do
         clear_history!
         record_history!(self) do 
           {
@@ -769,7 +776,7 @@ module RedSteak
     # 4) executing_transition is nil
     # 5) Performs new State's :doActivity behavior.
     #
-    def _goto_state! state, args
+    def _goto_state! state, trans, args
       old_state = @state
 
       # If the state has a submachine,
@@ -788,8 +795,10 @@ module RedSteak
       @in_exit = true
       if old_state && old_state != state
         (from - to).each do | s |
-          _log { "exit! #{s.inspect}" }
-          s.exit!(self, args)
+          if ! trans || trans.kind != :internal
+            _log { "exit! #{s.inspect}" }
+            s.exit!(self, args)
+          end
         end
       end
       @in_exit = false
@@ -805,8 +814,10 @@ module RedSteak
       @in_entry = true
       if old_state != state
         (to - from).reverse.each do | s | 
-          _log { "entry! #{s.inspect}" }
-          s.entry!(self, args)
+          if ! trans || trans.kind != :internal
+            _log { "entry! #{s.inspect}" }
+            s.entry!(self, args)
+          end
         end
       end
       @in_entry = false

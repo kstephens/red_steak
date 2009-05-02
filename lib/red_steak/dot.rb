@@ -268,10 +268,10 @@ module RedSteak
              (s1 = hist[:new_state] === s)
             # $stderr.puts "hist = #{hist.inspect} i = #{i.inspect}"
             case
-            when s0
-              sequence << i - 1
-            when s1
+            when s0 
               sequence << i
+            when s1 
+              sequence << i + 1
             end
           end
         end
@@ -281,7 +281,7 @@ module RedSteak
         sequence.uniq!
         sequence.sort!
         if options[:show_state_sequence] 
-          dot_opts[:label] += "\\r(#{sequence * ', '})"
+          dot_opts[:label] += "\\n(#{sequence_to_s(sequence)})\\r"
         end
         if options[:highlight_state_history]
           dot_opts[:fillcolor] = :grey
@@ -291,7 +291,6 @@ module RedSteak
 
       if ssm = s.submachine
         render_StateMachine(ssm, dot_opts)
-        # stream.puts %Q{#{dot_name(s)} -> #{(dot_name(ssm) + '_START')} [ label="substate", style=dashed ];}
       else
         dot_opts[:style] += ',rounded'
         stream.puts %Q{  node [ #{render_opts(dot_opts)} ] #{dot_name(s)};}
@@ -346,7 +345,7 @@ module RedSteak
           dot_opts[:fontcolor] = :black
         end
         if options[:show_transition_sequence]
-          dot_opts[:label] = "(#{sequence * ','}) #{dot_opts[:label]}"
+          dot_opts[:label] = "(#{sequence_to_s(sequence)}) #{dot_opts[:label]}"
         end
       end
 
@@ -356,10 +355,40 @@ module RedSteak
     end
 
 
+    def sequence_to_s s
+      s = s.sort
+      if s.size <= 4
+        t = s
+      else
+        t = [ ]
+        s.each do | i |
+          case (r = t[-1]) 
+          when nil
+          when Range
+            if r.last == i - 1
+              t[-1] = (r.first .. i)
+            else
+              r = nil
+            end
+          else
+            if r == i - 1
+              t[-1] = (r .. i)
+            else
+              r = nil
+            end
+          end
+          t << i unless r
+        end
+      end
+      t.join(',').gsub(/\.\./, '-')
+    end
+
+
     def render_opts x, j = ', '
       case x
       when Hash
-        x = x.map do | k, v |
+        x = x.keys.sort { | a, b | a.to_s <=> b.to_s }.map do | k |
+          v = x[k]
           case k
           when :label, :shape, :style
             v = v.to_s.inspect
@@ -477,13 +506,14 @@ module RedSteak
 
 
     def _log msg = nil
+      msg ||= yield
       case 
+      when Proc === @logger
+        @logger.call(msg)
       when ::IO === @logger || @@verbose
         @logger ||= $stderr
-        msg ||= yield
         @logger.puts "#{self.inspect} #{@stateMachine} #{msg}"
       when defined?(::Log4r) && (Log4r::Logger === @logger)
-        msg ||= yield
         @logger.send(log_level || :debug, msg)
       end
     end

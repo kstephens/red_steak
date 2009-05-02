@@ -82,7 +82,7 @@ describe RedSteak do
   end
 
 
-  it 'should queue transition executions inside doActions in auto_run is enabled' do
+  it 'should queue transition executions inside doActions, if auto_run is enabled' do
     m = sm.machine
     m.auto_run = true
     # m.logger = $stderr
@@ -134,7 +134,7 @@ describe RedSteak do
   end
   
 
-  it 'should not queue transition executions inside doActions in auto_run is disabled' do
+  it 'should not queue transition executions inside doActions, if auto_run is disabled' do
     m = sm.machine
     m.auto_run = false
     # m.logger = $stderr
