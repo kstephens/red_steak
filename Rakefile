@@ -1,102 +1,56 @@
-
-######################################################################
-
-CURRENT_DIR = File.expand_path(File.dirname(__FILE__))
-
-######################################################################
-
-PKG_Name = 'red_steak'
-PKG_Author = 'Kurt Stephens'
-PKG_Email = 'ruby-red_steak@umleta.com'
-PKG_DESCRIPTION = %{RedSteak - A UML 2 Statemachine for Ruby.
-
-For more details, see:
-
-http://rubyforge.org/projects/red_steak
-http://redsteak.rubyforge.org/
-http://redsteak.rubyforge.org/files/README_txt.html
-
-}
-PKG_lib_ruby_dir = 'lib/ruby'
-PKG_manifest_reject = %r{example/.*/gems/.*/gems|example/doc|gen/rdoc}
-
-######################################################################
-
-
-$:.unshift "#{CURRENT_DIR}/lib/ruby"
-
 require 'rubygems'
-
-
-desc "Runs tests"
-task :default => [ :test ] do
+require 'rake'
+ 
+begin
+  require 'echoe'
+ 
+  Echoe.new('redsteak', '0.0.1') do |p|
+    p.rubyforge_name = 'redsteak'
+    p.summary = "RedSteak - A UML 2 Statemachine for Ruby."
+    p.description = "The official `github` command line helper for simplifying your GitHub experience."
+    p.url = "http://redsteak.rubyforge.com/"
+    p.author = ['Kurt Stephens']
+    p.email = "ruby-redsteak@umleta.com"
+    # p.dependencies = ["launchy"]
+  end
+ 
+rescue LoadError => boom
+  puts "You are missing a dependency required for meta-operations on this gem."
+  puts "#{boom.to_s.capitalize}."
 end
-
-desc "Runs tests"
-task :test do
-  sh "mkdir -p doc/example"
-  gem_bin_path = Gem.path.map{|x| "#{x}/bin"}
-  ENV['RUBYLIB'] = ($: + [ 'lib' ]) * ':'
-  Dir[ENV['test'] || 'test/*.spec'].each do | t |
-    sh "PATH=#{gem_bin_path * ':'}:$PATH spec -f specdoc #{t}"
+ 
+# add spec tasks, if you have rspec installed
+begin
+  require 'spec/rake/spectask'
+ 
+  SPEC_FILES = FileList['test/**/*.spec']
+  SPEC_OPTS = ['--color', '--backtrace']
+  Spec::Rake::SpecTask.new("spec") do |t|
+    t.spec_files = SPEC_FILES
+    t.spec_opts = SPEC_OPTS
+  end
+ 
+  task :test do
+    Rake::Task['spec'].invoke
+  end
+ 
+  Spec::Rake::SpecTask.new("rcov_spec") do |t|
+    t.spec_files = SPEC_FILES
+    t.spec_opts = SPEC_OPTS
+    t.rcov = true
+    t.rcov_opts = ['--exclude', '^spec,/gems/']
   end
 end
 
+directory 'doc/example'
 
-    ############################################################
-    # Doco
-
-begin
-  require 'rdoc/task'
-rescue LoadError
-  require 'rake/rdoctask'
+task :test => [ Rake::Task['doc/example'], :rcov_spec ] do
+  # NOTHING
 end
 
-Rake::RDocTask.new(:docs) do |rd|
-  name = 'red_steak'
-  version = '0.1'
-  rubyforge_name = name
-  readme_file = 'README.txt'
-  spec = OpenStruct.new(:require_paths => [ 'lib' ], :extra_rdoc_files => [ ])
-  WINDOZE = false
-
-      rd.main = readme_file
-      rd.options << '-d' if (`which dot` =~ /\/dot/) unless
-        ENV['NODOT'] || WINDOZE
-      rd.rdoc_dir = 'doc'
-
-      rd.rdoc_files += spec.require_paths
-      rd.rdoc_files += spec.extra_rdoc_files
-
-      title = "#{name}-#{version} Documentation"
-      title = "#{rubyforge_name}'s " + title if rubyforge_name != name
-
-      rd.options << "-S" << '-N'
-      rd.options << "-t" << title
-    end
-
-
-task :docs => :test
-
-desc "Records current git commit id to .git_revision for p4 check-in"
-task :git_revision do
-  git_revision
+task :docs => :test do
+  # NOTHING
 end
 
-def git_revision 
-  sh "git log | head -1 > .git_revision"
-end
+require 'lib/tasks/p4_git'
 
-desc "p4 edit; git pull origin master; p4 revert -a"
-task :p4_git_pull do
-  sh "p4 edit ..."
-  sh "git pull origin master"
-  git_revision
-  sh "find . -type f | grep -v ./.git | xargs p4 add"
-  sh "p4 revert example/..."
-  sh "p4 revert doc/..."
-  sh "p4 revert -a ..."
-end
-
-
-# require "#{CURRENT_DIR}/rake_helper.rb"

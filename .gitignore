@@ -1,4 +1,6 @@
 .git_revision
 doc
 example/*.zuml.bak*
+coverage
+
 
