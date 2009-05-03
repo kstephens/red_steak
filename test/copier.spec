@@ -1,4 +1,5 @@
 # -*- ruby -*-
+$: << 'lib'
 
 require 'red_steak/copier'
 

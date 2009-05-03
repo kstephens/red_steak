@@ -4,11 +4,11 @@ require 'rake'
 begin
   require 'echoe'
  
-  Echoe.new('redsteak', '0.0.1') do |p|
-    p.rubyforge_name = 'redsteak'
+  Echoe.new('redsteak', '0.1') do |p|
+    p.rubyforge_name = 'red_steak'
     p.summary = "RedSteak - A UML 2 Statemachine for Ruby."
-    p.description = "The official `github` command line helper for simplifying your GitHub experience."
-    p.url = "http://redsteak.rubyforge.com/"
+    p.description = ""
+    p.url = "http://red-steak.rubyforge.com/"
     p.author = ['Kurt Stephens']
     p.email = "ruby-redsteak@umleta.com"
     # p.dependencies = ["launchy"]
@@ -25,6 +25,7 @@ begin
  
   SPEC_FILES = FileList['test/**/*.spec']
   SPEC_OPTS = ['--color', '--backtrace']
+
   Spec::Rake::SpecTask.new("spec") do |t|
     t.spec_files = SPEC_FILES
     t.spec_opts = SPEC_OPTS

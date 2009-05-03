@@ -137,7 +137,7 @@ module RedSteak
     # A state with isOrthogonal=true is said to be an orthogonal composite state. An orthogonal composite state contains
     # two or more regions. Default value is false.
     def isOrthogonal
-      raise Error::NotImplemented
+      raise Error::NotImplemented, :message => :isOrthogonal, :object => self
     end
     # Non-UML alias
     alias :is_orthogonal? :isOrthogonal
@@ -145,7 +145,7 @@ module RedSteak
     # A state with isSimple=true is said to be a simple state. A simple state does not have any regions and it does not refer
     #  to any submachine state machine. Default value is true.
     def isSimple
-      raise Error::NotImplemented
+      raise Error::NotImplemented, :message => :isSimple, :object => self
     end
     # Non-UML alias
     alias :is_simple? :isSimple
@@ -237,16 +237,16 @@ module RedSteak
 
 
     def _validate errors
-      errors << :state_without_transitions unless transitionsize != 0
+      errors << :state_without_transitions unless transition.size != 0
       case
       when end_state?
-        errors << :end_state_cannot_be_reached unless sourceselect{|x| x != s}.size != 0
-        errors << :end_state_has_outbound_transitions unless targetsize == 0
+        errors << :end_state_cannot_be_reached unless source.select{|x| x != self}.size != 0
+        errors << :end_state_has_outbound_transitions unless target.size == 0
       when start_state?
-        errors << :start_state_has_no_outbound_transitions unless targetsize != 0
+        errors << :start_state_has_no_outbound_transitions unless target.size != 0
       else
-        errors << :state_has_no_inbound_transitions unless sourceselect{|x| x != s}.size != 0
-        errors << :state_has_no_outbound_transitions unless targetselect{|x| x != s}.size != 0
+        errors << :state_has_no_inbound_transitions unless source.select{|x| x != self}.size != 0
+        errors << :state_has_no_outbound_transitions unless target.select{|x| x != self}.size != 0
       end
       if submachine
         errors << :end_state_has_substates unless ! end_state?

@@ -229,21 +229,19 @@ module RedSteak
 
 
     # Returns a list of validation errors.
-    def _validate errors
+    def _validate errors = [ ]
       errors << :no_start_state unless start_state
       errors << :no_end_state unless end_state
       states.each do | s |
+        s.validate errors
+      end
+      transitions.each do | t |
+        t.validate errors
       end
       errors
     end
 
     
-    # Returns true if this statemachine is valid.
-    def valid?
-      validate.empty?
-    end
-
-
     # Returns the path name for this statemachine.
     def to_a
       if ss = superstate

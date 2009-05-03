@@ -109,6 +109,7 @@ module RedSteak
     end
 
 
+    # Runs _validate method and collects errors into an Array.
     def validate errors = nil
       errors ||= [ ]
 
@@ -116,7 +117,12 @@ module RedSteak
       _validate e
 
       e.each do | msg |
-        errors << [ msg, self ]
+        case msg
+        when Array
+        else
+          msg = [ msg, self ]
+        end
+        errors << msg
       end
 
       errors
@@ -126,6 +132,23 @@ module RedSteak
     def _validate e
       self
     end
+
+
+    # Returns true if this object is valid.
+    def valid?
+      validate.empty?
+    end
+
+
+    # Returns self if this object is valid.
+    # Otherwise it raises a Error::ObjectInvalid error.
+    def validate!
+      if (errors = self.validate) && ! errors.empty?
+        pp errors
+        raise Error::ObjectInvalid, :message => :validate!, :object => self, :errors => errors
+      end
+    end
+
   end # class
 
 

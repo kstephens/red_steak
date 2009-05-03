@@ -1,5 +1,7 @@
 # -*- ruby -*-
 
+$: << 'lib'
+
 require 'red_steak'
 
 describe RedSteak do
@@ -408,6 +410,19 @@ describe RedSteak do
 
     m.transition_to_next_state!(false).should == nil
     lambda { m.transition_to_next_state!(true)}.should raise_error(RedSteak::Error::UnknownTransition)
+    begin
+      m.transition_to_next_state!(true)
+    rescue Object => err
+      (RedSteak::Error === err).should == true
+      pp err.inspect
+      pp err.options
+      err.machine.should == m
+      err.message.should == "transition_to_next_state!"
+      err[:transitions].should == nil
+      err[:state].should == m.state
+      err.state.should == m.state
+      err.inspect.should == "#<RedSteak::Error::UnknownTransition \"transition_to_next_state!\" :machine => #<RedSteak::Machine :test [:end]> :state => #<RedSteak::State test end>>"
+    end
 
     m.history.map { |h| h[:previous_state].to_s }.should ==
     [

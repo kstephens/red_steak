@@ -39,9 +39,11 @@ module RedSteak
 
     # Begins building StateMachine by evaluating block.
     # Returns the generated StateMachine.
+    # The StateMachine is validated before returning.
     def build &blk
       raise ArgumentError, "expected block" unless block_given?
       instance_eval &blk
+      @result.validate! if @result.respond_to?(:validate!)
       @result
     end
 
@@ -165,9 +167,9 @@ module RedSteak
     end
 
 
-    # Definse a Pseudostate.
+    # Defines a Pseudostate.
     def pseudostate kind, name, opts = { }
-      raise NotImplemented
+      raise NotImplemented, :message => :pseudostate
     end
 
 

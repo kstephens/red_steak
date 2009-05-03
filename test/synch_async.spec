@@ -1,5 +1,7 @@
 # -*- ruby -*-
 
+$: << 'lib'
+
 require 'red_steak'
 require 'ostruct'
 require 'pp'

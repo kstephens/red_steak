@@ -1,5 +1,7 @@
 # -*- ruby -*-
 
+$: << 'lib'
+
 require 'red_steak'
 
 describe RedSteak do

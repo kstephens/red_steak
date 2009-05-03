@@ -2,18 +2,20 @@
 #
 # Features:
 #
-# * Implements UML 2.1 StateMachines (partially).
-# * StateMachines can be instantiated then cloned via StateMachine#copy.
-# * Submachines are supported, a state may have an imbedded StateMachine.
-# * Builder DSL simplifies construction and modification of complex statemachines.
-# * StateMachines can be serialized.
-# * StateMachines can be modified on-the-fly.
-# * Context objects can be notified of transitions.
-# * Context objects can be used to create transition guards.
-# * StateMachines, States and Transitions are objects that can be extended with metadata.
-# * History of transitions can be kept.
-# * Multiple machines can walk the same statemachine without side-effects.
-# * StateMachines and Machine#history can be rendered as Dot syntax and SVG; See link:example/red_steak-loan_application-09.dot.svg.
+# * Implements UML 2.1 StateMachine semantics (partially).
+# * Builder DSL simplifies construction and modification of complex StateMachine objects.
+# * The execution of the StateMachine is managed by an external Machine object;
+# * Multiple Machine objects can walk the same Statemachine without side-effects.
+# * Submachines are supported, a State may have an imbedded StateMachine.
+# * StateMachine and Machines objects can be serialized.
+# * StateMachine objects can be instantiated then cloned via StateMachine#copy.
+# * StateMachine objects can be modified on-the-fly.
+# * Context objects can be notified of Transition execution and State changes.
+# * Transition guard and effect behaviors are supported.
+# * State entry, doActivity and exit behaviors are supported.
+# * StateMachine, State and Transition objects can be extended with metadata.
+# * History of Transitions can be logged per Machine.
+# * StateMachine and Machine#history records can be rendered as Dot syntax and SVG; See link:example/red_steak-loan_application-09.dot.svg.
 #
 module RedSteak
   EMPTY_ARRAY = [ ].freeze
