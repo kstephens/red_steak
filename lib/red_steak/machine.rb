@@ -624,7 +624,7 @@ module RedSteak
 
     # Records a new #history record.
     # Machine is the origin of the history record.
-    def record_history! machine = self, hash = nil
+    def record_history! hash = nil
       if @history
         hash ||= yield
         @history.send(@history_append, hash)
