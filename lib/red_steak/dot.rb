@@ -48,20 +48,40 @@ module RedSteak
     end
 
 
-    def dot_name x
-      @dot_name[x] ||= 
-        _dot_name x
+    def dot_name x, context = nil
+      case context
+      when Array
+        r = dot_name(x)
+        context.each { | c | @dot_name[[ x, c ]] = r }
+        r
+      else
+        @dot_name[[ x, context ]] ||= 
+          _dot_name(x, context)
+      end
     end
 
 
-    def _dot_name x
+    def _dot_name x, context
       @dot_id +=1
       prefix = "x"
+      suffix = nil
       case x
+      when State
+        if ssm = x.submachine
+          case context
+          when :source, :target
+            suffix = "_#{context}"
+          end
+        end
       when StateMachine
-         prefix = "cluster_#{prefix}"
+        prefix = "cluster_#{prefix}"
+        case context
+        when :start
+          suffix = "_START"
+        end
       end
       prefix << @dot_id.to_s
+      prefix << suffix if suffix
       prefix
     end
 
@@ -198,7 +218,9 @@ module RedSteak
 
       @stateMachine ||= sm
       stream.puts "\n// {#{sm.inspect}"
-      stream.puts "digraph #{dot_name(sm)} {"
+      # type = :graph
+      type = :digraph
+      stream.puts "#{type} #{dot_name(sm)} {"
 
 =begin
       stream.puts %Q{  node [fontname="Verdana"]; }
@@ -208,8 +230,8 @@ module RedSteak
  
       # stream.puts "subgraph ROOT {"
 
-      stream.puts "// Implicit :start Pseudostate"
-      stream.puts %Q{  node [ shape="circle", label="", style=filled, fillcolor=black ] #{(dot_name(sm) + "_START")}; }
+      stream.puts "\n// Implicit :start Pseudostate for #{sm.to_s}"
+      stream.puts %Q{  node [ shape="circle", label="", style=filled, fillcolor=black ] #{dot_name(sm, :start)}; }
 
       sm.states.each { | s | render_State(s) }
       
@@ -225,9 +247,14 @@ module RedSteak
       sm.transitions.each { | t | render(t) }
       sm.states.each do | s |
         if s.start_state?
-          stream.puts "#{(dot_name(s.stateMachine) + '_START')} -> #{dot_name(s)};"
+          stream.puts "\n// Implicit Transition to :start Pseudostate for #{sm.to_s}"
+          stream.puts "#{dot_name(s.stateMachine, :start)} -> #{dot_name(s, :target)};"
         end
         if ssm = s.submachine
+          if false
+            stream.puts "\n// Implicit source and target grouping link"
+            stream.puts %Q{#{dot_name(s, :source)} -> #{dot_name(s, :target)} [ color="gray", label="", arrowhead="none" ];}
+          end
           render_transitions(ssm)
         end
       end
@@ -252,9 +279,8 @@ module RedSteak
       
       yield if block_given?
 
-      stream.puts "// Implicit :start Pseudostate"
-      stream.puts %Q{  node [ shape="circle", label="", style=filled, fillcolor=black ] #{(dot_name(sm) + "_START")}; }
-
+      stream.puts "\n// Implicit :start Pseudostate"
+      stream.puts %Q{  node [ shape="circle", label="", style=filled, fillcolor=black ] #{dot_name(sm, :start)}; }
       sm.states.each { | s | render(s) }
 
       stream.puts "}"
@@ -309,17 +335,32 @@ module RedSteak
       end
 
       if ssm = s.submachine
+        implicit_dot_opts = dot_opts.dup
         render_StateMachine(ssm, dot_opts) do
-          dot_opts = dot_opts.dup
+          dot_opts = implicit_dot_opts
           dot_opts[:shape] = :point
           dot_opts[:label] = "[]"
-          stream.puts "// Implicit connection point for State #{s.to_s}"
-          stream.puts %Q{  node [ #{render_opts(dot_opts)} ] #{dot_name(s)};}
-          stream.write "\n"
+
+          stream.puts %Q'\n  subgraph cluster_#{dot_name(s, :source)} {'
+          stream.puts %Q{    color=white;}
+          stream.puts %Q{    fillcolor=white;}
+          stream.puts %Q{    fontcolor=white;}
+          stream.puts %Q{    label="_";}
+          stream.puts %Q{    shape="box";}
+          stream.puts %Q{    style="none";}
+
+          dot_opts[:fillcolor] = :black
+          stream.puts "\n// Implicit target point for State #{s.to_s}"
+          stream.puts %Q{  node [ #{render_opts(dot_opts)} ] #{dot_name(s, :target)};}
+
+          dot_opts[:fillcolor] = :white
+          stream.puts "\n// Implicit source point for State #{s.to_s}"
+          stream.puts %Q{  node [ #{render_opts(dot_opts)} ] #{dot_name(s, :source)};}
+          stream.puts "\n  }\n"
         end
       else
         dot_opts[:style] += ',rounded'
-        stream.puts %Q{  node [ #{render_opts(dot_opts)} ] #{dot_name(s)};}
+        stream.puts %Q{  node [ #{render_opts(dot_opts)} ] #{dot_name(s, [:source, :target])};}
       end
     end
 
@@ -340,17 +381,8 @@ module RedSteak
         dot_opts[:style] = 'bold'
       end
 
-      source_name = "#{dot_name(t.source)}"
-      target_name = "#{dot_name(t.target)}"
-
-=begin
-      if ssm = t.source.submachine
-        source_name = "#{dot_name(ssm)}_START"
-      end
-      if ssm = t.target.submachine
-        target_name = "#{dot_name(ssm)}_START"
-      end
-=end
+      source_name = "#{dot_name(t.source, :source)}"
+      target_name = "#{dot_name(t.target, :target)}"
 
       sequence = [ ]
       

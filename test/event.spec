@@ -76,7 +76,6 @@ describe 'RedSteak::Machine#event!' do
 
     def sm
       @sm ||=
-        # RedSteak::StateMachine.build do
         RedSteak::Builder.new.build do
         statemachine :telephone do
           initial :idle
@@ -120,7 +119,7 @@ describe 'RedSteak::Machine#event!' do
                 :trigger => :invalid
 
               state :invalid,
-                :do => :play_mssage
+                :do => :play_message
 
               state :connecting
               transition :busy,
