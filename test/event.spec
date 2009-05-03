@@ -84,7 +84,8 @@ describe 'RedSteak::Machine#event!' do
           state :idle
           transition :active,
             :trigger => :lift_reciever,
-            :effect => :get_dial_tone
+            :effect => :get_dial_tone,
+            :dot_options => { :color => :green }
           transition :final,
             :trigger => :terminate
 
@@ -136,7 +137,8 @@ describe 'RedSteak::Machine#event!' do
                 :trigger => :callee_answers,
                 :effect => :enable_speech
 
-              state :talking
+              state :talking,
+                :dot_options => { :color => :green, :fontcolor => :blue }
               transition :pinned,
                 :trigger => :callee_hangs_up
 

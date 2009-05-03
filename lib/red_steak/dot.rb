@@ -277,6 +277,8 @@ module RedSteak
       dot_opts[:fillcolor] ||= :white
       dot_opts[:fontcolor] ||= :black
 
+      dot_opts = dot_opts_for sm, dot_opts
+
       stream.puts "#{type} {"
 
       stream.puts %Q{  #{render_opts(dot_opts, ";\n  ")}}
@@ -299,28 +301,6 @@ module RedSteak
 
       stream.puts "\n// #{s.inspect}"
       
-      dot_opts = {
-        :label => dot_label(s),
-        :color => :black,
-        :shape => :box,
-        :style => "filled",
-      }
-      
-      if (hs = options[:highlight_states]) && hs.include?(s)
-        dot_opts[:style] += ',bold'
-      end
-
-      case
-      when s.end_state?
-        dot_opts[:label] = "" # DONT BOTH LABELING END STATES.
-        dot_opts[:shape] = :doublecircle
-        dot_opts[:fillcolor] = :black
-        dot_opts[:fontcolor] = :white
-      else
-        dot_opts[:fillcolor] = :white
-        dot_opts[:fontcolor] = :black
-      end
-
       sequence = [ ]
       
       if options[:history]
@@ -331,18 +311,49 @@ module RedSteak
         end
       end
 
+      dot_opts = {
+        :label => dot_label(s),
+        :color => :black,
+        :shape => :box,
+        :style => "filled",
+      }
+
+      case
+      when s.end_state?
+        dot_opts[:label] = "" # DONT BOTH LABELING END STATES.
+        dot_opts[:shape] = :doublecircle
+      end
+
+      dot_opts = dot_opts_for s, dot_opts
+      
+      if (hs = options[:highlight_states]) && hs.include?(s)
+        dot_opts[:style] += ',bold'
+      end
+
       unless sequence.empty?
         if options[:highlight_state_history]
           dot_opts[:fillcolor] = :grey
-          dot_opts[:fontcolor] = :black
         end
         if options[:show_state_sequence] 
           dot_opts[:label] += "\\n(#{sequence_to_s(sequence)})\\r"
         end
       end
 
+      dot_opts[:fontcolor] ||= :black
+      dot_opts[:fillcolor] ||= :white
+
+      case
+      when s.end_state?
+        # Dont label FinalStates, it causes too much clutter.
+        dot_opts[:label] = "" 
+        # Invert the colors.
+        dot_opts[:fillcolor], dot_opts[:fontcolor] =
+          dot_opts[:fontcolor], dot_opts[:fillcolor]
+      end
+
       if ssm = s.submachine
         implicit_dot_opts = dot_opts.dup
+        dot_opts[:label] += "\\r    o-o"
         render_StateMachine(ssm, dot_opts) do
           dot_opts = implicit_dot_opts
           dot_opts[:shape] = :point
@@ -379,23 +390,6 @@ module RedSteak
 
       return unless @rendered[t.target] && @rendered[t.source]
 
-      stream.puts "\n// #{t.inspect}"
-
-      # $stderr.puts "  #{t.inspect}\n    #{options.inspect}"
-
-      dot_opts = { 
-        :label => dot_label(t),
-        :color => options[:highlight_transition_history] ? :gray : :black,
-        :fontcolor => options[:highlight_transition_history] ? :gray : :black,
-      }
-
-      if (ht = options[:highlight_transitions]) && ht.include?(t)
-        dot_opts[:style] = 'bold'
-      end
-
-      source_name = "#{dot_name(t.source, :source)}"
-      target_name = "#{dot_name(t.target, :target)}"
-
       sequence = [ ]
       
       if options[:history]
@@ -408,15 +402,36 @@ module RedSteak
         end
       end
 
+      stream.puts "\n// #{t.inspect}"
+
+      # $stderr.puts "  #{t.inspect}\n    #{options.inspect}"
+
+      dot_opts = { 
+        :label => dot_label(t),
+      }
+
+      dot_opts = dot_opts_for t, dot_opts
+
+      if (ht = options[:highlight_transitions]) && ht.include?(t)
+        dot_opts[:style] = 'bold'
+      end
+
+      source_name = "#{dot_name(t.source, :source)}"
+      target_name = "#{dot_name(t.target, :target)}"
+
       unless sequence.empty?
-        if options[:highlight_transition_history]
-          dot_opts[:color] = :black
-          dot_opts[:fontcolor] = :black
-        end
         if options[:show_transition_sequence]
           dot_opts[:label] = "(#{sequence_to_s(sequence)}) #{dot_opts[:label]}"
         end
+      else
+        if options[:highlight_transition_history]
+          dot_opts[:color] = :grey
+          dot_opts[:fontcolor] = :grey
+        end        
       end
+
+      dot_opts[:color] ||= :black
+      dot_opts[:fontcolor] ||= :black
 
       stream.puts "#{source_name} -> #{target_name} [ #{render_opts(dot_opts)} ];"
 
@@ -454,9 +469,13 @@ module RedSteak
     end
 
 
-    def dot_opts_for x, opts = { }
+    def dot_opts_for x, opts = nil
+      opts ||= { }
+
       kind = 
       case x
+      when StateMachine
+        :graph
       when State
         :node
       when Transition
@@ -464,10 +483,19 @@ module RedSteak
       else
         nil
       end
+
+      # overlay based on representation type.
       opts.update((options[:dot_options] || EMPTY_HASH)[kind] || EMPTY_HASH)
-      opts.update(x.options[:dot_options] || EMPTY_HASH)
+
+      # overlay based on class of element.
       opts.update((options[:dot_options] || EMPTY_HASH)[x.class] || EMPTY_HASH)
+
+      # overlay element's options[:dot_options]
+      opts.update(x.options[:dot_options] || EMPTY_HASH)
+
+      # overlay based on object.
       opts.update((options[:dot_options] || EMPTY_HASH)[x] || EMPTY_HASH)
+
       opts
     end
 
@@ -478,6 +506,8 @@ module RedSteak
         x = x.keys.sort { | a, b | a.to_s <=> b.to_s }.map do | k |
           v = x[k]
           case k
+          # when :label
+          #  v = "<#{v.to_s}>" # HTML see http://www.graphviz.org/doc/info/shapes.html#html
           when :label, :shape, :style
             v = v.to_s.inspect
             # http://www.graphviz.org/doc/info/attrs.html#k:escString
