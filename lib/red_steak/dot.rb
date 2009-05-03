@@ -41,6 +41,7 @@ module RedSteak
     def initialize opts = { }
       @dot_name = { }
       @dot_label = { }
+      @rendered = { }
       @dot_id = 0
       @logger = nil
       @log_level = :debug
@@ -263,6 +264,9 @@ module RedSteak
 
     # Renders the StateMachine as Dot syntax.
     def render_StateMachine sm, dot_opts = { }
+      return if @rendered[sm]
+      @rendered[sm] = true
+
       stream.puts "\n// {#{sm.inspect}"
       name = dot_opts.delete(:_node_name) || dot_name(sm)
       type = "subgraph #{name}"
@@ -290,6 +294,9 @@ module RedSteak
 
     # Renders the State object as Dot syntax.
     def render_State s
+      return if @rendered[s]
+      @rendered[s] = true
+
       stream.puts "\n// #{s.inspect}"
       
       dot_opts = {
@@ -367,6 +374,11 @@ module RedSteak
 
     # Renders the Dot syntax for the Transition.
     def render_Transition t
+      return if @rendered[t]
+      @rendered[t] = true
+
+      return unless @rendered[t.target] && @rendered[t.source]
+
       stream.puts "\n// #{t.inspect}"
 
       # $stderr.puts "  #{t.inspect}\n    #{options.inspect}"
