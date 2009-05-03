@@ -50,7 +50,19 @@ module RedSteak
 
     def dot_name x
       @dot_name[x] ||= 
-        "x#{@dot_id += 1}"
+        _dot_name x
+    end
+
+
+    def _dot_name x
+      @dot_id +=1
+      prefix = "x"
+      case x
+      when StateMachine
+         prefix = "cluster_#{prefix}"
+      end
+      prefix << @dot_id.to_s
+      prefix
     end
 
 
@@ -65,10 +77,10 @@ module RedSteak
       # $stderr.puts "  _dot_label #{x.inspect}"
       case x
       when StateMachine
-        x.to_s
+        x.name.to_s
 
       when State
-        label = x.to_s
+        label = x.name.to_s
 
         # Put the State#entry,#exit and #doActivity in the label.
         once = false
@@ -100,10 +112,11 @@ module RedSteak
         
         label
 
+      # See UML Spec 2.1 superstructure p. 574:
+      #   trigger [ ',' trigger ]* [ '[' guard ']' ]? [ '/' effect ]?
       when Transition
-        label = x.name.to_s
+        label = x.trigger.empty? ? "'#{x.name.to_s}'" : x.trigger.join(', ')
         
-        # See UML Spec 2.1 superstructure p. 574
         # Put the Transition#guard and #effect in the label.
         [ 
          [ :show_guard,  :guard,  '[%s]' ],
@@ -195,6 +208,7 @@ module RedSteak
  
       # stream.puts "subgraph ROOT {"
 
+      stream.puts "// Implicit :start Pseudostate"
       stream.puts %Q{  node [ shape="circle", label="", style=filled, fillcolor=black ] #{(dot_name(sm) + "_START")}; }
 
       sm.states.each { | s | render_State(s) }
@@ -223,7 +237,8 @@ module RedSteak
     # Renders the StateMachine as Dot syntax.
     def render_StateMachine sm, dot_opts = { }
       stream.puts "\n// {#{sm.inspect}"
-      type = "subgraph cluster_#{dot_name(sm)}"
+      name = dot_opts.delete(:_node_name) || dot_name(sm)
+      type = "subgraph #{name}"
 
       dot_opts[:label] ||= dot_label(sm.superstate)
       dot_opts[:shape] = :box
@@ -234,8 +249,11 @@ module RedSteak
       stream.puts "#{type} {"
 
       stream.puts %Q{  #{render_opts(dot_opts, ";\n  ")}}
+      
+      yield if block_given?
 
-      stream.puts %Q{node [ shape="circle", label="", style=filled, fillcolor=black ] #{(dot_name(sm) + "_START")}; }
+      stream.puts "// Implicit :start Pseudostate"
+      stream.puts %Q{  node [ shape="circle", label="", style=filled, fillcolor=black ] #{(dot_name(sm) + "_START")}; }
 
       sm.states.each { | s | render(s) }
 
@@ -291,7 +309,14 @@ module RedSteak
       end
 
       if ssm = s.submachine
-        render_StateMachine(ssm, dot_opts)
+        render_StateMachine(ssm, dot_opts) do
+          dot_opts = dot_opts.dup
+          dot_opts[:shape] = :point
+          dot_opts[:label] = "[]"
+          stream.puts "// Implicit connection point for State #{s.to_s}"
+          stream.puts %Q{  node [ #{render_opts(dot_opts)} ] #{dot_name(s)};}
+          stream.write "\n"
+        end
       else
         dot_opts[:style] += ',rounded'
         stream.puts %Q{  node [ #{render_opts(dot_opts)} ] #{dot_name(s)};}
@@ -316,14 +341,16 @@ module RedSteak
       end
 
       source_name = "#{dot_name(t.source)}"
+      target_name = "#{dot_name(t.target)}"
+
+=begin
       if ssm = t.source.submachine
         source_name = "#{dot_name(ssm)}_START"
       end
-
-      target_name = "#{dot_name(t.target)}"
       if ssm = t.target.submachine
         target_name = "#{dot_name(ssm)}_START"
       end
+=end
 
       sequence = [ ]
       

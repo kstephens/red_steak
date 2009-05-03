@@ -12,6 +12,9 @@ module RedSteak
     # The State this Transition move to.
     attr_accessor :target # UML
 
+    # A list of Triggers (Symbols) that can trigger this Transtion.
+    attr_accessor :trigger # UML
+
     # A guard, if defined allows or prevents Transition from being queued or selected.
     # Can be a Symbol or a Proc.
     attr_accessor :guard # UML
@@ -23,7 +26,9 @@ module RedSteak
 
     def initialize opts
       @kind = :external
+      @trigger = EMPTY_ARRAY
       super
+      @trigger = [ @trigger ] unless Array === @trigger
     end
 
 
@@ -32,11 +37,12 @@ module RedSteak
 
       @source = copier[@source]
       @target = copier[@target]
+      @trigger = copier[@trigger]
       @participant = nil
     end
 
 
-    # Returns true if X matches this transition.
+    # Returns true if X matches this Transition by name.x
     def === x
       # $stderr.puts "#{self.inspect} === #{x.inspect}"
       case x
@@ -56,7 +62,14 @@ module RedSteak
     end
 
 
-    # Called by Machine to check guard.
+    # Returns true if this Transition has a #trigger that matches the event.
+    # Called by Machine#transitions_matching_event.
+    def matches_event? event
+      @trigger.include?(event.first)
+    end
+
+
+    # Called by Machine to check #guard.
     def guard? machine, args
       result = _behavior! :guard, machine, args, true
       result.nil? ? true : result

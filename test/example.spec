@@ -8,9 +8,11 @@ require 'pp'
 
 describe 'RedSteak LoanOfficer Example' do
 
+=begin
   before(:all) do
     RedSteak::Dot.verbose = true
   end
+=end
 
   # A test context for the StateMachine.
   class LoanOfficer

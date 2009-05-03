@@ -6,9 +6,11 @@ require 'red_steak'
 
 describe RedSteak do
   
+=begin
   before(:all) do
     RedSteak::Dot.verbose = true
   end
+=end
 
   # A test context for the StateMachine.
   class RedSteak::TestContext
@@ -414,8 +416,8 @@ describe RedSteak do
       m.transition_to_next_state!(true)
     rescue Object => err
       (RedSteak::Error === err).should == true
-      pp err.inspect
-      pp err.options
+      # pp err.inspect
+      # pp err.options
       err.machine.should == m
       err.message.should == "transition_to_next_state!"
       err[:transitions].should == nil

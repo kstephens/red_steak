@@ -140,6 +140,9 @@ module RedSteak
     # THIS IS A BAD API IDEA AND MAY GO AWAY SOON!
     attr_accessor :auto_run
 
+    # The queue of events to process.
+    attr_reader :event_queue
+
     # The queue of pending Transitions.
     attr_reader :transition_queue
 
@@ -150,6 +153,7 @@ module RedSteak
     def initialize opts
       @stateMachine = nil
       @state = nil
+      @event_queue = [ ]
       @transition_queue = [ ]
       @history = nil
       @history_append = :<<
@@ -172,8 +176,8 @@ module RedSteak
     # Support for Copier.
     def deepen_copy! copier, src
       super
+      @event_queue = @event_queue.dup
       @transition_queue = @transition_queue.dup
-      # Deepen history, if available.
       @history = @history && @history.dup
     end
 
@@ -215,6 +219,63 @@ module RedSteak
     def start! *args
       @state = nil
       goto_state! @stateMachine.start_state, args
+    end
+
+
+    # Queues an event for #run_events!
+    def event! event
+      case event
+      when Array
+      else
+        event = [ event ]
+      end
+      event.freeze
+      @event_queue << event
+    end
+
+
+    # Runs events until there are no events left in the queue or #paused?
+    #
+    def run_events!
+      transition_fired = nil
+      @paused = false
+      while ! @paused && (event = @event_queue.shift) 
+        _log { "event #{event.inspect}" }
+        t = transitions_matching_event(event)
+        unless t.empty?
+          case t.size
+          when 0
+            _log { "No transitions for event #{event.inspect}: #{t.inspect}" }
+          when 1
+            event_args = event.size > 1 ? event[1 .. -1] : EMPTY_ARRAY
+            transition_fired = t.first
+            queue_transition! transition_fired, event_args
+          else
+            _log { "Too many transitions for event #{event.inspect}: #{t.inspect}" }
+          end
+        end
+
+        yield self if block_given?
+
+        # Fire transitions.
+        run!(:single)
+      end
+
+      transition_fired
+    end
+
+
+    # Returns the Transitions that match the event.
+    def transitions_matching_event event
+      event_args = event[1 .. -1]
+      @state.ancestors.each do | s |
+        t = s.outgoing.select do | t |
+          t.matches_event?(event) &&
+            t.guard?(self, event_args)
+        end
+        return t unless t.empty?
+      end
+      return EMPTY_ARRAY
     end
 
 

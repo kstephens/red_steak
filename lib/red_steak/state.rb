@@ -159,7 +159,8 @@ module RedSteak
     alias :is_submachine_state? :isSubmachineState
 
 
-    # Returns an array of all ancestor states.
+    # Returns a NamedArray of all ancestor States.
+    # self is the first element.
     def ancestors
       @ancestors ||=
         begin
@@ -167,7 +168,6 @@ module RedSteak
           if ss = superstate
             x.push(*ss.ancestors)
           end
-          
           NamedArray.new(x.freeze, :state)
         end
     end
