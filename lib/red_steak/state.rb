@@ -4,17 +4,20 @@ module RedSteak
   # A State in a StateMachine.
   # A State may have a submachine.
   class State < Vertex
-    # This state type, :start, :end or nil.
+    # This State's type: :start, :end or nil.
     attr_accessor :state_type # NOT UML AT ALL
 
-    # The behavior executed upon entry to the transtion.
-    attr_accessor :entry
+    # The behavior executed upon entry to this State.
+    # Can be a Symbol or a Proc.
+    attr_accessor :entry # UML
 
     # The behavior executed when it is transitioned out of.
-    attr_accessor :exit
+    # Can be a Symbol or a Proc.
+    attr_accessor :exit # UML 
 
     # The behavior executed when it is transitioned into.
-    attr_accessor :doActivity
+    # Can be a Symbol or a Proc.
+    attr_accessor :doActivity # UML
 
     # This state's submachine, or nil.
     attr_accessor :submachine # UML
@@ -112,13 +115,48 @@ module RedSteak
     # Returns true if this State is a substate of x.
     # All States are substates of themselves.
     def is_a_substate_of? x
-      s = self
-      while s
-        return true if s == x
-        s = s.superstate
-      end
-      false
+      self.ancestors.include?(x)
     end
+
+
+    # Returns true if this State is a superstate of x.
+    # All States are superstates of themselves.
+    def is_a_superstate_of? x
+      x.ancestors.include?(self)
+    end
+
+
+    # A state with isComposite=true is said to be a composite state. A composite state is a state that contains at least one
+    #   region. Default value is false.
+    def isComposite
+      ! ! @submachine
+    end
+    # Non-UML alias
+    alias :is_composite? :isComposite
+
+    # A state with isOrthogonal=true is said to be an orthogonal composite state. An orthogonal composite state contains
+    # two or more regions. Default value is false.
+    def isOrthogonal
+      raise Error::NotImplemented
+    end
+    # Non-UML alias
+    alias :is_orthogonal? :isOrthogonal
+
+    # A state with isSimple=true is said to be a simple state. A simple state does not have any regions and it does not refer
+    #  to any submachine state machine. Default value is true.
+    def isSimple
+      raise Error::NotImplemented
+    end
+    # Non-UML alias
+    alias :is_simple? :isSimple
+
+    # A state with isSubmachineState=true is said to be a submachine state. Such a state refers to a state machine
+    # (submachine). Default value is false.
+    def isSubmachineState
+      ! ! @submachine
+    end
+    # Non-UML alias
+    alias :is_submachine_state? :isSubmachineState
 
 
     # Returns an array of all ancestor states.

@@ -8,6 +8,8 @@
 ** Support UML Pseudostates.
 ** Support UML Regions.
 ** Support UML History, Deep History Pseudostate semantics.
+** Support UML Transition#kind.
+** Remove State#state_type and support UML FinalState.
 
 * Jeremy's Comments:
 ** Having to call start! explicitly is troublesome.

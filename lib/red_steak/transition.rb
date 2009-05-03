@@ -4,19 +4,21 @@ module RedSteak
   # Represents a transition from one state to another state in a statemachine.
   class Transition < Namespace
     # See TransitionKind.
-    attr_accessor :kind
+    attr_accessor :kind # UML
 
-    # The State that this Transition moves from.
-    attr_accessor :source
+    # The State this Transition moves from.
+    attr_accessor :source # UML
 
-    # The State the Transition move to.
-    attr_accessor :target
+    # The State this Transition move to.
+    attr_accessor :target # UML
 
-    # A guard is a constraint.
-    attr_accessor :guard
+    # A guard, if defined allows or prevents Transition from being queued or selected.
+    # Can be a Symbol or a Proc.
+    attr_accessor :guard # UML
     
-    # Specifies optional behavior to be performed when the transition fires.
-    attr_accessor :effect
+    # Specifies optional behavior to be performed when the Transition is executed..
+    # Can be a Symbol or a Proc.
+    attr_accessor :effect # UML
 
 
     def initialize opts
@@ -47,15 +49,16 @@ module RedSteak
 
 
     # Returns the source and target.
+    # FIXME: @paricipant needs to be invalidated if @source or @target change.
     def participant
       @participant ||=
-        NamedArray.new([ @source, @target ].uniq, :state)
+        NamedArray.new([ @source, @target ].uniq.freeze, :state)
     end
 
 
     # Called by Machine to check guard.
     def guard? machine, args
-      result = _behavior! :guard, machine, args
+      result = _behavior! :guard, machine, args, true
       result.nil? ? true : result
     end
 

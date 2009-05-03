@@ -17,17 +17,22 @@ module RedSteak
   #     statemachine :my_sm do 
   #       initial :start
   #       final :end
+  #
   #       state :start
-  #       transition :a
+  #       transition :a #, :name => :'start->a'
+  #
   #       state :a
-  #       transition :b
-  #       transition :c
+  #       transition :b, :name => :a_b
+  #       transition :c # a->c
+  #
   #       state :b
   #       transition :c
   #       transition :end
+  #
   #       state :c
   #       transition :b
   #       transition :end
+  #
   #       state :end
   #     end
   #   end
@@ -60,18 +65,21 @@ module RedSteak
   #   m = sm.machine
   #   m.context = MyContext.new(...)
   #   m.start!
-  #   m.transition!(:t1)
+  #   m.transition!(:'start->a')
   #   m.run!(:single)
-  #   m.transition!(:t2)
+  #   m.transition!(:ab)
   #   m.run!(:single)
-  #   ...
+  #   m.transition!(:'b->end')
+  #   m.run!(:single)
+  #   m.at_end? # => true
   #   
   class Machine < Base
     # The StateMachine.
     attr_accessor :stateMachine # UML
     alias :statemachine :stateMachine # not UML
 
-    # The current State in the statemachine.
+    # The active leaf State in the statemachine.
+    # See state_is_active?(State) to query for superstates.
     attr_reader :state
 
     # True if pause! was called during run!
@@ -160,6 +168,7 @@ module RedSteak
     end
     
 
+    # Support for Copier.
     def deepen_copy! copier, src
       super
       @transition_queue = @transition_queue.dup
@@ -174,16 +183,26 @@ module RedSteak
     end
 
 
-    # Returns true if we are at the start state.
+    # Returns true if we are at the start State.
     def at_start?
       @state == @stateMachine.start_state
     end
 
 
-    # Returns true if we are at the end state.
+    # Returns true if we are at the end State (FinalState).
     def at_end?
       FinalState === @state || # UML
       @state == @stateMachine.end_state # not UML
+    end
+
+
+    # Returns true if State _s_ is active.
+    # This is true if _s_ an superstate ancestor of the active leaf state.
+    def state_is_active? s
+      return false unless s && @state
+      x = to_state(s)
+      return ArgumentError, "no State #{x.inspect}" unless x
+      x.is_a_superstate_of?(@state)
     end
 
 
@@ -191,6 +210,7 @@ module RedSteak
     # The State's entry and doActivity are executed.
     # Any transitions in doActivity are queued;
     # Queued transitions are fired only by #run!.
+    # #history is not cleared.
     def start! *args
       @state = nil
       goto_state! @stateMachine.start_state, args
@@ -267,7 +287,7 @@ module RedSteak
     alias :run_pending_transitions! :run!
 
 
-    # Returns true if run! is executing.
+    # Returns true if #run! is executing.
     def running?
       ! ! @in_run
     end
@@ -279,7 +299,7 @@ module RedSteak
     end
 
 
-    # Causes top-level #run! to return after the active doActivity.
+    # Causes top-level #run! to return after the active #doActivity.
     def pause!
       raise Error, "not in run!" unless @in_run
       @paused = true
@@ -293,25 +313,25 @@ module RedSteak
     end
 
 
-    # Returns true if current State is processing its :entry behavior.
+    # Returns true if active State#entry is running.
     def in_entry?
       ! ! @in_entry
     end
 
 
-    # Returns true if current State is processing its :doActivity behavior.
+    # Returns true if active State#doActivity is running.
     def in_doActivity?
       ! ! @in_doActivity
     end
 
 
-    # Returns true if current State is processing its :exit behavior.
+    # Returns true if active State#exit is running.
     def in_exit?
       ! ! @in_exit
     end
 
 
-    # Returns the currently executing Transition.
+    # Returns the currently executing Transition or nil.
     def executing_transition
       @executing_transition
     end
@@ -323,16 +343,17 @@ module RedSteak
     end
 
 
-    # Returns true if an executing Transition is processing its :effect behavior.
+    # Returns true if an executing Transition#effect is running.
     def in_effect?
       ! ! @in_effect
     end
 
 
-    # Forcefully sets state.
-    # The State's entry and doActivity are triggered.
-    # Any pending transitions triggered in doActivity are queued.
-    # Callers should probably call run! after calling this method.
+    # Forcefully sets #state.
+    # The State#entry and State#doActivity are executed.
+    # Any pending Transitions triggered in State#doActivity are queued.
+    # Callers should probably call #run! after calling this method.
+    # See #goto_state!.
     def state= x
       goto_state! to_state(x)
     end
@@ -340,7 +361,7 @@ module RedSteak
 
     # Coerces a String or Symbol to a State.
     # Strings are rooted from the rootStateMachine.
-    # Symbols are looked up from this stateMachine.
+    # Symbols are looked up from #stateMachine.
     def to_state state
       case state
       when State, nil
@@ -354,8 +375,8 @@ module RedSteak
  
 
     # Coerces a String or Symbol to a Transition.
-    # Strings are rooted from the rootStateMachine.
-    # Symbols are looked up from this stateMachine.
+    # Strings are rooted from the #rootStateMachine.
+    # Symbols are looked up from #stateMachine.
     def to_transition trans
       case trans
       when trans, nil
@@ -368,23 +389,23 @@ module RedSteak
     end
  
 
-    # Returns true if a transition is possible from the current state.
-    # Queries the transitions' guard.
+    # Returns true if a Transition is possible from the active #state.
+    # Queries the Transition#guard.
     def guard? *args
       valid_transitions(*args).size > 0
     end
 
 
-    # Returns true if a non-ambigious direct transition is possible from the current state
-    # to the given state.
-    # Queries the transitions' guards.
+    # Returns true if a non-ambigious direct Transition is possible from the active #state
+    # to the given State.
+    # Uses #transitions_to.
     def can_transition_to? state, *args
       transitions_to(state, *args).size == 1
     end
 
 
-    # Returns a list of valid transitions from current
-    # state to the specified state.
+    # Returns an Enumeration of valid Transitions from active
+    # #state to the specified State where Transition#guard? is true.
     def transitions_to state, *args
       state = to_state(state)
 
@@ -397,7 +418,8 @@ module RedSteak
     end
 
 
-    # Returns a list of valid transitions from the current state.
+    # Returns an Enumeration of valid Transitions from the active state
+    # where Transition#guard? is true.
     def valid_transitions *args
       @state.outgoing.select do | t |
         t.guard?(self, args)
@@ -405,11 +427,11 @@ module RedSteak
     end
 
 
-    # Find the sole transition whose guard is true and queue it. 
+    # Find the sole Transition whose Transition#guard? is true and queue it. 
     #
-    # If all outgoing transitions' guards are false or more than one 
-    # transition's guard is true:
-    # raise an error if _raise is true,
+    # If all outgoing Transitions#guard? are false or more than one 
+    # #transition#guard? is true:
+    # raise an error if _raise_ is true,
     # or return nil.
     def transition_to_next_state!(_raise = true, *args)
       trans = valid_transitions(*args)
@@ -426,9 +448,9 @@ module RedSteak
     end
 
 
-    # Queues transition from current state to another state.
-    # This assumes that there is not more than one transition
-    # from one state to another.
+    # Queues Transition from active #state to another State.
+    # This requires that there is not more than one valid Transition
+    # from one State to another.
     def transition_to! state, *args
       state = to_state(state)
       
@@ -445,7 +467,7 @@ module RedSteak
     end
 
 
-    # Queues a non-ambiguious Transition (see valid_transitions).
+    # Queues a non-ambiguious Transition (see #valid_transitions).
     # Returns the Transition queued or nil if no Transition was queued.
     def transition_if_valid! *args
       trans = valid_transitions *args
@@ -455,11 +477,11 @@ module RedSteak
     end
 
 
-    # Queue a Transition from the current State.
+    # Queue a Transition from the active #state.
     #
     # _trans_ can be a Transition object or a name pattern.
     #
-    # The Transition's guard must be true.
+    # The Transition#guard? must be true.
     def transition! trans, *args
       if Transition === trans
         name = trans.name
@@ -501,9 +523,9 @@ module RedSteak
     #
     # This representation is ideal for serialization or debugging.
     #
-    # context and logger are not represented.
+    # #context and #logger are not represented.
     #
-    # History is converted to an Array.
+    # #history is converted to an Array of simple Hash objects.
     def to_hash
       h = { }
       instance_variables.each do | k |
@@ -536,9 +558,9 @@ module RedSteak
     # Restores this object's internal state from a Hash
     # as generated by #to_hash.
     #
-    # Assumes that self.stateMachine is already set.
+    # Assumes that #stateMachine is already set.
     #
-    # History is not restored.
+    # #history is not restored.
     def from_hash h
       # raise NotImplemented, "from_hash"
       h = h.dup
@@ -555,7 +577,7 @@ module RedSteak
     end
 
 
-    # Returns an Array representation of the state
+    # Returns an Array representation of the #state
     # of this Machine.
     def to_a
       x = [ @state && @state.name ]
@@ -587,22 +609,22 @@ module RedSteak
     #
 
 
-    # Clears current history.
+    # Clears #history.
     def clear_history!
       @history && @history.send(@history_clear)
     end
 
     
-    def show_history
-      @history.each_with_index{|h, i| puts "#{i + 1}: #{h[:previous_state].to_s} ->  #{h[:new_state].to_s}"}
+    # Prints #history on the _out_ stream.
+    def show_history out = $stdout
+      @history.each_with_index{|h, i| out.puts "#{i + 1}: #{h[:previous_state].to_s} -> #{h[:new_state].to_s}"}
       ""
     end
 
 
-    # Records a new history record.
-    # Supermachines are also notified.
+    # Records a new #history record.
     # Machine is the origin of the history record.
-    def record_history! machine, hash = nil
+    def record_history! machine = self, hash = nil
       if @history
         hash ||= yield
         @history.send(@history_append, hash)
@@ -612,7 +634,8 @@ module RedSteak
     end
 
 
-    # Returns true if there are transitions pending.
+    # Returns true if there is a Transition pending in
+    # the #transition_queue.
     def pending_transitions?
       ! @transition_queue.empty?
     end
@@ -620,20 +643,23 @@ module RedSteak
 
     private
 
-    # Queues a transition for execution.
+    # Queues a Transition for execution.
     #
     # This prevents recursion into the Machine.
     #
     # This method is guaranteed to return immediately.
     #
-    # This method will not cause any entry, doActivity, exit or effect behavior to
+    # This method will not cause any State#entry, State#doActivity, State#exit or Transition#effect behavior to
     # be executed "now".
     #
     # The #run!, #process_transitions!, and #execute_transition! methods are responsible
     # for executing the transition in the top-level #run! method.
     #
-    # UnexpectedRecursion is thrown if entry, exit or effect behaviors are currently active.
+    # UnexpectedRecursion is thrown if State#entry, State#exit or Transition#effect behaviors are executing.
     # TransitionPending is thrown if a Transition is already pending.
+    #
+    # Note: this method already assumes that the Transition#guard? was true before
+    # it is queueing; guards are not checked here, nor are they checked again.
     #
     def queue_transition! trans, args
       _log { "queue_transition! #{trans.inspect}" }
@@ -657,15 +683,15 @@ module RedSteak
     end
 
 
-    # Processes pending transitions.
+    # Processes pending Transitions.
     #
     # Returns immediately if #at_end?
     #
-    # 1) Process a pending transition and returns immediately after if single.
+    # 1) Process a pending Transition and returns immediately after if _single_.
     # 2) until at_end?
     # 3)   yield to block, if given a block.
-    # 4)   If a transition is pending,
-    # 5)     execute it and return immediately after if single.
+    # 4)   If a Transition is pending,
+    # 5)     execute it and return immediately after if _single_.
     # 6)   else,
     # 7)     return immediately.
     #
@@ -700,18 +726,14 @@ module RedSteak
     end
 
 
-    # Executes transition.
+    # Executes a Transition.
     #
-    # 1) self.executing_transition is set.
-    # 2) Transition's :effect behavior is performed, while #in_effect? is true.
-    # 3) Old State's :exit behavior is performed, while #in_exit? is true.
-    # 4) self.executing_transition is unset.
-    # 5) Transition history is logged.
-    # 6) New State's :entry behavior is performed, while #in_entry? is true.
-    # 7) New State's :doActivity behavior is performed, while #in_doActivity? is true.
+    # * #executing_transition is set.
+    # * Transition#effect behavior is performed, while #in_effect? is true.
+    # * #_goto_state(Transition#target) is performed with #record_history!.
     #
-    # Note: this already assumes that the Transition's guard was true when
-    # it was queued.
+    # Note: this method already assumes that the Transition#guard? was true when
+    # it was queued; guards are not checked here.
     def execute_transition! trans, args
       _log { "execute_transition! #{trans.inspect}" }
 
@@ -730,7 +752,7 @@ module RedSteak
 
       # Got to the new state.
       _goto_state!(trans.target, trans, args) do 
-        record_history!(self) do 
+        record_history! do 
           {
             :time => Time.now.gmtime,
             :previous_state => old_state, 
@@ -738,7 +760,6 @@ module RedSteak
             :new_state => state,
           }
         end
-        
       end
 
       self
@@ -750,13 +771,13 @@ module RedSteak
 
     # Moves directly to a State.
     #
-    # Calls _goto_state!, clears history and adds initial history record.
+    # Calls #_goto_state!, clears #history and records initial #history record.
     #
     def goto_state! state, args
       _log { "goto_state! #{state.inspect}" }
       _goto_state! state, nil, args do
         clear_history!
-        record_history!(self) do 
+        record_history! do 
           {
             :time => Time.now.gmtime,
             :previous_state => nil, 
@@ -768,20 +789,21 @@ module RedSteak
     end
 
 
-    # Moves from one state machine to another.
+    # Moves from one State to another.
     #
-    # 1) Performs old State's :exit behavior.
-    # 2) If a block is given, yield to it after entering new state.
-    # 3) Performs new State's :entry behavior.
-    # 4) executing_transition is nil
-    # 5) Performs new State's :doActivity behavior.
+    # * If the Transition#target State #is_composite?, the innermost submachine's state State is the actual target.
+    # * The old source State#exit behavior(s) are performed for all superstates that are to become inactive, while #in_exit? is true.
+    # * #executing_transition is unset.
+    # * Transition history is logged.
+    # * The new target State#entry behavior(s) are performed for all substates that are to become active,, while #in_entry? is true.
+    # * The new target State#doActivity behavior is performed while #in_doActivity? is true.
     #
     def _goto_state! state, trans, args
       old_state = @state
 
       # If the state has a submachine,
       # start! it.
-      if ssm = state.submachine
+      while ssm = state.submachine
         if ss = ssm.start_state
           state = ssm.start_state
         end
@@ -826,7 +848,10 @@ module RedSteak
       @executing_transition = nil
 
       # Behavior: doActivity.
-      _doActivity!(args)
+      raise Error::UnexpectedRecursion, "doActivity" if @in_doActivity
+      @in_doActivity = true
+      @state.doActivity!(self, args)
+      @in_doActivity = false
 
       self
 
@@ -835,27 +860,13 @@ module RedSteak
       @state = old_state
 
       raise err
+
     ensure
       # Clear statuses.
       @in_exit = false
       @in_entry = false
+      @in_doActivity = false
       @executing_transition = nil
-    end
-
-
-    # Performs the current State's doActivity while setting a 
-    # lock to prevent recursive run!
-    # 
-    # FIXME?: Should this throw an UnexpectedRecursion if #in_doActivity?
-    def _doActivity! args
-      _log { "_doActivity! #{args.inspect}" }
-      in_doActivity_save = @in_doActivity
-      return nil if @in_doActivity
-      @in_doActivity = true
-      
-      @state.doActivity!(self, args)
-    ensure
-      @in_doActivity = in_doActivity_save
     end
 
   end # class

@@ -37,7 +37,7 @@ module RedSteak
     # Called by subclasses to notify/query the context object for specific actions.
     # Will get the method from local options or the StateMachine's options Hash.
     # The context is either the local object's context or the StateMachine's context.
-    def _behavior! action, machine, args
+    def _behavior! action, machine, args, default_value = nil
       raise ArgumentError, 'action is not a Symbol' unless Symbol === action
       
       args ||= EMPTY_ARRAY
@@ -53,7 +53,7 @@ module RedSteak
 
       case
       when Proc === behavior
-        behavior.call(machine, self, *args)
+        return behavior.call(machine, self, *args)
       when Symbol === behavior && 
           (c = machine.context)
 
@@ -65,11 +65,10 @@ module RedSteak
         if force_send
           # $stderr.puts "  _behavior! #{self.inspect} #{action.inspect} #{machine.inspect}\n    => #{c}.send(#{behavior.inspect}, #{machine}, #{self.inspect}, *#{args.inspect})"
 
-          c.send(behavior, machine, self, *args)
+          return c.send(behavior, machine, self, *args)
         end
-      else
-        nil
       end
+      default_value
     end
     
 

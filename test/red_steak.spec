@@ -230,10 +230,16 @@ describe RedSteak do
 
     sm.states[:end].inspect.should == 
       "#<RedSteak::State test end>"
-
-    sm.states[:d].submachine.states[:d1].inspect.should == 
+       
+    d = sm.states[:d]
+    d_d1 = d.submachine.states[:d1]
+    d_d1.inspect.should == 
       "#<RedSteak::State test::d d::d1>"
-
+    d.is_a_superstate_of?(d_d1).should == true
+    d_d1.is_a_superstate_of?(d).should == false
+    d_d1.is_a_substate_of?(d).should == true
+    d.is_a_substate_of?(d_d1).should == false
+    
     e = sm.states[:end]
     e.should_not == nil
     e.transitions.to_a.map{|t| t.name}.should == [ :'c->end', :'f->end', :'d->end', :'d::end->end' ]
@@ -463,12 +469,19 @@ describe RedSteak do
     m.start!
     m.state.name.should == :a
     m.state.submachine.should == nil
+    m.state_is_active?(nil).should == false
+    m.state_is_active?(sm.states[:a]).should == true
 
     m.transition_to! :d
     m.state.name.should == :d1
     m.state.should === :d1
-    m.state.should === sm.states[:d]
-    # m.state.submachine.should_not == nil
+    d = sm.states[:d]
+    m.state.should === d
+    d_d1 = d.submachine.states[:d1]
+    m.state_is_active?(d).should == true
+    m.state_is_active?(d_d1).should == true
+    m.state_is_active?(nil).should == false
+    m.state_is_active?(sm.states[:a]).should == false
 
     # start transitions in substates of State :d.
 =begin

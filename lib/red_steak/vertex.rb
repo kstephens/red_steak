@@ -4,13 +4,13 @@ module RedSteak
   # Abstract superclass for State and Pseudostate
   class Vertex < NamedElement
     # This vertex kind.
-    attr_accessor :kind
+    attr_accessor :kind # UML??
 
     # List of Transitions into this Vertex.
-    attr_reader :incoming
+    attr_reader :incoming # UML
 
     # List of Transitions away from this Vertex.
-    attr_reader :outgoing
+    attr_reader :outgoing # UML
 
 
     def initialize opts = { }
