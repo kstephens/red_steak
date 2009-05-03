@@ -38,10 +38,13 @@ module RedSteak
     attr_accessor :logger
     attr_accessor :log_level
 
+    attr_reader :dot_command_output
+
     def initialize opts = { }
       @dot_name = { }
       @dot_label = { }
       @rendered = { }
+      @dot_command_output = nil
       @dot_id = 0
       @logger = nil
       @log_level = :debug
@@ -231,8 +234,10 @@ module RedSteak
  
       # stream.puts "subgraph ROOT {"
 
+      start_name = dot_name(sm, :start)
+      @rendered[start_name] = true
       stream.puts "\n// Implicit :start Pseudostate for #{sm.to_s}"
-      stream.puts %Q{  node [ shape="circle", label="", style=filled, fillcolor=black ] #{dot_name(sm, :start)}; }
+      stream.puts %Q{  node [ shape="circle", label="", style=filled, fillcolor=black ] #{start_name}; }
 
       sm.states.each { | s | render_State(s) }
       
@@ -247,9 +252,10 @@ module RedSteak
     def render_transitions sm
       sm.transitions.each { | t | render(t) }
       sm.states.each do | s |
-        if s.start_state?
+        start_name = dot_name(s.stateMachine, :start)
+        if s.start_state? && @rendered[start_name]
           stream.puts "\n// Implicit Transition to :start Pseudostate for #{sm.to_s}"
-          stream.puts "#{dot_name(s.stateMachine, :start)} -> #{dot_name(s, :target)};"
+          stream.puts "#{start_name} -> #{dot_name(s, :target)};"
         end
         if ssm = s.submachine
           if false
@@ -263,9 +269,12 @@ module RedSteak
 
 
     # Renders the StateMachine as Dot syntax.
-    def render_StateMachine sm, dot_opts = { }
+    def render_StateMachine sm, dot_opts = nil
       return if @rendered[sm]
       @rendered[sm] = true
+
+      dot_opts ||= { }
+      hide_decomposition = dot_opts.delete(:hide_decomposition)
 
       stream.puts "\n// {#{sm.inspect}"
       name = dot_opts.delete(:_node_name) || dot_name(sm)
@@ -279,15 +288,22 @@ module RedSteak
 
       dot_opts = dot_opts_for sm, dot_opts
 
+      if hide_decomposition && false
+        dot_opts[:label] += "\\r    o-o"
+      end
+ 
       stream.puts "#{type} {"
-
       stream.puts %Q{  #{render_opts(dot_opts, ";\n  ")}}
       
       yield if block_given?
 
-      stream.puts "\n// Implicit :start Pseudostate"
-      stream.puts %Q{  node [ shape="circle", label="", style=filled, fillcolor=black ] #{dot_name(sm, :start)}; }
-      sm.states.each { | s | render(s) }
+      unless hide_decomposition
+        start_name = dot_name(sm, :start)
+        @rendered[start_name] = true
+        stream.puts "\n// Implicit :start Pseudostate"
+        stream.puts %Q{  node [ shape="circle", label="", style=filled, fillcolor=black ] #{start_name}; }
+        sm.states.each { | s | render(s) }
+      end
 
       stream.puts "}"
       stream.puts "// } #{sm.inspect}\n"
@@ -305,7 +321,7 @@ module RedSteak
       
       if options[:history]
         options[:history].each_with_index do | hist, i |
-          if hist[:new_state] == s
+          if hist[:new_state] && s.is_a_superstate_of?(hist[:new_state])
             sequence << i + 1
           end
         end
@@ -325,13 +341,16 @@ module RedSteak
       end
 
       dot_opts = dot_opts_for s, dot_opts
-      
+
+      hide_decomposition = dot_opts.delete(:hide_decomposition)
+      stream.puts "  // hide_decomposition = #{hide_decomposition.inspect}"
+
       if (hs = options[:highlight_states]) && hs.include?(s)
         dot_opts[:style] += ',bold'
       end
 
       unless sequence.empty?
-        if options[:highlight_state_history]
+        if options[:highlight_state_history] && (s.submachine ? hide_decomposition : true)
           dot_opts[:fillcolor] = :grey
         end
         if options[:show_state_sequence] 
@@ -342,44 +361,55 @@ module RedSteak
       dot_opts[:fontcolor] ||= :black
       dot_opts[:fillcolor] ||= :white
 
+      # Dont label FinalStates, it causes too much clutter.
+      # Invert the colors to be more like UML.
       case
       when s.end_state?
-        # Dont label FinalStates, it causes too much clutter.
         dot_opts[:label] = "" 
-        # Invert the colors.
         dot_opts[:fillcolor], dot_opts[:fontcolor] =
           dot_opts[:fontcolor], dot_opts[:fillcolor]
       end
 
       if ssm = s.submachine
+        # Composite States are rendered as
+        # a subgraph cluster with a target and source "connection point" for external connections.
+        # This is where the dot_name(s, :source || :target) is defined.
+        # Subsequence Transitions edges will used these connnection points.
         implicit_dot_opts = dot_opts.dup
-        dot_opts[:label] += "\\r    o-o"
+        dot_opts[:hide_decomposition] = hide_decomposition
         render_StateMachine(ssm, dot_opts) do
           dot_opts = implicit_dot_opts
           dot_opts[:shape] = :point
           dot_opts[:label] = "[]"
 
           stream.puts %Q'\n  subgraph cluster_#{dot_name(s, :source)} {'
-          stream.puts %Q{    color=white;}
-          stream.puts %Q{    fillcolor=white;}
-          stream.puts %Q{    fontcolor=white;}
-          stream.puts %Q{    label="_";}
-          stream.puts %Q{    shape="box";}
+          stream.puts %Q{    color=none;}
+          stream.puts %Q{    fillcolor=none;}
+          stream.puts %Q{    fontcolor=none;}
+          stream.puts %Q{    label="";}
+          stream.puts %Q{    shape="plaintext";}
           stream.puts %Q{    style="none";}
 
+          dot_opts[:color] = :black
           dot_opts[:fillcolor] = :black
           stream.puts "\n// Implicit target point for State #{s.to_s}"
           stream.puts %Q{  node [ #{render_opts(dot_opts)} ] #{dot_name(s, :target)};}
 
+          dot_opts[:color] = :black
           dot_opts[:fillcolor] = :white
           stream.puts "\n// Implicit source point for State #{s.to_s}"
           stream.puts %Q{  node [ #{render_opts(dot_opts)} ] #{dot_name(s, :source)};}
           stream.puts "\n  }\n"
         end
-      else
-        dot_opts[:style] += ',rounded'
-        stream.puts %Q{  node [ #{render_opts(dot_opts)} ] #{dot_name(s, [:source, :target])};}
+        return self
       end
+
+      # Non-composite States are rendered as simple nodes.
+      # In this case dot_name(s, :source || :target) == dot_name(s).
+      dot_opts[:style] += ',rounded'
+      stream.puts %Q{  node [ #{render_opts(dot_opts)} ] #{dot_name(s, [:source, :target])};}
+
+      return self
     end
 
 
@@ -388,6 +418,7 @@ module RedSteak
       return if @rendered[t]
       @rendered[t] = true
 
+      # Do not render Transition if source and target States are both rendered.
       return unless @rendered[t.target] && @rendered[t.source]
 
       sequence = [ ]
@@ -433,16 +464,18 @@ module RedSteak
       dot_opts[:color] ||= :black
       dot_opts[:fontcolor] ||= :black
 
+      return if dot_opts[:visible] == false
+
       stream.puts "#{source_name} -> #{target_name} [ #{render_opts(dot_opts)} ];"
 
       self
     end
 
 
-    def sequence_to_s s
+    def sequence_to_s s, limit = 4
       s = s.sort
       s.uniq!
-      if s.size <= 4
+      if s.size <= limit
         t = s
       else
         t = [ ]
@@ -465,7 +498,10 @@ module RedSteak
           t << i unless r
         end
       end
-      t.join(',').gsub(/\.\./, '-')
+      if t.size > limit
+        t = t[0 .. 3] << "\01" << t[-1]
+      end
+      t.join(',').gsub(/\.\./, '-').sub("\01", '...')
     end
 
 
@@ -609,17 +645,35 @@ module RedSteak
       cmd = "dot -V"
       if system("#{cmd} >/dev/null 2>&1") == true
         File.unlink(file_svg) rescue nil
+
+        # Try using cairo svg renderer.
         cmd = "dot -Tsvg:cairo:cairo #{file_dot.inspect} -o #{file_svg.inspect}"
         _log { "Run: #{cmd}" }
-        result = `#{cmd} 2>&1`
+        result = @dot_command_output = `#{cmd} 2>&1`
+
+        # Fall back to plain svg renderer.
         if result =~ /Warning: language .* not recognized, use one of:/
           cmd = "dot -Tsvg #{file_dot.inspect} -o #{file_svg.inspect}"
           _log { "Run: #{cmd}" }
-          result = `#{cmd} 2>&1`
+          result = @dot_command_output = `#{cmd} 2>&1`
         end
+
+        # Check for file.
+        unless File.exist?(file_svg)
+          err = Error.new(:message => 'dot command failed', 
+                          :command => cmd, 
+                          :file => file_svg,
+                          :output => @dot_command_output)
+          # $stderr.puts "Error: #{err.inspect}"
+          _log { "Error: #{err.inspect}" }
+          raise err
+        end
+
         _log { "Generated: file://#{file_svg}" }
       else
         _log { "Warning: #{cmd} failed" }
+        raise Error, :message => 'dot command not found', 
+          :command => cmd
       end
 
       self

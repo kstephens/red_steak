@@ -89,7 +89,7 @@ describe 'RedSteak::Machine#event!' do
           transition :final,
             :trigger => :terminate
 
-          state :active do
+          state(:active, :dot_options => { :hide_decomposition => false }) do
             statemachine do
               initial :dial_tone
 
