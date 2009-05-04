@@ -14,8 +14,6 @@ begin
   end
 
   def p4_pending_cl(opts = nil)
-    opts ||= VC_OPTS
-    opts = opts.dup
     opts[:p4_set] ||= p4_set
     user = opts[:user] ||= opts[:p4_set][:p4user] || USER
     hostname = opts[:hostname] ||= HOSTNAME
@@ -39,41 +37,35 @@ begin
 
   desc "Displays the current P4 pending CL"
   task :p4_pending_cl do
-    puts p4_pending_cl
+    puts p4_pending_cl(VC_OPTS.dup)
   end
   
   desc "Displays the current VC root"
   task :vc_root do 
-    puts vc_root
+    puts vc_root(VC_OPTS.dup)
   end
 
   def vc_root(opts = nil)
-    opts ||= VC_OPTS
-    opts = opts.dup
     opts[:vc_root] ||= opts[:get_vc_root].call(opts)
   end
 
 
   desc "Displays the current VC change id"
   task :vc_id do 
-    puts vc_id
+    puts vc_id(VC_OPTS.dup)
   end
 
   def vc_id(opts = nil)
-    opts ||= VC_OPTS
-    opts = opts.dup
     opts[:vc_id] ||= opts[:get_vc_id].call(opts)
   end
 
 
   desc "Display the list of files under p4"
   task :p4_files do
-    pp p4_files
+    pp p4_files(VC_OPTS.dup)
   end
 
   def p4_files(opts = nil)
-    opts ||= VC_OPTS
-    opts = opts.dup
     p4_root = `p4 files Rakefile`.chomp.sub(%r{/Rakefile#.*$}, '')
     pp p4_root
     opts[:p4_files] ||= `p4 files ...`.gsub(/#.*$/, '').gsub(%r{^#{p4_root}/}, '').split("\n").sort
@@ -81,19 +73,16 @@ begin
 
   desc "Display files that should be deleted from p4 based on Manifest"
   task :p4_files_to_delete do
-    pp p4_files_to_delete
+    pp p4_files_to_delete(VC_OPTS.dup)
   end
 
   def p4_files_to_delete opts = nil
-    opts ||= VC_OPTS
-    opts = opts.dup
     manifest = File.read(opts[:manifest]).split("\n").sort.uniq
     opts[:p4_files_to_delete] ||= p4_files.reject { | f | manifest.include?(f) }.reject { | f | f[0 .. 0] == '.' }
   end
 
 
   def p4_submit(opts = { })
-    opts = opts.dup
     opts[:user] ||= USER
     opts[:hostname] ||= HOSTNAME
     opts[:vc_m] ||= ENV['m'] || "From #{opts[:user]}@#{opts[:hostname]}"
