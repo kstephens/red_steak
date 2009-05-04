@@ -73,7 +73,7 @@ begin
     # FIXME: Delete any files not in Manifest.
 
     # Add any new files in Manifest.
-    sh "p4 add -x #{manifest}"
+    sh "p4 -x #{manifest} add"
 
     # Submit any pending changes.
     # e.g: sh "svn ci -m #{m.inspect}"
