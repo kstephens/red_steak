@@ -19,7 +19,6 @@ begin
                sh "svn ci -m #{opts[:vc_m].inspect}"
              },
            })
-  )
 
   desc "p4 edit; git pull origin master; p4 revert -a"
   task :p4_submit do

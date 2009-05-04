@@ -19,12 +19,12 @@ begin
     opts[:p4_set] ||= p4_set
     user = opts[:user] ||= opts[:p4_set][:p4user] || USER
     hostname = opts[:hostname] ||= HOSTNAME
-    name = opts[:name] ||= PKG_NAME
+    name = opts[:name] ||= VC_NAME
     vc = opts[:vc] or raise 'vc not specified'
     opts[:p4client] ||= opts[:p4_set][:p4client]
 
     cmd = "p4 changelists -u '#{user}' -s pending -c '#{opts[:p4client]}' ..."
-    pp opts, cmd
+    # pp opts, cmd
 
     `#{cmd}`.
       split("\n").
@@ -66,6 +66,32 @@ begin
   end
 
 
+  desc "Display the list of files under p4"
+  task :p4_files do
+    pp p4_files
+  end
+
+  def p4_files(opts = nil)
+    opts ||= VC_OPTS
+    opts = opts.dup
+    p4_root = `p4 files Rakefile`.chomp.sub(%r{/Rakefile#.*$}, '')
+    pp p4_root
+    opts[:p4_files] ||= `p4 files ...`.gsub(/#.*$/, '').gsub(%r{^#{p4_root}/}, '').split("\n").sort
+  end
+
+  desc "Display files that should be deleted from p4 based on Manifest"
+  task :p4_files_to_delete do
+    pp p4_files_to_delete
+  end
+
+  def p4_files_to_delete opts = nil
+    opts ||= VC_OPTS
+    opts = opts.dup
+    manifest = File.read(opts[:manifest]).split("\n").sort.uniq
+    opts[:p4_files_to_delete] ||= p4_files.reject { | f | manifest.include?(f) }.reject { | f | f[0 .. 0] == '.' }
+  end
+
+
   def p4_submit(opts = { })
     opts = opts.dup
     opts[:user] ||= USER
@@ -82,7 +108,8 @@ begin
     # e.g.: sh "svn update"
     opts[:update].call(opts)
  
-    # FIXME: Delete any files not in Manifest.
+    # Delete any files not in Manifest.
+    sh "p4 delete #{p4_files_to_delete(opts) * ' '}"
 
     # Add any new files in Manifest.
     sh "p4 -x #{manifest} add"

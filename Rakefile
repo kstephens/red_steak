@@ -53,7 +53,8 @@ task :docs => :test do
   # NOTHING
 end
 
-PKG_NAME = 'red_steak'
-
+VC_NAME = 'red_steak'
 require 'lib/tasks/p4_git'
+VC_OPTS[:manifest] = 'Manifest'
+
 

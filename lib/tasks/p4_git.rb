@@ -30,7 +30,7 @@ begin
   end
   
   desc "p4 edit; git pull origin master; p4 revert -a"
-  task :p4_git_pull do
+  task :p4_git_commit do
     p4_submit(VC_OPTS)
   end
 
