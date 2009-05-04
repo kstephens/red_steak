@@ -109,10 +109,14 @@ begin
     opts[:update].call(opts)
  
     # Delete any files not in Manifest.
-    sh "p4 delete #{p4_files_to_delete(opts) * ' '}"
+    ftd = p4_files_to_delete(opts)
+    unless ftd.empty?
+      sh "p4 revert #{ftd * ' ') || true"
+      sh "p4 delete #{ftd * ' '}"
+    end
 
     # Add any new files in Manifest.
-    sh "p4 -x #{manifest} add"
+    sh "p4 -x #{opts[:manifest]} add"
 
     # Submit any pending changes.
     # e.g: sh "svn ci -m #{m.inspect}"
