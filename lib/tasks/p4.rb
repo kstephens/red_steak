@@ -125,7 +125,7 @@ begin
     # Get the current dst rev.
     # e.g.: `svn update`.chomp
     vc_id(opts)
-    opts[:p4_m] ||= "#{opts[:name]}: from #{opts[:vc]} #{opts[:vc_id]} of #{m[:vc_root]}"
+    opts[:p4_m] ||= "#{opts[:name]}: from #{opts[:vc]} #{opts[:vc_id]} of #{opts[:vc_root]}"
 
     # Revert any unchanged files.
     sh "p4 revert -a ..."
