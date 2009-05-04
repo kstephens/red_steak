@@ -4,7 +4,7 @@ require 'rake'
 begin
   require 'echoe'
  
-  Echoe.new('redsteak', '0.1') do |p|
+  $e = Echoe.new('redsteak', '0.1') do |p|
     p.rubyforge_name = 'red_steak'
     p.summary = "RedSteak - A UML 2 Statemachine for Ruby."
     p.description = ""
@@ -52,6 +52,8 @@ end
 task :docs => :test do
   # NOTHING
 end
+
+PKG_NAME = 'red_steak'
 
 require 'lib/tasks/p4_git'
 
