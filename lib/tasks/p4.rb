@@ -65,7 +65,7 @@ begin
     pp p4_files(VC_OPTS.dup)
   end
 
-  def p4_files(opts = nil)
+  def p4_files(opts)
     p4_root = `p4 files Rakefile`.chomp.sub(%r{/Rakefile#.*$}, '')
     pp p4_root
     opts[:p4_files] ||= `p4 files ...`.gsub(/#.*$/, '').gsub(%r{^#{p4_root}/}, '').split("\n").sort
@@ -76,9 +76,9 @@ begin
     pp p4_files_to_delete(VC_OPTS.dup)
   end
 
-  def p4_files_to_delete opts = nil
+  def p4_files_to_delete opts
     manifest = File.read(opts[:manifest]).split("\n").sort.uniq
-    opts[:p4_files_to_delete] ||= p4_files.reject { | f | manifest.include?(f) }.reject { | f | f[0 .. 0] == '.' }
+    opts[:p4_files_to_delete] ||= p4_files(opts).reject { | f | manifest.include?(f) }.reject { | f | f[0 .. 0] == '.' }
   end
 
 
