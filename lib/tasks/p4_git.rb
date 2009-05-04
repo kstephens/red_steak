@@ -13,7 +13,7 @@ begin
                sh "git pull origin master"
              },
              :get_vc_id => lambda { | opts |
-               File.read('.git_revision').chomp
+               git_revision
              },
              :submit => lambda { | opts | 
                sh "git commit -a -m #{opts[:vc_m].inspect}" 
@@ -22,11 +22,11 @@ begin
   
   desc "Records current git commit id to .git_revision for p4 check-in"
   task :git_revision do
-    git_revision
+    puts git_revision
   end
   
   def git_revision 
-    sh "git log | head -1 > .git_revision"
+    `git log | head -1 | tee .git_revision`.chomp
   end
   
   desc "p4 edit; git pull origin master; p4 revert -a"

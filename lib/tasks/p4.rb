@@ -48,9 +48,21 @@ begin
   end
 
   def vc_root(opts = nil)
-    opts = VC_OPTS
+    opts ||= VC_OPTS
     opts = opts.dup
     opts[:vc_root] ||= opts[:get_vc_root].call(opts)
+  end
+
+
+  desc "Displays the current VC change id"
+  task :vc_id do 
+    puts vc_id
+  end
+
+  def vc_id(opts = nil)
+    opts ||= VC_OPTS
+    opts = opts.dup
+    opts[:vc_id] ||= opts[:get_vc_id].call(opts)
   end
 
 
@@ -81,7 +93,7 @@ begin
 
     # Get the current dst rev.
     # e.g.: `svn update`.chomp
-    opts[:vc_id] = opts[:get_vc_id].call(opts)
+    vc_id(opts)
     opts[:p4_m] ||= "#{opts[:name]}: from #{opts[:vc]} #{opts[:vc_id]} of #{m[:vc_root]}"
 
     # Revert any unchanged files.
