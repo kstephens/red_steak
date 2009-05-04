@@ -111,7 +111,7 @@ begin
     # Delete any files not in Manifest.
     ftd = p4_files_to_delete(opts)
     unless ftd.empty?
-      sh "p4 revert #{ftd * ' ') || true"
+      sh "p4 revert #{ftd * ' '} || true"
       sh "p4 delete #{ftd * ' '}"
     end
 
