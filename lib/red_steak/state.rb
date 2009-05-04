@@ -9,14 +9,17 @@ module RedSteak
 
     # The behavior executed upon entry to this State.
     # Can be a Symbol or a Proc.
+    # Symbol is preferred.
     attr_accessor :entry # UML
 
-    # The behavior executed when it is transitioned out of.
+    # The behavior executed when this State is transitioned out of.
     # Can be a Symbol or a Proc.
+    # Symbol is preferred.
     attr_accessor :exit # UML 
 
-    # The behavior executed when it is transitioned into.
+    # The behavior executed when this State is transitioned into.
     # Can be a Symbol or a Proc.
+    # Symbol is preferred.
     attr_accessor :doActivity # UML
 
     # This state's submachine, or nil.
@@ -54,6 +57,7 @@ module RedSteak
     def state
       @submachine ? @submachine.state : NamedArray::EMPTY
     end
+    alias :substate :state
 
 
     # Adds a Pseudostate to this State.

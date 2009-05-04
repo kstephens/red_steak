@@ -9,7 +9,8 @@ module RedSteak
     # The State this Transition moves from.
     attr_accessor :source # UML
 
-    # The State this Transition move to.
+    # The State this Transition moves to.
+    # This may be the same as the source State.
     attr_accessor :target # UML
 
     # A list of Triggers (Symbols) that can trigger this Transtion.
@@ -17,10 +18,14 @@ module RedSteak
 
     # A guard, if defined allows or prevents Transition from being queued or selected.
     # Can be a Symbol or a Proc.
+    # If Symbol, it is the name of the method to call on the context.
+    # Using a Symbol is preferred.
     attr_accessor :guard # UML
     
-    # Specifies optional behavior to be performed when the Transition is executed..
+    # Specifies optional behavior to be performed when the Transition is fired.
     # Can be a Symbol or a Proc.
+    # If Symbol, it is the name of the method to call on the context.
+    # Using a Symbol is preferred.
     attr_accessor :effect # UML
 
 

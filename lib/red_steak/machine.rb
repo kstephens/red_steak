@@ -101,16 +101,17 @@ module RedSteak
     # * doActivity(machine, state, *args)
     #
     # A Transition#guard? may be queried multiple times before
-    # a Transition is executed, therefore guards should be free of side-effects.
+    # a Transition is fired, therefore guards should be free of side-effects.
     attr_accessor :context
 
     # History of all Transition executions.
     #
     # An collection of Hash objects, each containing:
-    # * :time - the Time the transition was completed.
+    # * :time - the Time the Transition was completed.
     # * :transition - the Transtion object.
-    # * :previous_state - the state before the transition.
-    # * :new_state - the state after the transition.
+    # * :previous_state - the State before the Transition.
+    # * :new_state - the State after the Transition.
+    # * :event - the #event being processed during the Transition.
     # 
     # #start! will create an initial #history entry 
     # where :transition and :previous_state is nil.
@@ -133,9 +134,10 @@ module RedSteak
     # Defaults to :debug.
     attr_accessor :log_level
 
-    # If not #in_doActivity? AND
-    # 1) If true, queueing a Transition will execute #run!.
-    # 2) If :single, queueing a Transition will execute #run!(:single).
+    # If not #in_doActivity? AND:
+    #
+    # 1. If true, queueing a Transition will automatically execute #run!.
+    # 2. If :single, queueing a Transition will automatically execute #run!(:single).
     #
     # THIS IS A BAD API IDEA AND MAY GO AWAY SOON!
     attr_accessor :auto_run
@@ -146,10 +148,17 @@ module RedSteak
     # The queue of pending Transitions.
     attr_reader :transition_queue
 
-    # The currently executing Transition.
-    attr_reader :executing_transition
+    # The Transition currently being fired.
+    attr_reader :transition
 
+    # The last Transition fired;
+    # useful during a State#doAction after the firing of Transition is complete.
+    attr_reader :last_transition
 
+    # The event currently being processed during the firing of a Transition.
+    attr_reader :event
+
+    
     def initialize opts
       @stateMachine = nil
       @state = nil
@@ -167,7 +176,8 @@ module RedSteak
       @in_doActivity = false
       @in_exit = false
       @in_run = false
-      @executing_transition = nil
+      @transition = nil
+      @event = nil
 
       super
     end
@@ -212,9 +222,10 @@ module RedSteak
 
 
     # Go to the start State.
-    # The State's entry and doActivity are executed.
-    # Any transitions in doActivity are queued;
-    # Queued transitions are fired only by #run!.
+    #
+    # The State's #entry and #doActivity are executed.
+    # Any Transitions or events during the State's #doActivity are queued;
+    # Queued Transitions are fired only by #run!.
     # #history is not cleared.
     def start! *args
       @state = nil
@@ -222,53 +233,100 @@ module RedSteak
     end
 
 
-    # Queues an event for #run_events!
+    # Queues an event for #run_events!.
+    #
+    # _event_ is an Array containing a Symbol at the beginning, 
+    # with subsequent elements representing the event's arguments.
+    #
+    # A lone Symbol is coerced to an Array as decribed above.
+    #
+    # The Array is frozen before placing it in the event queue.
+    #
+    # Returns self.
+    #
     def event! event
       case event
       when Array
-      else
+      when Symbol
         event = [ event ]
+      else
+        raise ArgumentError, "expected Array or Symbol, given #{event.class}"
       end
       event.freeze
       @event_queue << event
+      self
     end
 
 
-    # Runs events until there are no events left in the queue or #paused?
+    # Runs events until there are no events in the event queue or #paused?
     #
-    def run_events!
+    # #event is set to the event during its processing.
+    #
+    # Returns the last Transition fired.
+    #
+    # The Machine will respond to an event with different Transitions
+    # depending on the current State and the outgoing Transitions' guards 
+    # and fire the unique Transition that matches.  
+    # 
+    # The event abstracts the interaction between the context and Transtions.
+    #
+    # Transitions have 0..* Triggers (which are ruby Symbols)
+    # which match the first element of an event; an Array with a Symbol at the
+    # front representing the method selector.
+    # 
+    # An event represents a message.  A good design principal is to queue an
+    # event in the Machine at the end of a method in the context.
+    #
+    # Events are queued in the Machine with #event!(e). 
+    #
+    # #run_event! executes events until the event queue is empty or until
+    # pause! is called.
+    #
+    # Machine#run_event! takes an event from the
+    # event queue, and finds the first singular Transition that has a Trigger that
+    # matches the event *and* has a guard that evaluates as true.  
+    #
+    # The Transition is queued and #run!(:single) is evaluated.
+    # 
+    # A block given to #run_events! is passed to #run!.
+    #
+    def run_events! &blk
       transition_fired = nil
       @paused = false
-      while ! @paused && (event = @event_queue.shift) 
+      while ! @paused && (@event = @event_queue.shift) 
         _log { "event #{event.inspect}" }
-        t = transitions_matching_event(event)
+        t = transitions_matching_event(@event)
         unless t.empty?
           case t.size
           when 0
-            _log { "No transitions for event #{event.inspect}: #{t.inspect}" }
+            _log { "No transitions for event #{@event.inspect}: #{t.inspect}" }
           when 1
-            event_args = event.size > 1 ? event[1 .. -1] : EMPTY_ARRAY
+            event_args = event.size > 1 ? @event[1 .. -1] : EMPTY_ARRAY
             transition_fired = t.first
             queue_transition! transition_fired, event_args
           else
-            _log { "Too many transitions for event #{event.inspect}: #{t.inspect}" }
+            _log { "Too many transitions for event #{@event.inspect}: #{t.inspect}" }
           end
         end
 
         yield self if block_given?
 
-        # Fire transitions.
-        run!(:single)
+        # Fire the pending transition.
+        run!(:single, &blk)
       end
 
       transition_fired
+
+    ensure
+      @event = nil
     end
 
 
     # Returns the Transitions that match the event.
-    def transitions_matching_event event
+    def transitions_matching_event event, state = nil
+      state ||= @state
       event_args = event[1 .. -1]
-      @state.ancestors.each do | s |
+      state.ancestors.each do | s |
         t = s.outgoing.select do | t |
           t.matches_event?(event) &&
             t.guard?(self, event_args)
@@ -285,17 +343,17 @@ module RedSteak
     # #run! has no effect if called recursively, i.e. from a State #doActivity or Transition #effect.
     # Returns self if #run! is at the top-level, nil if a #run! is already active.
     #
-    # If _single_ is true, only one Transition is executed.
+    # If _single_ is true, only one Transition is fired.
     #
     # Behavior:
     #
     # 1. If a Transition is pending,
-    # 1.1. Execute the Transition.
+    # 1.1. Fire the Transition.
     # 1.2. Return immediately, if _single_ is true.
     # 2. While not paused and not at end:
     # 2.1. Yield to block, if given.
     # 2.2. If a Transition is pending,
-    # 2.2.1. Execute the Transition.
+    # 2.2.1. Fire the Transition.
     # 2.2.2. Return immediately, if _single_ is true.
     # 2.3. Goto 2.
     #
@@ -321,7 +379,7 @@ module RedSteak
     # In some cases a statemachine may need to be used synchronously and asynchronously 
     # during a single lifetime. 
     #
-    # The UML does not specify that a statemachine should or must *always* execute a transition 
+    # The UML does not specify that a statemachine should or must *always* fire a transition 
     # if a transition is possible.  The consequences are:
     #
     # 1) Machine#run! may not "do" anything, if no transitions were queued.
@@ -393,16 +451,10 @@ module RedSteak
     end
 
 
-    # Returns the currently executing Transition or nil.
-    def executing_transition
-      @executing_transition
-    end
-
-
     # Returns true if a Transition is executing.
     # New Transitions cannot be queued while this is true.
     def transitioning?
-      ! ! @executing_transition
+      ! ! @transition
     end
 
 
@@ -599,7 +651,7 @@ module RedSteak
       end
 
       h[:state] = (x = h[:state]) && (x.to_s)
-      h[:executing_transition] = (x = h[:executing_transition]) && (x.to_s)
+      h[:transition] = (x = h[:transition]) && (x.to_s)
       h[:transition_queue] = (x = h[:transition_queue]) && x.to_a.map { | a | a = a.dup; a[0] = a[0].to_s; a }
       history_to_s = [ :previous_state, :new_state, :transition ]
       h[:history] = (x = h[:history]) && x.map do | hh |
@@ -629,7 +681,7 @@ module RedSteak
       # _raise NotImplemented, :from_hash
       h = h.dup
       h[:state] = to_state(h[:state])
-      h[:executing_transition] = to_transition(h[:transition])
+      h[:transition] = to_transition(h[:transition])
       h[:transition_queue] = (x = h[:transition_queue]) && x.to_a.map { | a | a = a.dup; a[0] = to_transition(a[0]); a }
       h.delete(:stateMachine)
       h.delete(:history)
@@ -716,8 +768,8 @@ module RedSteak
     # This method will not cause any State#entry, State#doActivity, State#exit or Transition#effect behavior to
     # be executed "now".
     #
-    # The #run!, #process_transitions!, and #execute_transition! methods are responsible
-    # for executing the transition in the top-level #run! method.
+    # The #run!, #process_transitions!, and #fire_transition! methods are responsible
+    # for firing the transition in the top-level #run! method.
     #
     # UnexpectedRecursion is thrown if State#entry, State#exit or Transition#effect behaviors are executing.
     # TransitionPending is thrown if a Transition is already pending.
@@ -752,7 +804,7 @@ module RedSteak
     end
 
 
-    # Processes pending Transitions.
+    # Processes queued Transitions.
     #
     # Returns immediately if #at_end?
     #
@@ -760,7 +812,7 @@ module RedSteak
     # 2) until at_end?
     # 3)   yield to block, if given a block.
     # 4)   If a Transition is pending,
-    # 5)     execute it and return immediately after if _single_.
+    # 5)     fire it and return immediately after if _single_.
     # 6)   else,
     # 7)     return immediately.
     #
@@ -772,7 +824,7 @@ module RedSteak
         # This prevents already queued transitions from accidentally being blown away.
         if (x = @transition_queue.shift)
           # $stderr.puts "  #{__LINE__}"
-          execute_transition! *x
+          fire_transition! *x
           return self if single
         end
 
@@ -783,7 +835,7 @@ module RedSteak
           yield self if block_given?
           if (x = @transition_queue.shift)
             # $stderr.puts "  #{__LINE__}"
-            execute_transition! *x
+            fire_transition! *x
             break if single
           else
             break
@@ -795,22 +847,22 @@ module RedSteak
     end
 
 
-    # Executes a Transition.
+    # Fires a Transition.
     #
-    # * #executing_transition is set.
+    # * #transition is set.
     # * Transition#effect behavior is performed, while #in_effect? is true.
     # * #_goto_state(Transition#target) is performed with #record_history!.
     #
     # Note: this method already assumes that the Transition#guard? was true when
     # it was queued; guards are not checked here.
-    def execute_transition! trans, args
-      _log { "execute_transition! #{trans.inspect}" }
+    def fire_transition! trans, args
+      _log { "fire_transition! #{trans.inspect}" }
 
-      _raise RedSteak::Error::UnexpectedRecursion, :transition if @executing_transition
+      _raise RedSteak::Error::UnexpectedRecursion, :transition if @transition
 
       old_state = @state
 
-      @executing_transition = trans
+      @transition = trans
 
       # Behavior: Transition effect.
       _raise RedSteak::Error::UnexpectedRecursion, :effect if @in_effect
@@ -827,13 +879,14 @@ module RedSteak
             :previous_state => old_state, 
             :transition => trans, 
             :new_state => state,
+            :event => @event,
           }
         end
       end
 
       self
     ensure
-      @executing_transition = nil
+      @transition = nil
       @in_effect = false
     end
 
@@ -862,7 +915,7 @@ module RedSteak
     #
     # * If the Transition#target State #is_composite?, the innermost submachine's state State is the actual target.
     # * The old source State#exit behavior(s) are performed for all superstates that are to become inactive, while #in_exit? is true.
-    # * #executing_transition is unset.
+    # * #transition is unset.
     # * Transition history is logged.
     # * The new target State#entry behavior(s) are performed for all substates that are to become active,, while #in_entry? is true.
     # * The new target State#doActivity behavior is performed while #in_doActivity? is true.
@@ -913,8 +966,9 @@ module RedSteak
       end
       @in_entry = false
 
-      # Transition is no longer executing.
-      @executing_transition = nil
+      # Transition is fired.
+      @last_transition = @transition
+      @transition = nil
 
       # Behavior: doActivity.
       _raise Error::UnexpectedRecursion, :doActivity if @in_doActivity
@@ -935,7 +989,7 @@ module RedSteak
       @in_exit = false
       @in_entry = false
       @in_doActivity = false
-      @executing_transition = nil
+      @transition = nil
     end
 
 

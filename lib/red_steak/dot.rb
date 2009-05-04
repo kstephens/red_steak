@@ -186,7 +186,7 @@ module RedSteak
         options[:highlight_transitions] ||= 
           (
            x.transition_queue.map{|e| e.first} << 
-           x.executing_transition
+           x.transition
            ).compact
         render x.stateMachine
       when StateMachine
