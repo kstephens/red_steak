@@ -286,7 +286,7 @@ module RedSteak
     # event queue, and finds the first singular Transition that has a Trigger that
     # matches the event *and* has a guard that evaluates as true.  
     #
-    # The Transition is queued and #run!(:single) is evaluated.
+    # The Transition is queued and #run!(:single) is called.
     # 
     # A block given to #run_events! is passed to #run!.
     #
@@ -299,14 +299,17 @@ module RedSteak
         unless t.empty?
           case t.size
           when 0
-            _log { "No transitions for event #{@event.inspect}: #{t.inspect}" }
+            _raise UnknownTransition, "No transitions for event",
+              :event => @event
           when 1
             event_args = event.size > 1 ? @event[1 .. -1] : EMPTY_ARRAY
             transition_fired = t.first
             queue_transition! transition_fired, event_args
           else
-            _log { "Too many transitions for event #{@event.inspect}: #{t.inspect}" }
-          end
+            _raise AmbigiousTransition, "Too many transitons for event",
+              :event => @event,
+              :transitions => t
+           end
         end
 
         yield self if block_given?
