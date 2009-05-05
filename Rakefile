@@ -23,7 +23,7 @@ end
 begin
   require 'spec/rake/spectask'
  
-  SPEC_FILES = FileList['test/**/*.spec']
+  SPEC_FILES = FileList['test/**/*.spec'] + FileList['spec/**/*_spec.rb']
   SPEC_OPTS = ['--color', '--backtrace']
 
   Spec::Rake::SpecTask.new("spec") do |t|

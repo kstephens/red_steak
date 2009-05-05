@@ -22,7 +22,7 @@ module RedSteak
       # If some options are already set, merge them.
       if @options
         return @options if opts.empty?
-        @options.merge(_dup_opts(opts))
+        @options.update(_dup_opts(opts))
       else
         @options = _dup_opts opts
       end

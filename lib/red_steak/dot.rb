@@ -652,7 +652,7 @@ module RedSteak
         result = @dot_command_output = `#{cmd} 2>&1`
 
         # Fall back to plain svg renderer.
-        if result =~ /Warning: language .* not recognized, use one of:/
+        if result =~ /Warning: language .* not recognized, use one of:/ || ! File.exist?(file_svg)
           cmd = "dot -Tsvg #{file_dot.inspect} -o #{file_svg.inspect}"
           _log { "Run: #{cmd}" }
           result = @dot_command_output = `#{cmd} 2>&1`
