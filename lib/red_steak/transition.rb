@@ -67,10 +67,14 @@ module RedSteak
     end
 
 
-    # Returns true if this Transition has a #trigger that matches the event.
+    # Returns the first #trigger that matches the event.
     # Called by Machine#transitions_matching_event.
+    # Returns nil if Transitions has no triggers or none that match.
     def matches_event? event
-      @trigger.include?(event.first)
+      @trigger.each do | t |
+        return t if t === event.first
+      end
+      nil
     end
 
 
