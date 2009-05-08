@@ -347,7 +347,6 @@ module RedSteak
 
       dot_opts = {
         :label => dot_label(s),
-        :color => :black,
         :shape => :box,
         :style => "filled",
       }
@@ -374,8 +373,16 @@ module RedSteak
         if options[:show_state_sequence] 
           dot_opts[:label] += "\\n(#{sequence_to_s(sequence)})\\r"
         end
+      else
+        if options[:highlight_state_label_history]
+          dot_opts[:fontcolor] = :grey
+        end
+        if options[:highlight_state_border_history]
+          dot_opts[:color] = :grey
+        end
       end
 
+      dot_opts[:color] ||= :black
       dot_opts[:fontcolor] ||= :black
       dot_opts[:fillcolor] ||= :white
 

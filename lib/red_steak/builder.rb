@@ -469,6 +469,10 @@ module RedSteak
 
     def _log msg = nil
       case
+      when Proc === @logger
+        msg ||= yield
+        msg = "#{self.class} #{msg}"
+        @logger.call(msg)
       when ::IO === @logger
         msg ||= yield
         msg = "#{self.class} #{msg}"

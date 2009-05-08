@@ -71,14 +71,21 @@ module RedSteak
     # Called by Machine#transitions_matching_event.
     # Returns nil if Transitions has no triggers or none that match.
     def matches_event? event
-      @trigger.each do | t |
-        return t if t === event.first
+      @trigger.find do | t |
+        case t
+        when Proc
+          t.call(event)
+        when Regexp
+          t === event.first.to_s
+        else
+          t === event.first
+        end
       end
-      nil
     end
 
 
     # Called by Machine to check #guard.
+    # _args_ are the args from the Event.
     def guard? machine, args
       result = _behavior! :guard, machine, args, true
       result.nil? ? true : result
@@ -86,6 +93,7 @@ module RedSteak
 
 
     # Called by Machine to perform #effect when transition fires.
+    # _args_ are the args from the Event.
     def effect! machine, args
       _behavior! :effect, machine, args
       self
@@ -94,6 +102,23 @@ module RedSteak
 
     def inspect
       "#<#{self.class} #{@stateMachine.to_s} #{name} #{source.to_s} -> #{target.to_s}>" 
+    end
+
+
+    # Return a UML String representation.
+    def to_uml_s
+      @to_uml_s ||=
+        begin
+          x = ''
+          unless @trigger.empty?
+            x << "#{@trigger.inspect.gsub(/\A\[|\]\Z/, '')}"
+          else
+            x << "'#{to_s}'"
+          end
+          x << " [#{@guard.inspect}]" if @guard
+          x << " /#{@effect.inspect}" if @effect
+          x
+        end
     end
 
   end # class
