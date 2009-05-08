@@ -296,12 +296,14 @@ module RedSteak
 
     def _log msg = nil
       case 
+      when Proc === @logger
+        msg ||= yield
+        @logger.call(msg)
       when IO === @logger
         msg ||= yield
         @logger.puts "#{self.to_s} #{msg}"
       when defined?(::Log4r) && (Log4r::Logger === @logger)
-        msg ||= yield
-        @logger.send(log_level || :debug, msg)
+        @logger.send(log_level || :debug) { msg ||= yield }
       when (x = superstatemachine)
         x._log(msg) { yield }
       end

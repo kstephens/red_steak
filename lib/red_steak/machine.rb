@@ -118,6 +118,12 @@ module RedSteak
     #
     attr_accessor :history
 
+    # A Hash to merge into each history record.
+    # Defaults to nil.
+    # Useful for logging additional information for each transition,
+    # such as the HTTP request params for an event in a web application.
+    attr_accessor :history_data
+
     # Method called on #history to append new record.
     # Defaults to :<<, as applicable to an Array.
     attr_accessor :history_append
@@ -152,11 +158,14 @@ module RedSteak
     attr_reader :transition
 
     # The last Transition fired;
-    # useful during a State#doAction after the firing of Transition is complete.
+    # Useful during a State#doAction after the firing of Transition.
     attr_reader :last_transition
 
     # The event currently being processed during the firing of a Transition.
     attr_reader :event
+
+    # The trigger that matched the event being processed.
+    attr_reader :trigger
 
     
     def initialize opts
@@ -178,6 +187,7 @@ module RedSteak
       @in_run = false
       @transition = nil
       @event = nil
+      @trigger = nil
 
       super
     end
@@ -299,14 +309,14 @@ module RedSteak
         unless t.empty?
           case t.size
           when 0
-            _raise UnknownTransition, "No transitions for event",
+            _raise UnhandledEvent, "No transitions for event",
               :event => @event
           when 1
             event_args = event.size > 1 ? @event[1 .. -1] : EMPTY_ARRAY
-            transition_fired = t.first
+            transition_fired, @trigger = *t.first
             queue_transition! transition_fired, event_args
           else
-            _raise AmbigiousTransition, "Too many transitons for event",
+            _raise UnhandledEvent, "Too many transititons for event",
               :event => @event,
               :transitions => t
            end
@@ -322,21 +332,27 @@ module RedSteak
 
     ensure
       @event = nil
+      @trigger = nil
     end
 
 
-    # Returns the Transitions that match the event.
-    def transitions_matching_event event, state = nil
+    # Returns the Transitions and Triggers that match the event.
+    # This searches up the State#ancestors (including the current State)
+    # for a matching Transition.
+    def transitions_matching_event event, state = nil, limit = nil
       state ||= @state
       event_args = event[1 .. -1]
+      result = [ ]
       state.ancestors.each do | s |
-        t = s.outgoing.select do | t |
-          t.matches_event?(event) &&
-            t.guard?(self, event_args)
+        s.outgoing.each do | trans |
+          if (trigger = trans.matches_event?(event)) &&
+              trans.guard?(self, event_args) 
+            result << [ trans, trigger ]
+            break if limit && result.size >= limit
+          end
         end
-        return t unless t.empty?
       end
-      return EMPTY_ARRAY
+      result
     end
 
 
@@ -742,10 +758,11 @@ module RedSteak
 
 
     # Records a new #history record.
-    # Machine is the origin of the history record.
+    # #history_data is added to the history record, if not nil.
     def record_history! hash = nil
       if @history
         hash ||= yield
+        hash.update(@history_data) if @history_data
         @history.send(@history_append, hash)
       end
 
@@ -883,6 +900,7 @@ module RedSteak
             :transition => trans, 
             :new_state => state,
             :event => @event,
+            :trigger => @trigger,
           }
         end
       end
@@ -1000,6 +1018,7 @@ module RedSteak
       if cls.ancestors.include?(Error)
         opts[:message] = msg.to_s
         opts[:machine] = self
+        opts[:state] = @state
       else
         if opts.empty?
           opts = msg.to_s

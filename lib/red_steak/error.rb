@@ -3,16 +3,43 @@ require 'red_steak'
 module RedSteak
 
   # Base class for all RedSteak errors.
+  #
+  # Instances of this Error class take a Hash as first argument.
+  #
+  # Example:
+  #   
+  #   begin
+  #     raise RedSteak::Error, :message => 'some arbitrary data.', :data => [ :a, 1 ], :other_data => 'YO!'
+  #   rescue RedSteak::Error
+  #     $stderr.puts err.data.inspect
+  #     $stderr.puts err[:other_data].inspect
+  #     $stderr.puts err.inspect
+  #   end
+  #
   class Error < Exception
 
+    # The Hash passed to #initialize, after argument list processing.
     attr_reader :options
+
+    # Accessor to #options.
     def [](*args)
       @options[*args]
     end
 
-
+    # The message for this Error.
     attr_reader :message
 
+
+    # Examples:
+    #
+    #   raise Error, 'message'
+    #
+    #   raise Error, :message => 'something', :foo => data
+    #   => err[:foo] == data
+    #
+    #   raise Error, 'message', '1', '2'
+    #   => err.args == [ 1, 2 ]
+    #
     def initialize *opts
       # $stderr.puts "  opts = #{opts.inspect}"
       @options = Hash === opts[-1] ? opts.pop.dup : { }
@@ -95,8 +122,12 @@ module RedSteak
     # Transition is already pending.
     class TransitionPending < self; end
 
-    # Object failed #valid?
+    # Object failed #valid?.
     class ObjectInvalid < self; end
+
+    # Cannot process an Event.
+    # See Machine#run_events!.
+    class UnhandledEvent < self; end
   end
 
 end
