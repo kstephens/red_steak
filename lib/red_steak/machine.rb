@@ -309,16 +309,16 @@ module RedSteak
         unless t.empty?
           case t.size
           when 0
-            _raise UnhandledEvent, "No transitions for event",
+            _raise Error::UnhandledEvent, "No transitions for event",
               :event => @event
           when 1
             event_args = event.size > 1 ? @event[1 .. -1] : EMPTY_ARRAY
             transition_fired, @trigger = *t.first
             queue_transition! transition_fired, event_args
           else
-            _raise UnhandledEvent, "Too many transititons for event",
+            _raise Error::UnhandledEvent, "Too many transititons for event",
               :event => @event,
-              :transitions => t
+              :transitions => t # .map { | x | [ x[0].to_uml_s, x[1] ] }
            end
         end
 
@@ -727,14 +727,15 @@ module RedSteak
 
     def _log msg = nil
       return unless @logger
-      msg ||= yield
       case 
       when Proc === @logger
+        msg ||= yield
         @logger.call(msg)
       when ::IO === @logger
+        msg ||= yield
         @logger.puts "#{self.to_s} #{state.to_s} #{msg}"
       when defined?(::Log4r) && (Log4r::Logger === @logger)
-        @logger.send(log_level || :debug, msg)
+        @logger.send(log_level || :debug) { msg ||= yield }
       end
     end
 
@@ -878,14 +879,14 @@ module RedSteak
     def fire_transition! trans, args
       _log { "fire_transition! #{trans.inspect}" }
 
-      _raise RedSteak::Error::UnexpectedRecursion, :transition if @transition
+      _raise Error::UnexpectedRecursion, :transition if @transition
 
       old_state = @state
 
       @transition = trans
 
       # Behavior: Transition effect.
-      _raise RedSteak::Error::UnexpectedRecursion, :effect if @in_effect
+      _raise Error::UnexpectedRecursion, :effect if @in_effect
       @in_effect = true
       _log { "effect! #{trans.inspect}" }
       trans.effect!(self, args)

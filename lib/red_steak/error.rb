@@ -78,7 +78,7 @@ module RedSteak
 
     def inspect
       @inspect ||=
-        "#<#{self.class} #{@message.inspect}#{@options.keys.sort { |a, b| a.to_s <=> b.to_s }.map { | k | " #{k.inspect} => #{@options[k].inspect}" }.join('')}>".freeze
+        "#<#{self.class} #{@message.inspect}#{@options.keys.sort { |a, b| a.to_s <=> b.to_s }.map { | k | "\n  #{k.inspect} => #{@options[k].inspect}" }.join('')}>".freeze
     end
 
 
