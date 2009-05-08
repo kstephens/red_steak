@@ -92,6 +92,10 @@ module RedSteak
       "#<#{self.class} #{@stateMachine.to_s} #{name} #{source.to_s} -> #{target.to_s}>" 
     end
 
+
+    def to_uml
+    end
+
   end # class
 
 end # module
