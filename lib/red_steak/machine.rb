@@ -306,20 +306,18 @@ module RedSteak
       while ! @paused && (@event = @event_queue.shift) 
         _log { "event #{event.inspect}" }
         t = transitions_matching_event(@event)
-        unless t.empty?
-          case t.size
-          when 0
-            _raise Error::UnhandledEvent, "No transitions for event",
-              :event => @event
-          when 1
-            event_args = event.size > 1 ? @event[1 .. -1] : EMPTY_ARRAY
-            transition_fired, @trigger = *t.first
-            queue_transition! transition_fired, event_args
-          else
-            _raise Error::UnhandledEvent, "Too many transititons for event",
-              :event => @event,
-              :transitions => t # .map { | x | [ x[0].to_uml_s, x[1] ] }
-           end
+        case t.size
+        when 0
+          _raise Error::UnhandledEvent, "No transitions for event",
+          :event => @event
+        when 1
+          event_args = event.size > 1 ? @event[1 .. -1] : EMPTY_ARRAY
+          transition_fired, @trigger = *t.first
+          queue_transition! transition_fired, event_args
+        else
+          _raise Error::UnhandledEvent, "Too many transititons for event",
+          :event => @event,
+          :transitions => t # .map { | x | [ x[0].to_uml_s, x[1] ] }
         end
 
         yield self if block_given?
