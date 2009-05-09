@@ -344,7 +344,7 @@ module RedSteak
       state.ancestors.each do | s |
         s.outgoing.each do | trans |
           if (trigger = trans.matches_event?(event)) &&
-              trans.guard?(self, event_args) 
+              _guard?(trans, event_args) 
             result << [ trans, trigger ]
             break if limit && result.size >= limit
           end
@@ -544,7 +544,7 @@ module RedSteak
 
       trans = @state.outgoing.select do | t |
         t.target == state &&
-          t.guard?(self, args)
+          _guard?(t, args)
       end
 
       trans
@@ -555,7 +555,7 @@ module RedSteak
     # where Transition#guard? is true.
     def valid_transitions *args
       @state.outgoing.select do | t |
-        t.guard?(self, args)
+        _guard?(t, args)
       end
     end
 
@@ -621,7 +621,7 @@ module RedSteak
 
         _log { "transition! #{name.inspect}" }
         
-        trans = nil unless @state === trans.source && trans.guard?(self, args)
+        trans = nil unless @state === trans.source && _guard?(trans, args)
       else
         name = trans
         name = name.to_sym unless Symbol === name
@@ -632,7 +632,7 @@ module RedSteak
         trans = @state.outgoing.select do | t |
           # $stderr.puts "  testing t = #{t.inspect}"
           t === name &&
-          t.guard?(self, args)
+          _guard?(t, args)
         end
 
         if trans.size > 1
@@ -776,7 +776,16 @@ module RedSteak
     end
 
 
+    ##################################################################
+    # PRIVATE
+    #
+
     private
+
+    def _guard? t, args
+      _log { "guard? #{t.inspect} => #{t.guard.inspect}" }
+      t.guard?(self, args)
+    end
 
     # Queues a Transition for execution.
     #
@@ -886,7 +895,7 @@ module RedSteak
       # Behavior: Transition effect.
       _raise Error::UnexpectedRecursion, :effect if @in_effect
       @in_effect = true
-      _log { "effect! #{trans.inspect}" }
+      _log { "effect! #{trans.inspect} => #{trans.effect.inspect}" }
       trans.effect!(self, args)
       @in_effect = false
 
@@ -960,7 +969,7 @@ module RedSteak
       if old_state && old_state != state
         (from - to).each do | s |
           if ! trans || trans.kind != :internal
-            _log { "exit! #{s.inspect}" }
+            _log { "exit! #{s.inspect} => #{s.exit.inspect}" }
             s.exit!(self, args)
           end
         end
@@ -979,7 +988,7 @@ module RedSteak
       if old_state != state
         (to - from).reverse.each do | s | 
           if ! trans || trans.kind != :internal
-            _log { "entry! #{s.inspect}" }
+            _log { "entry! #{s.inspect} => #{s.entry.inspect}" }
             s.entry!(self, args)
           end
         end

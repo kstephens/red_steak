@@ -89,7 +89,7 @@ module RedSteak
 
 
     def method_missing sel, *args
-      if args.size == 0 && @options.key?(sel = sel.to_sym)
+      if args.empty? && @options.key?(sel = sel.to_sym) && ! block_given?
         @options[sel]
       else
         super

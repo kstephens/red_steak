@@ -478,8 +478,7 @@ module RedSteak
         msg = "#{self.class} #{msg}"
         @logger.puts msg
       when defined?(::Log4r) && (Log4r::Logger === @logger)
-        msg ||= yield
-        @logger.send(@log_level || :debug, msg)
+        @logger.send(@log_level || :debug) { "#{self.class} #{msg ||= yield}" }
       end
     end
 
