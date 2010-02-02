@@ -198,7 +198,7 @@ describe 'RedSteak::Machine#event!' do
     m = sm.machine
     m.context = t
     t.m = m
-    m.logger = lambda { | msg | $stderr.puts "m #{msg}" }
+    m.logger = lambda { | msg | $stderr.puts "  m #{msg}" }
     m.history = [ ]
     render_graph(m)
 
