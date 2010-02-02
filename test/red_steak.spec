@@ -1,8 +1,10 @@
 # -*- ruby -*-
 
-$: << 'lib'
+$: << File.dirname(__FILE__) + '../lib'
 
 require 'red_steak'
+require 'fileutils' # FileUtils.mkdir_p
+
 
 describe RedSteak do
   
@@ -288,6 +290,7 @@ describe RedSteak do
   # Render graph.
   def render_graph sm, opts = { }
     opts[:dir] ||= File.expand_path(File.dirname(__FILE__) + '/../doc/example')
+    FileUtils.mkdir_p(opts[:dir])
     opts[:name_prefix] = 'red_steak-'
     opts[:highlight_state_history] = true
     opts[:highlight_transition_history] = true

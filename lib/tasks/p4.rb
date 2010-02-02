@@ -45,7 +45,7 @@ begin
     puts vc_root(VC_OPTS.dup)
   end
 
-  def vc_root(opts = nil)
+  def vc_root(opts)
     opts[:vc_root] ||= opts[:get_vc_root].call(opts)
   end
 
@@ -68,7 +68,15 @@ begin
   def p4_files(opts)
     p4_root = `p4 files Rakefile`.chomp.sub(%r{/Rakefile#.*$}, '')
     pp p4_root
-    opts[:p4_files] ||= `p4 files ...`.gsub(/#.*$/, '').gsub(%r{^#{p4_root}/}, '').split("\n").sort
+    opts[:p4_files] ||= 
+      `p4 files ...`.
+      gsub(%r{^#{p4_root}/}, '').
+      split("\n").
+      reject{|x| x =~/- delete change /}.
+      join("\n").
+      gsub(/#.*$/, '').
+      split("\n").
+      sort
   end
 
   desc "Display files that should be deleted from p4 based on Manifest"
@@ -90,8 +98,10 @@ begin
     opts[:vc_root] ||= opts[:get_vc_root].call(opts)
     opts[:manifest] ||= 'Manifest'
 
-    # Open everything for edit.
+    # Open everything for edit, sync it and resolve the local p4 diffs.
     sh "p4 edit ..."
+    sh "p4 sync ..."
+    sh "p4 resolve -as ..."
 
     # Get latest Manifest.
     # e.g.: sh "svn update"
@@ -100,8 +110,10 @@ begin
     # Delete any files not in Manifest.
     ftd = p4_files_to_delete(opts)
     unless ftd.empty?
-      sh "p4 revert #{ftd * ' '} || true"
+      sh "p4 revert #{ftd * ' '}"
       sh "p4 delete #{ftd * ' '}"
+      dm = "Deleted from #{opts[:vc_root]}"
+      sh "p4 submit -d #{dm.inspect} #{ftd * ' '}"
     end
 
     # Add any new files in Manifest.

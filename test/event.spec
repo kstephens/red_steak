@@ -1,10 +1,12 @@
 # -*- ruby -*-
 
-$: << 'lib'
+$: << File.dirname(__FILE__) + '../lib'
 
 require 'red_steak'
 require 'ostruct'
+require 'fileutils' # FileUtils.mkdir_p
 require 'pp'
+
 
 describe 'RedSteak::Machine#event!' do
 
@@ -191,6 +193,8 @@ RUBY
 
   def render_graph sm, opts = { }
     opts[:dir] ||= File.expand_path(File.dirname(__FILE__) + '/../doc/example')
+    FileUtils.mkdir_p(opts[:dir])
+
     opts[:name_prefix] = 'red_steak-'
     @graph_id ||= 0
     opts[:name_suffix] = "-%02d" % (@graph_id += 1)
@@ -206,6 +210,8 @@ RUBY
     opts[:show_do] = true
 
     RedSteak::Dot.new.render_graph(sm, opts)
+  rescue RedSteak::Error => err
+    raise err unless err.to_s =~ /dot command failed/ # Old versions of dot might SEGV!
     # pp sm.history
   end
 
