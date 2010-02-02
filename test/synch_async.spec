@@ -11,7 +11,7 @@ describe "RedSteak Synchronous/Asynchronous Interactions" do
   def sm name = nil
     @sm ||=
       RedSteak::Builder.new.build do
-        statemachine (name or raise 'no name') do
+        statemachine(name || (raise 'no name')) do
           initial :start
           final :final
         

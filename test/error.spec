@@ -43,7 +43,7 @@ describe 'RedSteak::Error' do
     e.options[:message].should == nil
     e.options[:foo].should == :bar
     e.message.should == "message"
-    e.inspect.should == "#<RedSteak::Error \"message\" :foo => :bar>" 
+    e.inspect.should == "#<RedSteak::Error \"message\"\n  :foo => :bar>" 
   end
 
 

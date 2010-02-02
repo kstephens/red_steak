@@ -259,17 +259,29 @@ module RedSteak
       raise ArgumentError, "target state not given" unless opts[:target]
       
       opts[:statemachine] = @context[:statemachine]
-      @transitions << {
+
+      x = {
         :block => blk,
         :owner => _owner,
         :opts => opts,
+        :caller => caller(1).first,
       }
+      
+      if (xn = x[:opts][:name]) && @transitions.any? { | x2 | (x2n = x2[:opts][:name]) && x2n == xn }
+        raise Error, 
+          :message => 'Ambigous Transition Name',
+          :data => x,
+          :others => @transitions
+      end
+
+      @transitions << x
       
       self
     end
     
 
     private
+
 
     def _with_context name, val
       current_save = @current
@@ -406,7 +418,7 @@ module RedSteak
 
       _log { "  #{opts.inspect}" }
        
-      t = _find_transition opts
+      t = _find_transition opts, owner
 
       _with_context :transition, t do        
         instance_eval &blk if blk
@@ -415,26 +427,40 @@ module RedSteak
 
 
     # Locates a transition by name or creates a new object.
-    def _find_transition opts
+    def _find_transition opts, owner
       raise ArgumentError, "opts expected Hash" unless Hash === opts
 
       opts[:source] = _find_state opts[:source]
       opts[:target] = _find_state opts[:target]
-      opts[:name] ||= "#{opts[:source].to_s}->#{opts[:target].to_s}".to_sym
 
+      # Attempt to construct a unique Transition name.
+      unless opts[:name] 
+        name = "#{opts[:source].to_s}->#{opts[:target].to_s}".to_sym
+        i = 1
+        while @transitions.any?{ | t | t[:opts][:name] == name }
+          name = "#{opts[:source].to_s}->#{opts[:target].to_s}-#{i += 1}".to_sym
+          # $stderr.puts "  #{__LINE__} #{name.inspect}"
+        end
+        opts[:name] = name
+      end
+
+      # Try to locate an existing transition by name.
       t = opts[:statemachine].transitions.find do | x |
         opts[:name] == x.name
       end
       
-      unless t
-        # opts[:statemachine] ||= @context[:statemachine]
+      # If found just update it's options.
+      # Otherwise create a new one.
+      if t
+        # $stderr.puts "   * UPDATING #{t.inspect}"
+        raise 'unexpected statemachine' unless opts[:statemachine] == t.statemachine
+        raise 'unexpected source' unless opts[:source] == t.source
+        raise 'unexpected target' unless opts[:target] == t.target
+        opts.delete(:name)
+        t.options = opts
+      else
         t = Transition.new opts
         opts[:statemachine].add_transition! t
-      else
-        if t
-          opts.delete(:name)
-          t.options = opts
-        end
       end
       
       t
@@ -443,13 +469,16 @@ module RedSteak
 
     def _log msg = nil
       case
+      when Proc === @logger
+        msg ||= yield
+        msg = "#{self.class} #{msg}"
+        @logger.call(msg)
       when ::IO === @logger
         msg ||= yield
         msg = "#{self.class} #{msg}"
         @logger.puts msg
       when defined?(::Log4r) && (Log4r::Logger === @logger)
-        msg ||= yield
-        @logger.send(@log_level || :debug, msg)
+        @logger.send(@log_level || :debug) { "#{self.class} #{msg ||= yield}" }
       end
     end
 

@@ -423,7 +423,7 @@ describe RedSteak do
       err[:transitions].should == nil
       err[:state].should == m.state
       err.state.should == m.state
-      err.inspect.should == "#<RedSteak::Error::UnknownTransition \"transition_to_next_state!\" :machine => #<RedSteak::Machine :test [:end]> :state => #<RedSteak::State test end>>"
+      err.inspect.should == "#<RedSteak::Error::UnknownTransition \"transition_to_next_state!\"\n  :machine => #<RedSteak::Machine :test [:end]>\n  :state => #<RedSteak::State test end>>"
     end
 
     m.history.map { |h| h[:previous_state].to_s }.should ==

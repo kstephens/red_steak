@@ -63,9 +63,22 @@ module RedSteak
         end
 
         if force_send
-          # $stderr.puts "  _behavior! #{self.inspect} #{action.inspect} #{machine.inspect}\n    => #{c}.send(#{behavior.inspect}, #{machine}, #{self.inspect}, *#{args.inspect})"
-
-          return c.send(behavior, machine, self, *args)
+          meth_arity = c.method(behavior).arity rescue args.size + 2
+          case 
+          when meth_arity == 0
+            args = EMPTY_ARRAY
+          when meth_arity < 0
+            args = args.dup # args might be frozen.
+            args.unshift self
+            args.unshift machine
+          else
+            args = args.dup # args might be frozen.
+            args.unshift self
+            args.unshift machine
+            args = [0 ... meth_arity]
+          end
+          # $stderr.puts "  _behavior! #{self.inspect} #{action.inspect} #{machine.inspect}\n    => #{c}.send(#{behavior.inspect}, *#{args.inspect})"
+          return c.send(behavior, *args)
         end
       end
       default_value

@@ -118,6 +118,12 @@ module RedSteak
     #
     attr_accessor :history
 
+    # A Hash to merge into each history record.
+    # Defaults to nil.
+    # Useful for logging additional information for each transition,
+    # such as the HTTP request params for an event in a web application.
+    attr_accessor :history_data
+
     # Method called on #history to append new record.
     # Defaults to :<<, as applicable to an Array.
     attr_accessor :history_append
@@ -152,11 +158,14 @@ module RedSteak
     attr_reader :transition
 
     # The last Transition fired;
-    # useful during a State#doAction after the firing of Transition is complete.
+    # Useful during a State#doAction after the firing of Transition.
     attr_reader :last_transition
 
     # The event currently being processed during the firing of a Transition.
     attr_reader :event
+
+    # The trigger that matched the event being processed.
+    attr_reader :trigger
 
     
     def initialize opts
@@ -178,6 +187,7 @@ module RedSteak
       @in_run = false
       @transition = nil
       @event = nil
+      @trigger = nil
 
       super
     end
@@ -296,20 +306,18 @@ module RedSteak
       while ! @paused && (@event = @event_queue.shift) 
         _log { "event #{event.inspect}" }
         t = transitions_matching_event(@event)
-        unless t.empty?
-          case t.size
-          when 0
-            _raise UnknownTransition, "No transitions for event",
-              :event => @event
-          when 1
-            event_args = event.size > 1 ? @event[1 .. -1] : EMPTY_ARRAY
-            transition_fired = t.first
-            queue_transition! transition_fired, event_args
-          else
-            _raise AmbigiousTransition, "Too many transitons for event",
-              :event => @event,
-              :transitions => t
-           end
+        case t.size
+        when 0
+          _raise Error::UnhandledEvent, "No transitions for event",
+          :event => @event
+        when 1
+          event_args = event.size > 1 ? @event[1 .. -1] : EMPTY_ARRAY
+          transition_fired, @trigger = *t.first
+          queue_transition! transition_fired, event_args
+        else
+          _raise Error::UnhandledEvent, "Too many transititons for event",
+          :event => @event,
+          :transitions => t # .map { | x | [ x[0].to_uml_s, x[1] ] }
         end
 
         yield self if block_given?
@@ -322,21 +330,27 @@ module RedSteak
 
     ensure
       @event = nil
+      @trigger = nil
     end
 
 
-    # Returns the Transitions that match the event.
-    def transitions_matching_event event, state = nil
+    # Returns the Transitions and Triggers that match the event.
+    # This searches up the State#ancestors (including the current State)
+    # for a matching Transition.
+    def transitions_matching_event event, state = nil, limit = nil
       state ||= @state
       event_args = event[1 .. -1]
+      result = [ ]
       state.ancestors.each do | s |
-        t = s.outgoing.select do | t |
-          t.matches_event?(event) &&
-            t.guard?(self, event_args)
+        s.outgoing.each do | trans |
+          if (trigger = trans.matches_event?(event)) &&
+              _guard?(trans, event_args) 
+            result << [ trans, trigger ]
+            break if limit && result.size >= limit
+          end
         end
-        return t unless t.empty?
       end
-      return EMPTY_ARRAY
+      result
     end
 
 
@@ -530,7 +544,7 @@ module RedSteak
 
       trans = @state.outgoing.select do | t |
         t.target == state &&
-          t.guard?(self, args)
+          _guard?(t, args)
       end
 
       trans
@@ -541,7 +555,7 @@ module RedSteak
     # where Transition#guard? is true.
     def valid_transitions *args
       @state.outgoing.select do | t |
-        t.guard?(self, args)
+        _guard?(t, args)
       end
     end
 
@@ -607,7 +621,7 @@ module RedSteak
 
         _log { "transition! #{name.inspect}" }
         
-        trans = nil unless @state === trans.source && trans.guard?(self, args)
+        trans = nil unless @state === trans.source && _guard?(trans, args)
       else
         name = trans
         name = name.to_sym unless Symbol === name
@@ -618,7 +632,7 @@ module RedSteak
         trans = @state.outgoing.select do | t |
           # $stderr.puts "  testing t = #{t.inspect}"
           t === name &&
-          t.guard?(self, args)
+          _guard?(t, args)
         end
 
         if trans.size > 1
@@ -711,14 +725,15 @@ module RedSteak
 
     def _log msg = nil
       return unless @logger
-      msg ||= yield
       case 
       when Proc === @logger
+        msg ||= yield
         @logger.call(msg)
       when ::IO === @logger
+        msg ||= yield
         @logger.puts "#{self.to_s} #{state.to_s} #{msg}"
       when defined?(::Log4r) && (Log4r::Logger === @logger)
-        @logger.send(log_level || :debug, msg)
+        @logger.send(log_level || :debug) { msg ||= yield }
       end
     end
 
@@ -742,10 +757,11 @@ module RedSteak
 
 
     # Records a new #history record.
-    # Machine is the origin of the history record.
+    # #history_data is added to the history record, if not nil.
     def record_history! hash = nil
       if @history
         hash ||= yield
+        hash.update(@history_data) if @history_data
         @history.send(@history_append, hash)
       end
 
@@ -760,7 +776,16 @@ module RedSteak
     end
 
 
+    ##################################################################
+    # PRIVATE
+    #
+
     private
+
+    def _guard? t, args
+      _log { "guard? #{t.inspect} => #{t.guard.inspect}" }
+      t.guard?(self, args)
+    end
 
     # Queues a Transition for execution.
     #
@@ -861,16 +886,16 @@ module RedSteak
     def fire_transition! trans, args
       _log { "fire_transition! #{trans.inspect}" }
 
-      _raise RedSteak::Error::UnexpectedRecursion, :transition if @transition
+      _raise Error::UnexpectedRecursion, :transition if @transition
 
       old_state = @state
 
       @transition = trans
 
       # Behavior: Transition effect.
-      _raise RedSteak::Error::UnexpectedRecursion, :effect if @in_effect
+      _raise Error::UnexpectedRecursion, :effect if @in_effect
       @in_effect = true
-      _log { "effect! #{trans.inspect}" }
+      _log { "effect! #{trans.inspect} => #{trans.effect.inspect}" }
       trans.effect!(self, args)
       @in_effect = false
 
@@ -883,6 +908,7 @@ module RedSteak
             :transition => trans, 
             :new_state => state,
             :event => @event,
+            :trigger => @trigger,
           }
         end
       end
@@ -943,7 +969,7 @@ module RedSteak
       if old_state && old_state != state
         (from - to).each do | s |
           if ! trans || trans.kind != :internal
-            _log { "exit! #{s.inspect}" }
+            _log { "exit! #{s.inspect} => #{s.exit.inspect}" }
             s.exit!(self, args)
           end
         end
@@ -962,7 +988,7 @@ module RedSteak
       if old_state != state
         (to - from).reverse.each do | s | 
           if ! trans || trans.kind != :internal
-            _log { "entry! #{s.inspect}" }
+            _log { "entry! #{s.inspect} => #{s.entry.inspect}" }
             s.entry!(self, args)
           end
         end
@@ -1000,6 +1026,7 @@ module RedSteak
       if cls.ancestors.include?(Error)
         opts[:message] = msg.to_s
         opts[:machine] = self
+        opts[:state] = @state
       else
         if opts.empty?
           opts = msg.to_s

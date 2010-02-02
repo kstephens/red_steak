@@ -26,6 +26,10 @@ describe 'RedSteak::Machine#event!' do
       @number = ""
     end
 
+    ########################################
+    # dialed digit management.
+    #
+
     def prefix number = self.number
       case number
       when /^0/
@@ -45,22 +49,45 @@ describe 'RedSteak::Machine#event!' do
       prefix.first
     end
 
-    def valid *args
+    def valid 
       p = prefix number
       p[0] != nil && p[1] == number.size
     end 
 
-    def incomplete *args
+    def incomplete 
       ! valid && ! invalid
     end
 
-    def invalid *args
+    def invalid 
       ! (number =~ /^\d+$/)
     end
+
+
+    ########################################
+    # Methods that generate events.
+    #
 
     def dial_digit n
       @number << n
       @m.event! [ :dial_digit, n ]
+    end
+
+    [
+     :after_timeout,
+     :lift_reciever,
+     :connected,
+     :busy,
+     :callee_answers,
+     :callee_hangs_up,
+     :caller_hangs_up,
+     :terminate,
+    ].each do | meth |
+      class_eval <<"RUBY", __FILE__, __LINE__
+def #{meth}
+  $stderr.puts "#{name} #{meth}()"
+  @m.event! [ #{meth.inspect} ]
+end
+RUBY
     end
 
 
@@ -109,9 +136,6 @@ describe 'RedSteak::Machine#event!' do
                 :guard => :incomplete
               transition :time_out,
                 :trigger => :after_timeout
-              transition :dialing,
-                :trigger => :dial_digit,
-                :guard => :incomplete
               transition :connecting,
                 :trigger => :dial_digit,
                 :guard => :valid,
@@ -192,6 +216,7 @@ describe 'RedSteak::Machine#event!' do
   attr_accessor :t
 
   it 'transitions using transition_if_valid!' do
+  begin
     self.t = Telephone.new
     t.name = "t"
     sm = t.sm
@@ -229,11 +254,15 @@ describe 'RedSteak::Machine#event!' do
       when Array
         t.send(*event)
       else
-        m.event! event
+        t.send(event)
       end
       m.run_events!
       render_graph(m)
     end
+  rescue Exception => err
+    $stderr.puts "UNEXPECTED ERROR: #{err.inspect}"
+    raise err
+  end
   end
 
 end # describe

@@ -104,6 +104,7 @@ module RedSteak
         x.name.to_s
 
       when State
+        dot_opts = dot_opts_for(x, options.dup) # YUCK
         label = x.name.to_s
 
         # Put the State#entry,#exit and #doActivity in the label.
@@ -113,7 +114,7 @@ module RedSteak
          [ :show_exit,  :exit,       'exit / %s' ],
          [ :show_do,    :doActivity, 'do / %s' ],
         ].each do | (opt, sel, fmt) |
-          if options[opt]
+          if dot_opts[opt]
             case b = x.send(sel)
             when nil
               # NOTHING
@@ -122,7 +123,7 @@ module RedSteak
             else
               b = '...'
             end
-            if b
+            if b && fmt
               unless once
                 label += " \n"
               else
@@ -139,14 +140,21 @@ module RedSteak
       # See UML Spec 2.1 superstructure p. 574:
       #   trigger [ ',' trigger ]* [ '[' guard ']' ]? [ '/' effect ]?
       when Transition
-        label = x.trigger.empty? ? "'#{x.name.to_s}'" : x.trigger.join(', ')
+        dot_opts = dot_opts_for(x, options.dup)
+        dot_opts[:show_name] = true if x.trigger.empty?
+        dot_opts[:show_trigger] = true unless dot_opts[:show_name]
+        # pp x, dot_opts
+
+        label = ''
         
         # Put the Transition#guard and #effect in the label.
         [ 
-         [ :show_guard,  :guard,  '[%s]' ],
-         [ :show_effect, :effect, '/%s' ],
+         [ :show_name,    :name,    '"%s"' ],
+         [ :show_trigger, :trigger, x.trigger.empty? ? nil : x.trigger.join(', ') ],
+         [ :show_guard,   :guard,  '[%s]' ],
+         [ :show_effect,  :effect, '/%s' ],
         ].each do | (opt, sel, fmt) |
-          if options[opt]
+          if dot_opts[opt]
             case b = x.send(sel)
             when nil
               # NOTHING
@@ -155,8 +163,9 @@ module RedSteak
             else
               b = '...'
             end
-            if b
-              label += " \n" + (fmt % b)
+            if b && fmt
+              label += " \n" unless label.empty?
+              label += (fmt % b.to_s)
             end
           end
         end
@@ -207,6 +216,15 @@ module RedSteak
         options[:show_transition_sequence] = true
         options[:highlight_state_history] = true
         options[:highlight_transition_history] = true
+      end
+      if options[:show_all]
+        options[:show_entry] =
+          options[:show_do] =
+          options[:show_exit] =
+          options[:show_effect] =
+          options[:show_guard] =
+          options[:show_trigger] =
+          true
       end
 
       # Map deprecated options.
@@ -329,7 +347,6 @@ module RedSteak
 
       dot_opts = {
         :label => dot_label(s),
-        :color => :black,
         :shape => :box,
         :style => "filled",
       }
@@ -356,8 +373,16 @@ module RedSteak
         if options[:show_state_sequence] 
           dot_opts[:label] += "\\n(#{sequence_to_s(sequence)})\\r"
         end
+      else
+        if options[:highlight_state_label_history]
+          dot_opts[:fontcolor] = :grey
+        end
+        if options[:highlight_state_border_history]
+          dot_opts[:color] = :grey
+        end
       end
 
+      dot_opts[:color] ||= :black
       dot_opts[:fontcolor] ||= :black
       dot_opts[:fillcolor] ||= :white
 
@@ -576,6 +601,10 @@ module RedSteak
     #     The base filename to use.  Defaults to the name of
     #     StateMachine object.
     #
+    # General Options:
+    #   :show_all
+    #     Same as :show_entry, :show_exit, :show_do, :show_trigger, :show_effect
+    #
     # History options:
     #
     #   :show_history
@@ -596,6 +625,7 @@ module RedSteak
     #   :show_transition_sequence
     #   :show_guard
     #   :show_effect
+    #   :show_trigger
     #   :highlight_transitions
     #     An enumeration of Transitions to highlight.
     #
@@ -608,7 +638,9 @@ module RedSteak
     #     The *.svg file.
     #     Defaults to "#{file_dot}.svg"
     #
-    def render_graph(machine, opts={})
+    def render_graph(machine, opts = nil)
+      opts ||= self.options
+
       case machine
       when RedSteak::Machine
         sm = machine.statemachine
@@ -634,6 +666,7 @@ module RedSteak
       # Write the dot file.
       File.open(file_dot, 'w') do | fh |
         opts[:stream] = fh
+        # Why are we creating a new instance!?!?
         RedSteak::Dot.new(opts).render(machine)
       end
       opts[:stream] = nil
@@ -652,7 +685,7 @@ module RedSteak
         result = @dot_command_output = `#{cmd} 2>&1`
 
         # Fall back to plain svg renderer.
-        if result =~ /Warning: language .* not recognized, use one of:/
+        if result =~ /Warning: language .* not recognized, use one of:/ || ! File.exist?(file_svg)
           cmd = "dot -Tsvg #{file_dot.inspect} -o #{file_svg.inspect}"
           _log { "Run: #{cmd}" }
           result = @dot_command_output = `#{cmd} 2>&1`
