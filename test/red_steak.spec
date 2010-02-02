@@ -329,9 +329,9 @@ describe RedSteak do
     c._transition.should == nil
     c._guard.should == [ ]
     c._effect.should == [ ]
-    c._entry.should == [ [ "a" ] ]
+    c._entry.should == [ [ "a", nil ] ]
     c._exit.should == [ ]
-    c._doActivity.should == [ [ "a" ] ]
+    c._doActivity.should == [ [ "a", nil ] ]
     m.history.size.should == 1
 
     m.guard?.should == true
@@ -570,7 +570,7 @@ describe RedSteak do
     m.auto_run = true
     c = m.context
  
-    m.start! :foo, :bar
+    m.start! [ :foo, :bar ]
     m.at_start?.should == true
     m.at_end?.should == false
 

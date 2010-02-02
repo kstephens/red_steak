@@ -91,14 +91,14 @@ module RedSteak
     #
     # Transition behaviors:
     #
-    # * guard(machine, trans, *args)
-    # * effect(machine, trans, *args)
+    # * guard(machine, trans, event = nil)
+    # * effect(machine, trans, event = nil)
     #
     # State behaviors:
     #
-    # * entry(machine, state, *args)
-    # * exit(machine, state, *args)
-    # * doActivity(machine, state, *args)
+    # * entry(machine, state, event = nil)
+    # * exit(machine, state, event = nil)
+    # * doActivity(machine, state, event = nil)
     #
     # A Transition#guard? may be queried multiple times before
     # a Transition is fired, therefore guards should be free of side-effects.
@@ -231,36 +231,60 @@ module RedSteak
     end
 
 
+    def _coerce_event args
+      case
+      when Event == args
+        args
+      when args.nil?
+        args
+      when args.empty?
+        nil
+      when Event === args.first
+        args.first
+      when args.size == 2 && Symbol === args.first && Hash === args[1]
+        Event.new(*args)
+      when args.size >= 2 && Symbol === args.first && ! Hash === args[1]
+        Event.new(args.first, :args => args[2 .. -1])
+      else
+        raise ArgumentError, "invalid event #{args.inspect}"
+      end
+    end
+
+
     # Go to the start State.
     #
     # The State's #entry and #doActivity are executed.
     # Any Transitions or events during the State's #doActivity are queued;
     # Queued Transitions are fired only by #run!.
     # #history is not cleared.
-    def start! *args
+    def start! *event
       @state = nil
-      goto_state! @stateMachine.start_state, args
+      goto_state! @stateMachine.start_state, _coerce_event(event)
     end
 
 
     # Queues an event for #run_events!.
     #
-    # _event_ is an Array containing a Symbol at the beginning, 
-    # with subsequent elements representing the event's arguments.
+    # A lone Symbol name is coerced to an Event as Event.new(name).
     #
-    # A lone Symbol is coerced to an Array as decribed above.
+    # An Array [ name, args ... ] is coerced as Event.new(name, :args => args).
     #
-    # The Array is frozen before placing it in the event queue.
+    # The Event is frozen before placing it in the event queue.
     #
     # Returns self.
     #
     def event! event
       case event
+      when Event
+        # NOTHING
       when Array
+        event = event.dup
+        name = event.shift
+        event = Event.new(name, :args => event)
       when Symbol
-        event = [ event ]
+        event = Event.new(event)
       else
-        raise ArgumentError, "expected Array or Symbol, given #{event.class}"
+        raise ArgumentError, "expected Event, Array or Symbol, given #{event.class}"
       end
       event.freeze
       @event_queue << event
@@ -311,9 +335,8 @@ module RedSteak
           _raise Error::UnhandledEvent, "No transitions for event",
           :event => @event
         when 1
-          event_args = event.size > 1 ? @event[1 .. -1] : EMPTY_ARRAY
           transition_fired, @trigger = *t.first
-          queue_transition! transition_fired, event_args
+          queue_transition! transition_fired, event
         else
           _raise Error::UnhandledEvent, "Too many transititons for event",
           :event => @event,
@@ -339,12 +362,11 @@ module RedSteak
     # for a matching Transition.
     def transitions_matching_event event, state = nil, limit = nil
       state ||= @state
-      event_args = event[1 .. -1]
       result = [ ]
       state.ancestors.each do | s |
         s.outgoing.each do | trans |
           if (trigger = trans.matches_event?(event)) &&
-              _guard?(trans, event_args) 
+              _guard?(trans, event) 
             result << [ trans, trigger ]
             break if limit && result.size >= limit
           end
@@ -524,27 +546,27 @@ module RedSteak
 
     # Returns true if a Transition is possible from the active #state.
     # Queries the Transition#guard.
-    def guard? *args
-      valid_transitions(*args).size > 0
+    def guard? *event
+      valid_transitions(*event).size > 0
     end
 
 
     # Returns true if a non-ambigious direct Transition is possible from the active #state
     # to the given State.
     # Uses #transitions_to.
-    def can_transition_to? state, *args
-      transitions_to(state, *args).size == 1
+    def can_transition_to? state, *event
+      transitions_to(state, *event).size == 1
     end
 
 
     # Returns an Enumeration of valid Transitions from active
     # #state to the specified State where Transition#guard? is true.
-    def transitions_to state, *args
+    def transitions_to state, *event
       state = to_state(state)
 
       trans = @state.outgoing.select do | t |
         t.target == state &&
-          _guard?(t, args)
+          _guard?(t, *event)
       end
 
       trans
@@ -553,9 +575,9 @@ module RedSteak
 
     # Returns an Enumeration of valid Transitions from the active State
     # where Transition#guard? is true.
-    def valid_transitions *args
+    def valid_transitions *event
       @state.outgoing.select do | t |
-        _guard?(t, args)
+        _guard?(t, *event)
       end
     end
 
@@ -566,8 +588,8 @@ module RedSteak
     # #transition#guard? is true:
     # raise an Error::AmbiguousTransition or Error::UnknownTransition error if _raise_error_ is true,
     # or return nil.
-    def transition_to_next_state!(raise_error = true, *args)
-      trans = valid_transitions(*args)
+    def transition_to_next_state!(raise_error = true, *event)
+      trans = valid_transitions(event)
       
       if trans.size > 1
         _raise Error::AmbiguousTransition, :transition_to_next_state!, :transitions => trans if raise_error
@@ -577,23 +599,25 @@ module RedSteak
         return nil
       end
 
-      queue_transition! trans.first, args
+      queue_transition! trans.first, *event
     end
 
 
     # Queues Transition from active #state to another State.
     # This requires that there is not more than one valid Transition
     # from one State to another.
-    def transition_to! state, *args
+    def transition_to! state, *event
       state = to_state(state)
       
-      trans = transitions_to(state, *args)
+      event = _coerce_event event
+
+      trans = transitions_to(state, event)
       
       case trans.size
       when 0
         _raise Error::UnknownTransition, :transition_to!, :state => state
       when 1
-        queue_transition!(trans.first, args)
+        queue_transition!(trans.first, event)
       else
         _raise Error::AmbiguousTransition, :transition_to!, :transitions => trans
       end
@@ -602,10 +626,11 @@ module RedSteak
 
     # Queues a non-ambiguious Transition (see #valid_transitions).
     # Returns the Transition queued or nil if no Transition was queued.
-    def transition_if_valid! *args
-      trans = valid_transitions *args
+    def transition_if_valid! *event
+      event = _coerce_event event
+      trans = valid_transitions event
       trans = trans.size == 1 ? trans.first : nil
-      queue_transition!(trans, args) if trans
+      queue_transition!(trans, event) if trans
       trans
     end
 
@@ -615,13 +640,14 @@ module RedSteak
     # _trans_ can be a Transition object or a name pattern.
     #
     # The Transition#guard? must be true.
-    def transition! trans, *args
+    def transition! trans, *event
+      event = _coerce_event event
       if Transition === trans
         name = trans.name
 
         _log { "transition! #{name.inspect}" }
         
-        trans = nil unless @state === trans.source && _guard?(trans, args)
+        trans = nil unless @state === trans.source && _guard?(trans, event)
       else
         name = trans
         name = name.to_sym unless Symbol === name
@@ -632,7 +658,7 @@ module RedSteak
         trans = @state.outgoing.select do | t |
           # $stderr.puts "  testing t = #{t.inspect}"
           t === name &&
-          _guard?(t, args)
+          _guard?(t, event)
         end
 
         if trans.size > 1
@@ -643,7 +669,7 @@ module RedSteak
       end
 
       if trans
-        queue_transition!(trans, args)
+        queue_transition!(trans, event)
       else
         _raise Error::CannotTransition, :transition!, :transition_name => name
       end
@@ -924,9 +950,9 @@ module RedSteak
     #
     # Calls #_goto_state!, clears #history and records initial #history record.
     #
-    def goto_state! state, args
+    def goto_state! state, event
       _log { "goto_state! #{state.inspect}" }
-      _goto_state! state, nil, args do
+      _goto_state! state, nil, event do
         clear_history!
         record_history! do 
           {
@@ -949,7 +975,7 @@ module RedSteak
     # * The new target State#entry behavior(s) are performed for all substates that are to become active,, while #in_entry? is true.
     # * The new target State#doActivity behavior is performed while #in_doActivity? is true.
     #
-    def _goto_state! state, trans, args
+    def _goto_state! state, trans, event
       old_state = @state
 
       # If the state has a submachine,
@@ -970,7 +996,7 @@ module RedSteak
         (from - to).each do | s |
           if ! trans || trans.kind != :internal
             _log { "exit! #{s.inspect} => #{s.exit.inspect}" }
-            s.exit!(self, args)
+            s.exit!(self, event)
           end
         end
       end
@@ -989,7 +1015,7 @@ module RedSteak
         (to - from).reverse.each do | s | 
           if ! trans || trans.kind != :internal
             _log { "entry! #{s.inspect} => #{s.entry.inspect}" }
-            s.entry!(self, args)
+            s.entry!(self, event)
           end
         end
       end
@@ -1002,7 +1028,7 @@ module RedSteak
       # Behavior: doActivity.
       _raise Error::UnexpectedRecursion, :doActivity if @in_doActivity
       @in_doActivity = true
-      @state.doActivity!(self, args)
+      @state.doActivity!(self, event)
       @in_doActivity = false
 
       self

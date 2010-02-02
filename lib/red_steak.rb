@@ -43,6 +43,7 @@ require 'red_steak/final_state'
 # API
 require 'red_steak/builder'
 require 'red_steak/machine'
+require 'red_steak/event'
 
 # Rendering
 require 'red_steak/dot'

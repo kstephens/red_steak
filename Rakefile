@@ -26,7 +26,12 @@ begin
   ENV['PATH'] = "/var/lib/gems/1.8/bin:#{ENV['PATH']}"
 
   SPEC_FILES = FileList['test/**/*.spec'] + FileList['spec/**/*_spec.rb']
-  SPEC_OPTS = ['--color', '--backtrace']
+  SPEC_OPTS = ['--backtrace', '-f n']
+  if $stdout.tty? && ENV['TERM'] != 'dumb'
+    # $stderr.puts ENV['TERM']
+    SPEC_OPTS << '--color' 
+  end
+
 
   Spec::Rake::SpecTask.new("spec") do |t|
     t.spec_files = SPEC_FILES

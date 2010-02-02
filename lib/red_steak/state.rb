@@ -178,19 +178,19 @@ module RedSteak
 
 
     # Called by Machine when State is entered.
-    def entry! machine, args
-      _behavior! :entry, machine, args
+    def entry! machine, event
+      _behavior! :entry, machine, event
     end
 
 
     # Called by Machine when State is exited.
-    def exit! machine, args
-      _behavior! :exit, machine, args
+    def exit! machine, event
+      _behavior! :exit, machine, event
     end
 
     # Called by Machine when State is transitioned to.
-    def doActivity! machine, args
-      _behavior! :doActivity, machine, args
+    def doActivity! machine, event
+      _behavior! :doActivity, machine, event
     end
 
 

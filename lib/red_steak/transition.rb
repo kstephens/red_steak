@@ -76,9 +76,9 @@ module RedSteak
         when Proc
           t.call(event)
         when Regexp
-          t === event.first.to_s
+          t === event.name.to_s
         else
-          t === event.first
+          t === event.name
         end
       end
     end
