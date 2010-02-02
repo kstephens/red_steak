@@ -23,6 +23,8 @@ end
 begin
   require 'spec/rake/spectask'
  
+  ENV['PATH'] = "/var/lib/gems/1.8/bin:#{ENV['PATH']}"
+
   SPEC_FILES = FileList['test/**/*.spec'] + FileList['spec/**/*_spec.rb']
   SPEC_OPTS = ['--color', '--backtrace']
 
