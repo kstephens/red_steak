@@ -435,10 +435,10 @@ module RedSteak
 
       # Attempt to construct a unique Transition name.
       unless opts[:name] 
-        name = "#{opts[:source].to_s}->#{opts[:target].to_s}".to_sym
+        name = :"#{opts[:source]}->#{opts[:target]}"
         i = 1
         while @transitions.any?{ | t | t[:opts][:name] == name }
-          name = "#{opts[:source].to_s}->#{opts[:target].to_s}-#{i += 1}".to_sym
+          name = :"#{opts[:source]}->#{opts[:target]}-#{i += 1}"
           # $stderr.puts "  #{__LINE__} #{name.inspect}"
         end
         opts[:name] = name
