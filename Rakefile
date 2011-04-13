@@ -5,7 +5,7 @@ begin
   require 'echoe'
  
   $e = Echoe.new('redsteak', '0.1') do |p|
-    p.rubyforge_name = 'red_steak'
+    # p.rubyforge_name = 'red_steak'
     p.summary = "RedSteak - A UML 2 Statemachine for Ruby."
     p.description = ""
     p.url = "http://red-steak.rubyforge.com/"
@@ -25,7 +25,11 @@ begin
  
   ENV['PATH'] = "/var/lib/gems/1.8/bin:#{ENV['PATH']}"
 
-  SPEC_FILES = FileList['test/**/*.spec'] + FileList['spec/**/*_spec.rb']
+  def spec_files
+    @spec_files ||=
+      (f = ENV['file']) ? [ f ] : FileList['test/**/*.spec'] + FileList['spec/**/*_spec.rb']
+  end
+
   SPEC_OPTS = ['--backtrace', '-f n']
   if $stdout.tty? && ENV['TERM'] != 'dumb'
     # $stderr.puts ENV['TERM']
@@ -34,7 +38,7 @@ begin
 
 
   Spec::Rake::SpecTask.new("spec") do |t|
-    t.spec_files = SPEC_FILES
+    t.spec_files = spec_files
     t.spec_opts = SPEC_OPTS
   end
  
@@ -43,7 +47,7 @@ begin
   end
  
   Spec::Rake::SpecTask.new("rcov_spec") do |t|
-    t.spec_files = SPEC_FILES
+    t.spec_files = spec_files
     t.spec_opts = SPEC_OPTS
     t.rcov = true
     t.rcov_opts = ['--exclude', '^spec,/gems/']
