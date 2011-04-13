@@ -899,7 +899,7 @@ module RedSteak
       trans.effect!(self, args)
       @in_effect = false
 
-      # Got to the new state.
+      # Go to the new state.
       _goto_state!(trans.target, trans, args) do 
         record_history! do 
           {
@@ -986,7 +986,7 @@ module RedSteak
       _raise Error::UnexpectedRecursion, :entry if @in_entry
       @in_entry = true
       if old_state != state
-        (to - from).reverse.each do | s | 
+        (to - from).reverse_each do | s | 
           if ! trans || trans.kind != :internal
             _log { "entry! #{s.inspect} => #{s.entry.inspect}" }
             s.entry!(self, args)
