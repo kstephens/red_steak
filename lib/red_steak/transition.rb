@@ -89,7 +89,7 @@ module RedSteak
     # If :guard is not defined, the guard is effectively true.
     # If guard returns nil or false, the guard is effectively false.
     def guard? machine, args
-      result = _behavior! :guard, machine, args, true
+      _behavior! :guard, machine, args, true
     end
 
 
