@@ -136,7 +136,7 @@ RUBY
       
       c.event1
       m.run_events!
-    end.should raise_error(RedSteak::Error::UnhandledEvent, "Too many transititons for event")
+    end.should raise_error(RedSteak::Error::UnhandledEvent, "No transitions for event")
   end
 
   it 'it will error if all guards return false for multiple transitions.' do

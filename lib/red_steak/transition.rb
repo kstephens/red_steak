@@ -86,9 +86,10 @@ module RedSteak
 
     # Called by Machine to check #guard.
     # _args_ are the args from the Event.
+    # If :guard is not defined, the guard is effectively true.
+    # If guard returns nil or false, the guard is effectively false.
     def guard? machine, args
       result = _behavior! :guard, machine, args, true
-      result.nil? ? true : result
     end
 
 

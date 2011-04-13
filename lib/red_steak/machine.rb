@@ -624,7 +624,7 @@ module RedSteak
         trans = nil unless @state === trans.source && _guard?(trans, args)
       else
         name = trans
-        name = name.to_sym unless Symbol === name
+        name = name.to_sym
         
         _log { "transition! #{name.inspect}" }
         

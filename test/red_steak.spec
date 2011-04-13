@@ -2,6 +2,8 @@
 
 $: << File.dirname(__FILE__) + '../lib'
 
+#require 'rubygems'; gem 'ruby-debug'; require 'ruby-debug'
+
 require 'red_steak'
 require 'fileutils' # FileUtils.mkdir_p
 
@@ -55,7 +57,7 @@ describe RedSteak do
       @_transition = trans
       @_guard << (@_args = args)
       _log
-      nil # Ok
+      true # Ok
     end
 
     # Special Guard.
@@ -139,7 +141,7 @@ describe RedSteak do
           :name => :a_to_b,
           :guard => :a_to_b?
 	  
-	# state :q, :entry_state => :entrying_q
+	# state :q, :entry_state => :entering_q
         
         state :b
         transition :c
