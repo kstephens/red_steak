@@ -18,6 +18,7 @@ module RedSteak
     # Calls #build if a block is given.
     def initialize opts = EMPTY_HASH, &blk
       @context = { }
+      @root_statemachine = nil
       @context_stack = { }
       @previous = { }
       @logger = nil
@@ -101,6 +102,8 @@ module RedSteak
         opts[:name] = name
         sm = StateMachine.new opts
       end
+
+      @root_statemachine ||= sm
 
       # Save the result.
       @result ||= sm
@@ -262,7 +265,8 @@ module RedSteak
 
       x = {
         :block => blk,
-        :owner => _owner,
+        :owner => _owner, # use current statemachine namespace.
+        # :owner => @root_statemachine, # Use outermost namespace.
         :opts => opts,
         :caller => caller(1).first,
       }
@@ -315,6 +319,7 @@ module RedSteak
     # a new State if one is created.
     def _owner
       @context[:statemachine] ||
+        @root_statemachine ||
         (raise Exception, "statemachine is unknown")
     end
 
@@ -407,7 +412,7 @@ module RedSteak
 
     # Called after all States have been created.
     def _create_transition! t
-      owner = t[:owner]
+      owner = t[:owner] || _owner
       blk = t[:block]
       opts = t[:opts]
 
@@ -430,6 +435,8 @@ module RedSteak
     def _find_transition opts, owner
       raise ArgumentError, "opts expected Hash" unless Hash === opts
 
+      opts[:owner] ||= _owner
+      owner ||= opts[:owner]
       opts[:source] = _find_state opts[:source]
       opts[:target] = _find_state opts[:target]
 
