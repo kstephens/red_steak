@@ -1,7 +1,5 @@
 # -*- ruby -*-
 
-$: << File.dirname(__FILE__) + '../lib'
-
 require 'red_steak'
 require 'ostruct'
 require 'fileutils' # FileUtils.mkdir_p

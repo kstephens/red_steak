@@ -1,7 +1,5 @@
 # -*- ruby -*-
 
-$: << 'lib'
-
 require 'red_steak'
 require 'pp'
 

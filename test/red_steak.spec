@@ -1,7 +1,5 @@
 # -*- ruby -*-
 
-$: << File.dirname(__FILE__) + '../lib'
-
 #require 'rubygems'; gem 'ruby-debug'; require 'ruby-debug'
 
 require 'red_steak'
