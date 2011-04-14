@@ -205,6 +205,7 @@ describe RedSteak do
     sm = statemachine
 
     sm.inspect.should == "#<RedSteak::StateMachine test>"
+    sm.rootNamespace.should == sm
 
     sm.states.
       map{ | s | s.name }.
@@ -240,6 +241,9 @@ describe RedSteak do
       "#<RedSteak::State test end>"
        
     d = sm.states[:d]
+    d.submachine.should_not == nil
+    d.submachine.rootNamespace.should == d.submachine
+
     d_d1 = d.submachine.states[:d1]
     d_d1.inspect.should == 
       "#<RedSteak::State test::d d::d1>"
@@ -482,6 +486,52 @@ describe RedSteak do
     render_graph m, :show_history => true
   end
 
+
+  it 'should handle #to_state.' do
+    m = machine_with_context
+    sm = m.stateMachine
+
+    s = sm.state[:a]
+    s.should_not == nil
+    m.to_state(s).should == s
+    m.to_state(:a).should == s
+    m.to_state("a").should == s
+
+    s = sm.state[:d].submachine.state[:d1]
+    s.should_not == nil
+    m.to_state(s).should == s
+    m.to_state("d::d1").should == s
+    m.to_state(:"d::d1").should == nil
+  end
+
+  it 'should handle #to_transition' do
+    m = machine_with_context
+    sm = m.stateMachine
+
+    t = sm.transition[:'a_to_b']
+    t.should_not == nil
+    m.to_transition(t).should == t
+    m.to_transition('a_to_b').should == t
+    m.to_transition(:'a_to_b').should == t
+
+    t = sm.state[:d].submachine.transition[:'d::d1->d::d2']
+    t.should_not == nil
+    m.to_transition(t).should == t
+  end
+
+  it 'should handle #to_transition for namespaced transitions.' do
+    pending "named_array.rb falsely recognizes :: separators imbedded in transitions names."
+    m = machine_with_context
+    sm = m.stateMachine
+
+    t = sm.state[:d].submachine.transition[:'d::d1->d::d2']
+    t.should_not == nil
+    m.to_transition(t).should == t
+    m.to_transition("d::d1->d::d2").should == t
+    m.to_transition(:"d::d1->d::d2").should == nil
+
+    m.to_transition("d::d1->d2").should == nil
+  end
 
   it 'should handle submachines' do
     m = machine_with_context

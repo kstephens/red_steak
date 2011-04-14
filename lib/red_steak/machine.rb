@@ -512,7 +512,7 @@ module RedSteak
     # Symbols are looked up from #stateMachine.
     def to_transition trans
       case trans
-      when trans, nil
+      when Transition, nil
         trans
       when String
         stateMachine.rootStateMachine.transition[trans]
