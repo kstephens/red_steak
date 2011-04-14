@@ -746,6 +746,7 @@ module RedSteak
     # Clears #history.
     def clear_history!
       @history && @history.send(@history_clear)
+      self
     end
 
     
@@ -1031,7 +1032,7 @@ module RedSteak
         if opts.empty?
           opts = msg.to_s
         else
-          opts = msg.to_s + ' ' + opts.inspect
+          opts = "#{msg} #{opts.inspect}"
         end
       end
       # pp [ cls, opts ]
