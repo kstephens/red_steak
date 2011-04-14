@@ -39,6 +39,8 @@ module RedSteak
     def initialize opts
       @states = NamedArray.new([ ], :state)
       @transitions = NamedArray.new([ ])
+      @transitions.sep = nil
+
       @submachineState = nil
       @start_state = nil
       @end_state = nil
