@@ -4,10 +4,12 @@ module RedSteak
 
   # Simple Array proxy for looking up States and Transitions by name.
   class NamedArray
-    def initialize a = [ ], axis = nil, subset = nil
+    attr_accessor :sep
+    def initialize a = [ ], axis = nil, subset = nil, sep = :NOT_SPECIFIED
       @a = a
       @axis = axis
       @subset = nil
+      @sep = sep == :NOT_SPECIFIED ? SEP : sep
     end
 
 
@@ -27,7 +29,7 @@ module RedSteak
           x[pattern[1 .. -1]]
         end
       when String
-        self[pattern.split(SEP).map{|x| x.to_sym}]
+        self[pattern.split(@sep).map{|x| x.to_sym}]
       else
         to_a.find { | e | e === pattern }
       end
