@@ -12,7 +12,6 @@ module RedSteak
       @sep = sep == :NOT_SPECIFIED ? SEP : sep
     end
 
-
     def [] pattern
       case pattern
       when Integer
@@ -35,37 +34,38 @@ module RedSteak
       end
     end
 
-
     def select &blk
       self.class.new(@a.select(&blk), @axis)
     end
-
 
     def + x
       to_a + x.to_a
     end
 
-
     def - x
       to_a - x.to_a
     end
 
+    def | x
+      to_a | x.to_a
+    end
+
+    def & x
+      to_a & x.to_a
+    end
 
     def method_missing sel, *args, &blk
       to_a.send(sel, *args, &blk)
     end
-
 
     # Deepens elements through a Copier.
     def deepen_copy! copier, src
       @a = @a.map { | x | copier[x] }
     end
 
-
     def to_a
       @subset ? @a.select{|e| @subset === e} : @a
     end
-
 
     EMPTY = self.new([ ].freeze) unless defined? EMPTY
   end # class
