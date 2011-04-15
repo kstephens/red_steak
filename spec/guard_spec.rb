@@ -11,14 +11,18 @@ describe 'RedSteak::Machine guard spec' do
   # A test context for the StateMachine.
   class GuardTestContext
     attr_accessor :name, :m
-    attr_accessor :guard1, :guard2, :guard3
+    attr_accessor :_guard, :guard1, :guard2, :guard3
+    attr_accessor :guard_called
 
     def initialize
+      @guard_called = 0
     end
 
     [
      :event1,
      :event2,
+     :event3,
+     :event4,
     ].each do | meth |
       class_eval <<"RUBY", __FILE__, __LINE__
 def #{meth}
@@ -28,16 +32,19 @@ end
 RUBY
     end
 
-
-    def inspect
-      "#{self.class} #{name} state=#{@m.state.to_s}"
+    def guard
+      $stderr.puts "#{name} guard()"
+      @guard_called += 1
+      @_guard
     end
 
+    def inspect
+      "#{self.class} #{name} state=#{@m.state}"
+    end
 
     def method_missing sel, *args
       $stderr.puts "#{name} #{sel}(#{args.inspect.gsub(/^\[|\]$/, '')})"
     end
-
 
     def sm
       @sm ||=
@@ -63,10 +70,11 @@ RUBY
 
           state :state2
           transition :state3,
-            :trigger => :event2
+            :trigger => :event3
 
           state :state3
-          transition :final
+          transition :final,
+            :trigger => :event4
 
           state :final
         end
@@ -79,7 +87,7 @@ RUBY
     opts[:dir] ||= File.expand_path(File.dirname(__FILE__) + '/../doc/example')
     FileUtils.mkdir_p(opts[:dir])
 
-    opts[:name_prefix] = 'red_steak-'
+    opts[:name_prefix] = "red_steak-#{File.basename(__FILE__)}-"
     @graph_id ||= 0
     opts[:name_suffix] = "-%02d" % (@graph_id += 1)
 
@@ -167,8 +175,28 @@ RUBY
       
       c.event1
       m.run_events!
-      m.state.name.should == :state2
-    end.should_not raise_error(RedSteak::Error::UnhandledEvent, "something")
+      m.state.name.should == :state1
+    end.call
+  end
+
+  it 'it will use #guard, by default.' do
+    lambda do
+      c.guard1 = true
+      c.guard3 = true
+      c._guard = true
+
+      c.guard1.should == true
+      c.guard2.should == nil
+      c.guard3.should == true
+      
+      c.event1
+      c.event2
+      c.event3
+      c.event4
+      m.run_events!
+      c.guard_called.should == 2
+      m.state.name.should == :final
+    end.call
   end
 
 end # describe
