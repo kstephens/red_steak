@@ -33,7 +33,7 @@ describe 'RedSteak::Machine#event!' do
     def prefix number = self.number
       case number
       when /^0/
-        [ :operator, 0 ]
+        [ :operator, 1 ]
       when /^[49]11/
         [ :info, 3 ]
       when /^1[2-9]\d{9}/
