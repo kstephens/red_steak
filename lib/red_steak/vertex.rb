@@ -55,13 +55,13 @@ module RedSteak
     end
 
 
-    # Called after a Transition removed from this state.
+    # Called after a Transition removed from this Vertex.
     def transition_removed! transition
       transitions_changed!
     end
 
 
-    # Returns a list of Transitions incoming to or outgoing from this State.
+    # Returns a list of Transitions incoming to or outgoing from this Vertex.
     def transition
       @transition ||= 
         NamedArray.new(
@@ -71,7 +71,7 @@ module RedSteak
     alias :transitions :transition
 
 
-    # Returns a list of States that are immediately transitional from this one.
+    # Returns a list of Vertex objects that are immediately transitional from this one.
     def target
       @target ||=
         NamedArray.new(
@@ -82,7 +82,7 @@ module RedSteak
     alias :targets :target
 
 
-    # Returns a list of States that are immediately transitional to this one.
+    # Returns a list of Vertex that are immediately transitional to this one.
     def source
       @source ||=
         NamedArray.new(
@@ -111,7 +111,7 @@ module RedSteak
     end
 
 
-    # Returns an Array representation of this State.
+    # Returns an Array representation of this Vertex.
     # Includes superstates and substates.
     def to_a
       if ss = @stateMachine && @stateMachine.submachineState
