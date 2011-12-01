@@ -49,16 +49,16 @@ describe 'RedSteak::Machine#event!' do
       prefix.first
     end
 
-    def valid 
+    def valid?
       p = prefix number
       p[0] != nil && p[1] == number.size
-    end 
-
-    def incomplete 
-      ! valid && ! invalid
     end
 
-    def invalid 
+    def incomplete?
+      ! valid? && ! invalid?
+    end
+
+    def invalid?
       ! (number =~ /^\d+$/)
     end
 
@@ -129,16 +129,16 @@ RUBY
 
               state :time_out,
                 :do => :play_message
-              
+
               state :dialing
               transition :dialing,
                 :trigger => :dial_digit,
-                :guard => :incomplete
+                :guard => :incomplete?
               transition :time_out,
                 :trigger => :after_timeout
               transition :connecting,
                 :trigger => :dial_digit,
-                :guard => :valid,
+                :guard => :valid?,
                 :effect => :connect
               transition :invalid,
                 :trigger => :invalid
@@ -151,10 +151,10 @@ RUBY
                 :trigger => :busy
               transition :ringing,
                 :trigger => :connected
-              
+
               state :busy,
                 :do => :play_busy_tone
-              
+
               state :ringing,
                 :do => :play_ringing_tone
               transition :talking,
