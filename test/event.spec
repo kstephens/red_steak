@@ -207,8 +207,9 @@ RUBY
     opts[:show_exit] = true
     opts[:show_do] = true
 
-    RedSteak::Dot.new.render_graph(sm, opts)
+    RedSteak::Dot.new(:logger => $stderr).render_graph(sm, opts)
   rescue RedSteak::Error => err
+    $stderr.puts "ERROR:#{err.inspect}\n#{err.backtrace * "\n"}"
     raise err unless err.to_s =~ /dot command failed/ # Old versions of dot might SEGV!
     # pp sm.history
   end

@@ -683,12 +683,14 @@ module RedSteak
         cmd = "dot -Tsvg:cairo:cairo #{file_dot.inspect} -o #{file_svg.inspect}"
         _log { "Run: #{cmd}" }
         result = @dot_command_output = `#{cmd} 2>&1`
+        _log { "Result: #{result}" }
 
         # Fall back to plain svg renderer.
-        if result =~ /Warning: language .* not recognized, use one of:/ || ! File.exist?(file_svg)
+        if result =~ /Warning: language .* not recognized, use one of:|cairo: out of memory/ || ! File.exist?(file_svg)
           cmd = "dot -Tsvg #{file_dot.inspect} -o #{file_svg.inspect}"
           _log { "Run: #{cmd}" }
           result = @dot_command_output = `#{cmd} 2>&1`
+          _log { "Result: #{result}" }
         end
 
         # Check for file.
