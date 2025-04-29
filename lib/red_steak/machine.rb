@@ -626,7 +626,6 @@ module RedSteak
 
         # Find a valid outgoing transition.
         trans = @state.outgoing.select do | t |
-          # $stderr.puts "  testing t = #{t.inspect}"
           t === name &&
           _guard?(t, args)
         end
@@ -829,22 +828,15 @@ module RedSteak
     def process_transitions! single = false
       _log { "process_transitions!" }
       unless at_end?
-        # $stderr.puts "  #{__LINE__}"
-
         # This prevents already queued transitions from accidentally being blown away.
         if (x = @transition_queue.shift)
-          # $stderr.puts "  #{__LINE__}"
           fire_transition! *x
           return self if single
         end
 
-        # $stderr.puts "  #{__LINE__}"
         until @paused || at_end?
-
-          # $stderr.puts "  #{__LINE__}"
           yield self if block_given?
           if (x = @transition_queue.shift)
-            # $stderr.puts "  #{__LINE__}"
             fire_transition! *x
             break if single
           else

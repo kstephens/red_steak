@@ -48,7 +48,6 @@ module RedSteak
 
     # Returns true if X matches this Transition by name.x
     def === x
-      # $stderr.puts "#{self.inspect} === #{x.inspect}"
       case x
       when self.class
         x == self

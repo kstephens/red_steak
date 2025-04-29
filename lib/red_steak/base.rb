@@ -32,7 +32,6 @@ module RedSteak
       @options.each do | k, v |
         s = "#{k}="
         if respond_to? s
-          # $stderr.puts "#{self.class} #{self.object_id} s = #{s.inspect}, v = #{v.inspect}"
           send s, v
           @options.delete k
         end

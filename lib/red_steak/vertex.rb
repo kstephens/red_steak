@@ -31,8 +31,6 @@ module RedSteak
 
     # Clears caches of related transitions.
     def transitions_changed!
-      # $stderr.puts "  #{name.inspect} transitions_changed!"
-
       @transition =
         @target =
         @source =
@@ -49,8 +47,6 @@ module RedSteak
       if self == transition.source
         @outgoing << transition unless @outgoing.include?(transition)
       end
-
-      # $stderr.puts "transition_added! #{self.inspect} #{@incoming.inspect} #{@outgoing.inspect}"
     end
 
 
@@ -94,7 +90,6 @@ module RedSteak
 
     # Returns true if this matches x.
     def === x
-      # $stderr.puts "#{self.inspect} === #{x.inspect}"
       case x
       when self.class
         self == x

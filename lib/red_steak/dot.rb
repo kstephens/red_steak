@@ -88,7 +88,6 @@ module RedSteak
 
 
     def _dot_label x
-      # $stderr.puts "  _dot_label #{x.inspect}"
       case x
       when StateMachine
         x.name.to_s
@@ -439,18 +438,14 @@ module RedSteak
       sequence = [ ]
 
       if options[:history]
-        # $stderr.puts "\n  trans = #{t.inspect}, sm = #{t.stateMachine.inspect}"
         options[:history].each_with_index do | hist, i |
           if hist[:transition] === t
-            # $stderr.puts "  #{i} hist = #{hist.inspect}"
             sequence << i
           end
         end
       end
 
       stream.puts "\n// #{t.inspect}"
-
-      # $stderr.puts "  #{t.inspect}\n    #{options.inspect}"
 
       dot_opts = {
         :label => dot_label(t),
@@ -689,7 +684,6 @@ module RedSteak
                           :command => cmd,
                           :file => file_svg,
                           :output => @dot_command_output)
-          # $stderr.puts "Error: #{err.inspect}"
           _log { "Error: #{err.inspect}" }
           raise err
         end
@@ -716,7 +710,6 @@ module RedSteak
       if opts[:xml_header] == false || options[:xml_header] == false
         result.sub!(/\A.*?<svg /m, '<svg ')
       end
-      # puts "#{result[0..200]}..."
       result
     ensure
       tmp.unlink rescue nil

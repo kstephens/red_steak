@@ -377,12 +377,6 @@ module RedSteak
 
       _log { "  state = #{state.inspect} in #{owner.inspect}" }
 
-=begin
-      $stderr.puts "  owner = #{owner.inspect}"
-      $stderr.puts "caller = #{caller(0)[0 .. 4] * "\n  "}"
-      $stderr.puts "state = #{state.inspect}"
-=end
-
       # Create a new one, if requested.
       if create && ! state
         opts[:name] = name
@@ -436,7 +430,6 @@ module RedSteak
         i = 1
         while @transitions.any?{ | t | t[:opts][:name] == name }
           name = :"#{opts[:source]}->#{opts[:target]}-#{i += 1}"
-          # $stderr.puts "  #{__LINE__} #{name.inspect}"
         end
         opts[:name] = name
       end
@@ -449,7 +442,6 @@ module RedSteak
       # If found just update it's options.
       # Otherwise create a new one.
       if t
-        # $stderr.puts "   * UPDATING #{t.inspect}"
         raise 'unexpected statemachine' unless opts[:statemachine] == t.statemachine
         raise 'unexpected source' unless opts[:source] == t.source
         raise 'unexpected target' unless opts[:target] == t.target

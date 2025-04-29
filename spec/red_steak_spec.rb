@@ -181,12 +181,6 @@ describe RedSteak do
 
     sm = b.result
 
-=begin
-    $stderr.puts "sm = #{sm.inspect}"
-    $stderr.puts "transitions = #{sm.transitions.inspect}"
-    $stderr.puts "states = #{sm.states.inspect}"
-=end
-
     Thread.current[:statemachine] = sm
 
     sm
@@ -683,11 +677,9 @@ describe RedSteak do
 
     render_graph sm
 
-    # $stderr.puts "transitions = #{sm.transitions.inspect}"
     sm.state[:a].should == sm.state['a']
     sm.state[:b].should == sm.state['b']
     sm.state[:c].should == sm.state['c']
-
 
     sm.state[:a].source.map{|s| s.to_s}.should == [ "b::a" ]
     sm.state[:a].target.map{|s| s.to_s}.should == [ ]
@@ -745,13 +737,11 @@ describe RedSteak do
     render_graph m, :show_history => true
 
     svg_data = RedSteak::Dot.new.render_graph_svg_data(m, :show_history => true)
-    # $stderr.puts svg_data
     svg_data.should =~ /\A<\?xml/
     svg_data.should =~ /<svg /
     svg_data.should =~ /<\/svg>/
 
     svg_data = RedSteak::Dot.new.render_graph_svg_data(m, :show_history => true, :xml_header => false)
-    # $stderr.puts svg_data
     svg_data.should_not =~ /\A<\?xml/
     svg_data.should =~ /\A<svg /
     svg_data.should =~ /<\/svg>/

@@ -48,8 +48,6 @@ module RedSteak
           @stateMachine.options[action])) ||
         action
 
-      # $stderr.puts "  _behavior! #{self.inspect} #{action.inspect} #{machine.inspect}: behavior = #{behavior.inspect}"
-
       case
       when Proc === behavior
         return behavior.call(machine, self, *args)
@@ -76,7 +74,6 @@ module RedSteak
             args.unshift machine
             args = [0 ... meth_arity]
           end
-          # $stderr.puts "  _behavior! #{self.inspect} #{action.inspect} #{machine.inspect}\n    => #{c}.send(#{behavior.inspect}, *#{args.inspect})"
           return c.send(behavior, *args)
         end
       end
@@ -89,9 +86,4 @@ module RedSteak
     end
 
   end # class
-
 end # module
-
-
-###############################################################################
-# EOF

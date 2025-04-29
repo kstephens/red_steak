@@ -137,24 +137,18 @@ describe "RedSteak Synchronous/Asynchronous Interactions" do
 
 
     def top_level! expr
-      #$stderr.puts "top_level! #{expr}"
       @top_level << { :expr => expr, :machine => [ ]}
     end
 
     def machine! expr
-      #$stderr.puts "\t\tmachine! #{expr}"
       @top_level[-1][:machine] << { :expr => expr, :context => [ ]}
     end
 
     def context! expr
-      #$stderr.puts "\t\t\t\tcontext! #{expr}"
       x = @top_level[-1][:machine]
-      #$stderr.puts __LINE__, x.inspect
       x << { :expr => "", :context => [ ] } if x.empty?
       x = x[-1][:context]
-      #$stderr.puts __LINE__, x.inspect
       x << { :expr => expr }
-      #$stderr.puts __LINE__, x.inspect
     end
 
 
