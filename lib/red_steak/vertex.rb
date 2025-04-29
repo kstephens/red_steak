@@ -98,7 +98,7 @@ module RedSteak
       when String
         x.to_s === to_s
       when Regexp
-        x === to_s
+        x.match?(to_s)
       else
         false
       end
