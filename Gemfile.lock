@@ -1,0 +1,44 @@
+GEM
+  specs:
+    allison (2.0.3)
+    diff-lcs (1.6.1)
+    echoe (4.6.6)
+      allison (>= 2.0.3)
+      rake (>= 0.9.2)
+      rdoc (>= 2.5.11)
+      rubyforge (>= 2.0.4)
+    json_pure (2.8.1)
+    psych (4.0.4)
+      stringio
+    rake (13.2.1)
+    rdoc (6.4.1.1)
+      psych (>= 4.0.0)
+    rspec (3.13.0)
+      rspec-core (~> 3.13.0)
+      rspec-expectations (~> 3.13.0)
+      rspec-mocks (~> 3.13.0)
+    rspec-core (3.13.3)
+      rspec-support (~> 3.13.0)
+    rspec-expectations (3.13.3)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.13.0)
+    rspec-mocks (3.13.2)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.13.0)
+    rspec-support (3.13.2)
+    rubyforge (2.0.4)
+      json_pure (>= 1.1.7)
+    stringio (3.0.1.2)
+    webrick (1.9.1)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  echoe (= 4.6.6)
+  rake (= 13.2.1)
+  rspec (= 3.13.0)
+  webrick (= 1.9.1)
+
+BUNDLED WITH
+   2.3.27
