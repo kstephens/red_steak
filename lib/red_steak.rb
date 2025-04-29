@@ -1,3 +1,5 @@
+require_relative 'red_steak/version'
+
 # An extensible, instantiable, cloneable statemachine written in Ruby.
 #
 # Features:
@@ -46,7 +48,3 @@ require 'red_steak/machine'
 
 # Rendering
 require 'red_steak/dot'
-
-
-###############################################################################
-# EOF
