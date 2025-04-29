@@ -24,7 +24,7 @@ begin
 
   def spec_files
     @spec_files ||=
-      (f = ENV['file']) ? [ f ] : FileList['test/**/*.spec'] + FileList['spec/**/*_spec.rb']
+      (f = ENV['file']) ? [ f ] : FileList['test/**/*_spec.rb'] + FileList['spec/**/*_spec.rb']
   end
 
   SPEC_OPTS = %w[--backtrace -f progress]
