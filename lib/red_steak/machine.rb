@@ -174,8 +174,6 @@ module RedSteak
       @history = nil
       @history_append = :<<
       @history_clear = :clear
-      @logger = nil
-      @log_level = :debug
       @auto_run = false
 
       @in_effect = false
@@ -718,21 +716,6 @@ module RedSteak
 
     def inspect
       "#<#{self.class} #{@stateMachine.name.inspect} #{to_a.inspect}>"
-    end
-
-
-    def _log msg = nil
-      return unless @logger
-      case
-      when Proc === @logger
-        msg ||= yield
-        @logger.call(msg)
-      when ::IO === @logger
-        msg ||= yield
-        @logger.puts "#{self.to_s} #{state.to_s} #{msg}"
-      when defined?(::Log4r) && (Log4r::Logger === @logger)
-        @logger.send(log_level || :debug) { msg ||= yield }
-      end
     end
 
 

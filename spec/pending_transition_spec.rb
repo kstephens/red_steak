@@ -4,7 +4,7 @@ describe RedSteak do
 
   # A test context for the Statemachine.
   class RedSteak::TestContext2
-    attr_accessor :_logger
+    include RedSteak::Logging
 
     attr_reader :history
 
@@ -46,10 +46,7 @@ describe RedSteak do
     end
 
     def _log
-      case @_logger
-      when IO
-        @_logger.puts "  #{self.class}: #{caller(1).first}"
-      end
+      super(caller(1).first)
       self
     end
   end

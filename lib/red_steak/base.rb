@@ -2,6 +2,8 @@ module RedSteak
 
   # Base class for RedSteak objects.
   class Base
+    include Logging
+
     # The name of this object.
     attr_accessor :name
 

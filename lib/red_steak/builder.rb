@@ -2,17 +2,10 @@ module RedSteak
 
   # DSL for building StateMachine objects.
   class Builder
+    include Logging
+
     # The top-level StateMachine generated.
     attr_accessor :result
-
-    # The logging object.
-    # Can be a Log4r::Logger or IO object.
-    attr_accessor :logger
-
-    # Log level method Symbol if Log4r::Logger === logger.
-    # Defaults to :debug.
-    attr_accessor :log_level
-
 
     # Calls #build if a block is given.
     def initialize opts = EMPTY_HASH, &blk
@@ -20,8 +13,6 @@ module RedSteak
       @root_statemachine = nil
       @context_stack = { }
       @previous = { }
-      @logger = nil
-      @log_level = :debug
       @states = [ ]
       @transitions = [ ]
 
@@ -470,22 +461,6 @@ module RedSteak
       end
 
       t
-    end
-
-
-    def _log msg = nil
-      case
-      when Proc === @logger
-        msg ||= yield
-        msg = "#{self.class} #{msg}"
-        @logger.call(msg)
-      when ::IO === @logger
-        msg ||= yield
-        msg = "#{self.class} #{msg}"
-        @logger.puts msg
-      when defined?(::Log4r) && (Log4r::Logger === @logger)
-        @logger.send(@log_level || :debug) { "#{self.class} #{msg ||= yield}" }
-      end
     end
 
   end # class

@@ -88,11 +88,6 @@ module RedSteak
       "#<#{self.class} #{@stateMachine.to_s} #{to_s}>"
     end
 
-
-    def _log msg = nil, &blk
-      @stateMachine._log(msg, &blk)
-    end
-
   end # class
 
 end # module

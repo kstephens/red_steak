@@ -13,10 +13,6 @@ module RedSteak
   # link:example/
   #
   class Dot < Base
-    @@verbose = false
-    def self.verbose; @@verbose; end
-    def self.verbose= x; @@verbose = x; end
-
     # The root StateMachine to be rendered.
     attr_accessor :stateMachine
     alias :statemachine  :stateMachine  # not UML
@@ -34,9 +30,6 @@ module RedSteak
     # The output SVG file.
     attr_accessor :file_svg
 
-    attr_accessor :logger
-    attr_accessor :log_level
-
     attr_reader :dot_command_output
 
     def initialize opts = { }
@@ -45,8 +38,6 @@ module RedSteak
       @rendered = { }
       @dot_command_output = nil
       @dot_id = 0
-      @logger = nil
-      @log_level = :debug
       super
     end
 
@@ -733,19 +724,6 @@ module RedSteak
       File.unlink(self.file_svg) rescue nil
     end
 
-
-    def _log msg = nil
-      msg ||= yield
-      case
-      when Proc === @logger
-        @logger.call(msg)
-      when ::IO === @logger || @@verbose
-        @logger ||= $stderr
-        @logger.puts "#{self.inspect} #{@stateMachine} #{msg}"
-      when defined?(::Log4r) && (Log4r::Logger === @logger)
-        @logger.send(log_level || :debug, msg)
-      end
-    end
   end # class
 
 end # module

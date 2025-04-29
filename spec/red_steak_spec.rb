@@ -11,6 +11,8 @@ describe RedSteak do
 
   # A test context for the StateMachine.
   class RedSteak::TestContext
+    include RedSteak::Logging
+
     attr_accessor :_machine, :_args
 
     # Transition Behaviors:
@@ -104,10 +106,7 @@ describe RedSteak do
     end
 
     def _log
-      case @_logger
-      when IO
-        @_logger.puts "  #{self.class}: #{caller(1).first}"
-      end
+      super(caller(1).first)
       self
     end
   end

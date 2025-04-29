@@ -1,5 +1,3 @@
-require_relative 'red_steak/version'
-
 # An extensible, instantiable, cloneable statemachine written in Ruby.
 #
 # Features:
@@ -25,10 +23,11 @@ module RedSteak
   EMPTY_STRING = ''.freeze
 
   SEP = '::'.freeze
-
 end # module
 
 # Support
+require 'red_steak/version'
+require 'red_steak/logging'
 require 'red_steak/error'
 require 'red_steak/base'
 

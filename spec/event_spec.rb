@@ -5,12 +5,6 @@ require 'pp'
 
 describe 'RedSteak::Machine#event!' do
 
-=begin
-  before(:all) do
-    RedSteak::Dot.verbose = true
-  end
-=end
-
   # A test context for the StateMachine.
   class Telephone
     attr_accessor :name

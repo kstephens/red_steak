@@ -5,15 +5,9 @@ require 'pp'
 
 describe 'RedSteak LoanOfficer Example' do
 
-=begin
-  before(:all) do
-    RedSteak::Dot.verbose = true
-  end
-=end
-
   # A test context for the StateMachine.
   class LoanOfficer
-    attr_accessor :_logger
+    include RedSteak::Logging
 
     attr_reader :data
     attr_reader :customer
@@ -131,13 +125,10 @@ describe 'RedSteak LoanOfficer Example' do
 
 
     def _log *args
-      case @_logger
-      when IO
-        line = caller(1).first
-        line =~ /`([^']*)'/
-        method = $1 || line
-        @_logger.puts "  #{self.class}: #{method} #{args * ' '}"
-      end
+      line = caller(1).first
+      line =~ /`([^']*)'/
+      method = $1 || line
+      super("#{method} #{args * ' '}")
       self
     end
 
