@@ -1,5 +1,3 @@
-
-
 module RedSteak
 
   # Copies object graphs with referential integrity.
@@ -33,7 +31,7 @@ module RedSteak
         return xx.first
       end
 
-      # Keep a reference to x to prevent the GC from potentially 
+      # Keep a reference to x to prevent the GC from potentially
       # reusing its object_id.
       #
       # Give the new object a chance to deepen its copy.
@@ -52,7 +50,7 @@ module RedSteak
       xx.deepen_copy!(self, x) if xx.respond_to?(:deepen_copy!)
 
       # Freeze it if the original object was frozen.
-      xx.freeze if xx.respond_to?(:freeze) and x.frozen? 
+      xx.freeze if xx.respond_to?(:freeze) and x.frozen?
 
       xx
     end

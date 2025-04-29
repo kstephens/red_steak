@@ -1,7 +1,4 @@
-# -*- ruby -*-
-
 require 'red_steak/error'
-
 require 'pp'
 
 describe 'RedSteak::Error' do
@@ -12,7 +9,7 @@ describe 'RedSteak::Error' do
     e.options.keys.should == [ ]
     e.options[:message].should == nil
     e.message.should == "message"
-    e.inspect.should == "#<RedSteak::Error \"message\">" 
+    e.inspect.should == "#<RedSteak::Error \"message\">"
   end
 
 
@@ -22,7 +19,7 @@ describe 'RedSteak::Error' do
     e.options.keys.should == [ ]
     e.options[:message].should == nil
     e.message.should == "message"
-    e.inspect.should == "#<RedSteak::Error \"message\">" 
+    e.inspect.should == "#<RedSteak::Error \"message\">"
   end
 
 
@@ -32,7 +29,7 @@ describe 'RedSteak::Error' do
     e.options.keys.should == [ ]
     e.options[:message].should == nil
     e.message.should == "message"
-    e.inspect.should == "#<RedSteak::Error \"message\">" 
+    e.inspect.should == "#<RedSteak::Error \"message\">"
   end
 
   it 'should handle ("message", :foo => :bar)' do
@@ -42,10 +39,8 @@ describe 'RedSteak::Error' do
     e.options[:message].should == nil
     e.options[:foo].should == :bar
     e.message.should == "message"
-    e.inspect.should == "#<RedSteak::Error \"message\"\n  :foo => :bar>" 
+    e.inspect.should == "#<RedSteak::Error \"message\"\n  :foo => :bar>"
   end
 
 
 end # describe
-
-

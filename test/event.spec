@@ -1,10 +1,7 @@
-# -*- ruby -*-
-
 require 'red_steak'
 require 'ostruct'
 require 'fileutils' # FileUtils.mkdir_p
 require 'pp'
-
 
 describe 'RedSteak::Machine#event!' do
 
@@ -250,7 +247,7 @@ RUBY
        :caller_hangs_up,
        :terminate,
       ]
-    
+
     until m.at_end?
       $stderr.puts "t = #{t.inspect}"
       event = events.shift
@@ -271,5 +268,3 @@ RUBY
   end
 
 end # describe
-
-

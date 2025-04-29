@@ -1,4 +1,3 @@
-
 module RedSteak
 
   # A Region object.
@@ -10,9 +9,4 @@ module RedSteak
     alias :subvertex :subvertexs # UML
 
   end # class
-
 end # module
-
-
-###############################################################################
-# EOF

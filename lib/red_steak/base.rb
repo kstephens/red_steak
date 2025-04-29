@@ -1,12 +1,10 @@
-
-
 module RedSteak
 
   # Base class for RedSteak objects.
-  class Base 
+  class Base
     # The name of this object.
     attr_accessor :name
-    
+
     # Options not captured by setters.
     attr_reader :options
 
@@ -113,7 +111,7 @@ module RedSteak
     def validate errors = nil
       errors ||= [ ]
 
-      e = [ ] 
+      e = [ ]
       _validate e
 
       e.each do | msg |

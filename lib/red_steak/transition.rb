@@ -1,4 +1,3 @@
-
 module RedSteak
 
   # Represents a transition from one state to another state in a statemachine.
@@ -21,7 +20,7 @@ module RedSteak
     # If Symbol, it is the name of the method to call on the context.
     # Using a Symbol is preferred.
     attr_accessor :guard # UML
-    
+
     # Specifies optional behavior to be performed when the Transition is fired.
     # Can be a Symbol or a Proc.
     # If Symbol, it is the name of the method to call on the context.
@@ -102,7 +101,7 @@ module RedSteak
 
 
     def inspect
-      "#<#{self.class} #{@stateMachine.to_s} #{name} #{source.to_s} -> #{target.to_s}>" 
+      "#<#{self.class} #{@stateMachine.to_s} #{name} #{source.to_s} -> #{target.to_s}>"
     end
 
 
@@ -123,9 +122,4 @@ module RedSteak
     end
 
   end # class
-
 end # module
-
-
-###############################################################################
-# EOF

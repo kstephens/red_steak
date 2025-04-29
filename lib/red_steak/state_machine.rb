@@ -1,4 +1,3 @@
-
 module RedSteak
 
   # A StateMachine object.
@@ -51,7 +50,7 @@ module RedSteak
       @s = @t = nil
       super
     end
-    
+
 
     def deepen_copy! copier, src
       super
@@ -88,7 +87,7 @@ module RedSteak
     # Sets the end state.
     def end_state= x
       @end_state = x
-      if x 
+      if x
         @end_state.stateMachine = self
         @states.each do | s |
           s.state_type = nil if s.end_state?
@@ -243,7 +242,7 @@ module RedSteak
       errors
     end
 
-    
+
     # Returns the path name for this statemachine.
     def to_a
       if ss = superstate
@@ -297,7 +296,7 @@ module RedSteak
 
 
     def _log msg = nil
-      case 
+      case
       when Proc === @logger
         msg ||= yield
         @logger.call(msg)
@@ -311,11 +310,5 @@ module RedSteak
       end
     end
 
-
   end # class
-
 end # module
-
-
-###############################################################################
-# EOF

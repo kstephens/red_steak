@@ -1,4 +1,3 @@
-
 module RedSteak
 
   # A Namespace object.
@@ -12,7 +11,7 @@ module RedSteak
       @ownedMember = NamedArray.new([ ], :ownedMember)
       super
     end
-    
+
 
     def deepen_copy! copier, src
       super
@@ -61,7 +60,7 @@ module RedSteak
 
 
     def _log msg = nil
-      case 
+      case
       when IO === @logger
         msg ||= yield
         @logger.puts "#{self.self} #{msg}"
@@ -72,12 +71,5 @@ module RedSteak
         x._log(msg) { yield }
       end
     end
-
-
   end # class
-
 end # module
-
-
-###############################################################################
-# EOF

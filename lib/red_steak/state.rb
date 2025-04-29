@@ -1,4 +1,3 @@
-
 module RedSteak
 
   # A State in a StateMachine.
@@ -15,7 +14,7 @@ module RedSteak
     # The behavior executed when this State is transitioned out of.
     # Can be a Symbol or a Proc.
     # Symbol is preferred.
-    attr_accessor :exit # UML 
+    attr_accessor :exit # UML
 
     # The behavior executed when this State is transitioned into.
     # Can be a Symbol or a Proc.
@@ -49,10 +48,10 @@ module RedSteak
 
 
     def superstate
-      @stateMachine && @stateMachine.submachineState 
+      @stateMachine && @stateMachine.submachineState
     end
 
- 
+
     # Substate axis.
     def state
       @submachine ? @submachine.state : NamedArray::EMPTY
@@ -115,7 +114,7 @@ module RedSteak
       end
     end
 
-    
+
     # Returns true if this State is a substate of x.
     # All States are substates of themselves.
     def is_a_substate_of? x
@@ -258,9 +257,4 @@ module RedSteak
     end
 
   end # class
-
 end # module
-
-
-###############################################################################
-# EOF

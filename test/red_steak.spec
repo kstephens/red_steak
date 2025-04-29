@@ -1,13 +1,8 @@
-# -*- ruby -*-
-
-#require 'rubygems'; gem 'ruby-debug'; require 'ruby-debug'
-
 require 'red_steak'
 require 'fileutils' # FileUtils.mkdir_p
 
-
 describe RedSteak do
-  
+
 =begin
   before(:all) do
     RedSteak::Dot.verbose = true
@@ -34,7 +29,7 @@ describe RedSteak do
     end
 
     def clear!
-      @_machine = 
+      @_machine =
         @_args =
         @_transition =
         @_a_to_b =
@@ -44,7 +39,7 @@ describe RedSteak do
       @_effect = [ ]
       @_state = [ ]
       @_entry = [ ]
-      @_exit = [ ] 
+      @_exit = [ ]
       @_doActivity = [ ]
     end
 
@@ -125,26 +120,26 @@ describe RedSteak do
 
     b = RedSteak::Builder.new(:logger => false && $stderr)
     # breakpointer
-    
+
     b.build do
       statemachine :test, :logger => false && $stderr do
         initial :a
         final :end
-    
+
         state :a, :option_foo => :foo
         transition :a, :name => 'foo'
         transition :a, :name => 'bar'
 
-        transition :a, :b, 
+        transition :a, :b,
           :name => :a_to_b,
           :guard => :a_to_b?
-	  
+
 	# state :q, :entry_state => :entering_q
-        
+
         state :b
         transition :c
         transition :c, :name => 'c2'
-        
+
         state :c
         transition :a
         transition :c, :e, :name => :e1
@@ -157,7 +152,7 @@ describe RedSteak do
         state :f
         transition :f, :d
         transition :f, :end
-        
+
         state :d
         transition :a, :d
         transition :end
@@ -165,7 +160,7 @@ describe RedSteak do
           statemachine do
             initial :d1
             final :end
-            
+
             state :d1
             transition :d2
             transition :end
@@ -173,7 +168,7 @@ describe RedSteak do
             state :d2
             transition :d1
             transition :end
-            
+
             state :d3
             transition :d1
             transition :d2, :d3
@@ -184,7 +179,7 @@ describe RedSteak do
         end
       end
     end
-    
+
     sm = b.result
 
 =begin
@@ -197,7 +192,7 @@ describe RedSteak do
 
     sm
   end
-  
+
 
   it 'should build a statemachine' do
     sm = statemachine
@@ -208,7 +203,7 @@ describe RedSteak do
     sm.states.
       map{ | s | s.name }.
       sort { | a, b | a.to_s <=> b.to_s }.
-      should == 
+      should ==
       [
        :a, :b, :c, :d, :e, :end, :f
       ].sort { | a, b | a.to_s <=> b.to_s }
@@ -216,7 +211,7 @@ describe RedSteak do
     sm.transitions.
       map{ | t | t.name }.
       sort { | a, b | a.to_s <=> b.to_s }.
-      should == 
+      should ==
       [
         :bar, :a_to_b, :'b->c', :c2, :'c->a', :'c->end', :'a->d', :'d->end', :e1, :"f->d", :"f->end", :foo, :tran_e_1, :tran_e_2
       ].sort { | a, b | a.to_s <=> b.to_s }
@@ -235,21 +230,21 @@ describe RedSteak do
     b.options[:option_foo].should == nil
     b[:option_foo].should == b.options[:option_foo]
 
-    sm.states[:end].inspect.should == 
+    sm.states[:end].inspect.should ==
       "#<RedSteak::State test end>"
-       
+
     d = sm.states[:d]
     d.submachine.should_not == nil
     d.submachine.rootNamespace.should == d.submachine
 
     d_d1 = d.submachine.states[:d1]
-    d_d1.inspect.should == 
+    d_d1.inspect.should ==
       "#<RedSteak::State test::d d::d1>"
     d.is_a_superstate_of?(d_d1).should == true
     d_d1.is_a_superstate_of?(d).should == false
     d_d1.is_a_substate_of?(d).should == true
     d.is_a_substate_of?(d_d1).should == false
-    
+
     e = sm.states[:end]
     e.should_not == nil
     e.transitions.to_a.map{|t| t.name}.should == [ :'c->end', :'f->end', :'d->end', :'d::end->end' ]
@@ -284,7 +279,7 @@ describe RedSteak do
     if ENV['TEST_VERBOSE']
       m.logger = $stdout
     end
-      
+
     m.context = RedSteak::TestContext.new
 
     m
@@ -301,7 +296,7 @@ describe RedSteak do
     RedSteak::Dot.new.render_graph(sm, opts)
   end
 
-  
+
   it 'should generate Dot output' do
     sm = statemachine
     render_graph sm
@@ -378,7 +373,7 @@ describe RedSteak do
     m.transition! :"c->a"
     m.state.name.should == :a
     m.history.size.should == 4
-    m.state.outgoing.map{|t| t.name}.should == [ :foo, :bar, :a_to_b, :'a->d' ] 
+    m.state.outgoing.map{|t| t.name}.should == [ :foo, :bar, :a_to_b, :'a->d' ]
 
     m.transition! "foo"
     m.state.name.should == :a
@@ -468,7 +463,7 @@ describe RedSteak do
     m.history.map { |h| h[:transition].to_s }.should ==
     [
       '', # nil.to_s
-      'a_to_b', 
+      'a_to_b',
       'b->c',
       'c->a',
       'foo',
@@ -600,7 +595,7 @@ describe RedSteak do
     e.sources.map{|s| s.name}.should == [ :c, :f, :d, :end ]
 
     # Add state :f and transitions from :a and to :end.
-    sm.builder do 
+    sm.builder do
       state :f
       transition :a, :f
       transition :f, :end
@@ -619,7 +614,7 @@ describe RedSteak do
     m = machine_with_context(sm)
     m.auto_run = true
     c = m.context
- 
+
     m.start! :foo, :bar
     m.at_start?.should == true
     m.at_end?.should == false
@@ -629,7 +624,7 @@ describe RedSteak do
     c._state.name.should == :a
     c._entry.should == [ [ "a", :foo, :bar ] ]
     c._exit.should == [ ]
- 
+
     render_graph m, :show_history => true
 
     m.transition_to! :f
@@ -637,9 +632,9 @@ describe RedSteak do
 
     m.transition_to! :end
     m.state.name.should == :end
-    
+
     render_graph m, :show_history => true
-    
+
   end
 
 
@@ -650,16 +645,16 @@ describe RedSteak do
       build(:logger => logger) do
       initial :a
       final :end
-      
+
       state :a do
         submachine do
           initial :a
-          
+
           state :a # same as "a::a"
           transition [ :b ] # same as "b"
           transition :c
           transition "c"
-    
+
           state :b          # same as "a:;b"
           transition [ :c ] # same as "c"
           transition :c
@@ -672,20 +667,20 @@ describe RedSteak do
       state :b
       transition :c
       state :b do
-        submachine do 
+        submachine do
           initial :a
 
           state :a
           transition "a"
           transition "c"
           transition :b
-         
+
           state :b
           transition "a::b"
         end
       end
 
-      state :c 
+      state :c
       transition :end
     end
 
@@ -699,14 +694,14 @@ describe RedSteak do
 
     sm.state[:a].source.map{|s| s.to_s}.should == [ "b::a" ]
     sm.state[:a].target.map{|s| s.to_s}.should == [ ]
-    
+
     sm.state[:a].state.map{|s| s.to_s}.should == [ "a::a", "a::b", "a::c" ]
     sm.state["a::a"].superstate.should == sm.states["a"]
     sm.state["a::a"].should === sm.states["a"]
 
     sm.state["a::a"].target.map{|s| s.to_s}.should == [ "b", "a::c", "c" ]
     sm.state["a::a"].source.map{|s| s.to_s}.should == [ ]
-  
+
     sm.state["a::b"].target.map{|s| s.to_s}.should == [ "c", "a::c" ]
     sm.state["a::b"].source.map{|s| s.to_s}.should == [ "b::b" ]
 
@@ -743,7 +738,7 @@ describe RedSteak do
     c.clear!
     m.transition_to! "a::b"
     c._exit.should == [["b::b"], ["b"]]
-    c._entry.should == [["a"], ["a::b"]] 
+    c._entry.should == [["a"], ["a::b"]]
 
     c.clear!
     m.transition_to! "c"
@@ -764,7 +759,5 @@ describe RedSteak do
     svg_data.should =~ /\A<svg /
     svg_data.should =~ /<\/svg>/
   end
-  
+
 end # describe
-
-

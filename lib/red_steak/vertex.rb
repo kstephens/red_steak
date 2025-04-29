@@ -1,4 +1,3 @@
-
 module RedSteak
 
   # Abstract superclass for State and Pseudostate
@@ -63,9 +62,9 @@ module RedSteak
 
     # Returns a list of Transitions incoming to or outgoing from this Vertex.
     def transition
-      @transition ||= 
+      @transition ||=
         NamedArray.new(
-                       (incoming + outgoing).uniq.freeze                
+                       (incoming + outgoing).uniq.freeze
                        )
     end
     alias :transitions :transition
@@ -122,9 +121,4 @@ module RedSteak
     end
 
   end # class
-
 end # module
-
-
-###############################################################################
-# EOF

@@ -1,4 +1,3 @@
-
 module RedSteak
 
   # DSL for building StateMachine objects.
@@ -29,7 +28,7 @@ module RedSteak
       opts.each do | k, v |
         s = "#{k}="
         if respond_to?(s)
-          send(s, v) 
+          send(s, v)
           opts.delete(k)
         end
       end
@@ -57,7 +56,7 @@ module RedSteak
     #
     # Create syntax:
     #
-    #   sm = builder.build do 
+    #   sm = builder.build do
     #     statemachine :my_statemachine do
     #       start_state :a
     #       end_state   :end
@@ -78,7 +77,7 @@ module RedSteak
     #
     # Augmenting syntax:
     #
-    #   sm.builder do 
+    #   sm.builder do
     #     state :c
     #     transition :a, :c
     #     transition :c, :end
@@ -98,7 +97,7 @@ module RedSteak
         name = sm.name
       else
         name = name.to_sym unless Symbol === name
-        
+
         opts[:name] = name
         sm = StateMachine.new opts
       end
@@ -110,21 +109,21 @@ module RedSteak
 
       # Attach state to substate machine.
       if superstate
-        superstate.submachine = sm 
+        superstate.submachine = sm
         sm.superstate = superstate
       end
 
       _with_context(:state, nil) do
-        _with_context(:initial, nil) do 
+        _with_context(:initial, nil) do
           _with_context(:final, nil) do
             _with_context(:namespace, sm) do
-              _with_context(:statemachine, sm) do 
+              _with_context(:statemachine, sm) do
                 instance_eval &blk if blk
-                
+
                 # Set start, end states.
                 sm.start_state = _find_state(@context[:initial]) if @context[:initial]
                 sm.end_state   = _find_state(@context[:final])   if @context[:final]
-                
+
               end # statemachine
 
               # Outermost statemachine?
@@ -140,11 +139,11 @@ module RedSteak
           end # end_state
         end # start_state
       end # state
-      
+
       sm
     end
 
-    
+
     # Defines a submachine inside a State.
     def submachine opts = { }, &blk
       raise ArgumentError, "submachine only valid inside a state" unless State === @current
@@ -191,13 +190,13 @@ module RedSteak
     #   state :name
     #   state :name, :option_1 => 'foo'
     #   state :name do
-    #     submachine do 
+    #     submachine do
     #       state :substate_1, :do => :method_on_context, :exit => :method1
     #       state :substate_2, :entry => :method2
     #     end
     #   end
     #
-    # 
+    #
     def state name, opts = { }, &blk
       raise ArgumentError, "states must be defined within a statemachine or submachine" unless StateMachine === @current
 
@@ -209,10 +208,10 @@ module RedSteak
 
       s = _find_state opts
 
-      _with_context :namespace, s do 
-        _with_context :state, s do 
+      _with_context :namespace, s do
+        _with_context :state, s do
           if blk
-            instance_eval &blk 
+            instance_eval &blk
           end
         end
       end
@@ -238,7 +237,7 @@ module RedSteak
     #   state :a
     #   # source :a is implied on next line.
     #   # state :b is implied if not declared elsewhere
-    #   transition :b, :name => :a_to_b  
+    #   transition :b, :name => :a_to_b
     #
     def transition *args, &blk
       if Hash === args.last
@@ -246,7 +245,7 @@ module RedSteak
       else
         opts = { }
       end
-      
+
       case args.size
       when 1 # target
         opts[:source] = @previous[:state] ||
@@ -257,10 +256,10 @@ module RedSteak
       else
         raise ArgumentError, "expected (target) or (source, target)"
       end
-      
+
       raise ArgumentError, "source state not given" unless opts[:source]
       raise ArgumentError, "target state not given" unless opts[:target]
-      
+
       opts[:statemachine] = @context[:statemachine]
 
       x = {
@@ -270,50 +269,50 @@ module RedSteak
         :opts => opts,
         :caller => caller(1).first,
       }
-      
+
       if (xn = x[:opts][:name]) && @transitions.any? { | x2 | (x2n = x2[:opts][:name]) && x2n == xn }
-        raise Error, 
+        raise Error,
           :message => 'Ambigous Transition Name',
           :data => x,
           :others => @transitions
       end
 
       @transitions << x
-      
+
       self
     end
-    
+
 
     private
 
 
     def _with_context name, val
       current_save = @current
- 
+
       (@context_stack[name] ||= [ ]).push(@context[name])
-      
-      @current = 
-        @context[name] = 
+
+      @current =
+        @context[name] =
         val
-      
+
       if name == :namespace
         (@context[:namespaces] ||= [ ]).push(val)
       end
 
       yield
-      
+
     ensure
       @previous[name] = val
 
       @current = current_save
-      
+
       @context[name] = @context_stack[name].pop
 
       if name == :namespace
         (@context[:namespaces] ||= [ ]).pop
       end
     end
-   
+
 
     # Determine what object should own
     # a new State if one is created.
@@ -348,7 +347,7 @@ module RedSteak
 
       # Split Strings on "::"
       name = name.split(SEP) if String === name
- 
+
       # Determine owner.
       owner ||= _owner unless owner
       raise Exception, "Cannot determine owner for new State #{name.inspect}" unless owner
@@ -405,7 +404,7 @@ module RedSteak
           state.options = opts
         end
       end
-      
+
       state
     end
 
@@ -422,10 +421,10 @@ module RedSteak
       opts[:target] = _find_state opts[:target], :owner => owner
 
       _log { "  #{opts.inspect}" }
-       
+
       t = _find_transition opts, owner
 
-      _with_context :transition, t do        
+      _with_context :transition, t do
         instance_eval &blk if blk
       end
     end
@@ -441,7 +440,7 @@ module RedSteak
       opts[:target] = _find_state opts[:target]
 
       # Attempt to construct a unique Transition name.
-      unless opts[:name] 
+      unless opts[:name]
         name = :"#{opts[:source]}->#{opts[:target]}"
         i = 1
         while @transitions.any?{ | t | t[:opts][:name] == name }
@@ -455,7 +454,7 @@ module RedSteak
       t = opts[:statemachine].transitions.find do | x |
         opts[:name] == x.name
       end
-      
+
       # If found just update it's options.
       # Otherwise create a new one.
       if t
@@ -469,7 +468,7 @@ module RedSteak
         t = Transition.new opts
         opts[:statemachine].add_transition! t
       end
-      
+
       t
     end
 

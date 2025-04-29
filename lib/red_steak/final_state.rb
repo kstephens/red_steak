@@ -1,7 +1,6 @@
-
 module RedSteak
 
-  # 
+  #
   class FinalState < State
 
     def _validate e = [ ]

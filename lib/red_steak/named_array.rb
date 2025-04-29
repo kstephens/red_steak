@@ -1,5 +1,3 @@
-
-
 module RedSteak
 
   # Simple Array proxy for looking up States and Transitions by name.

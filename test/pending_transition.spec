@@ -1,5 +1,3 @@
-# -*- ruby -*-
-
 require 'red_steak'
 
 describe RedSteak do
@@ -59,11 +57,11 @@ describe RedSteak do
 
   def sm
     @sm ||=
-      RedSteak::StateMachine.build do 
+      RedSteak::StateMachine.build do
       statemachine :test2 do
         initial :a
         final :d
-    
+
         state :a, :do => :a
         transition :a, :name => 'foo'
         transition :a, :name => 'bar'
@@ -71,7 +69,7 @@ describe RedSteak do
 
         state :b, :do => :b
         transition :c
-        
+
         state :c, :do => :c
         transition :a, :guard => :c_to_a?
         transition :d, :guard => :c_to_d?
@@ -132,7 +130,7 @@ describe RedSteak do
        :d,
       ]
   end
-  
+
 
   it 'should not queue transition executions inside doActions, if auto_run is disabled' do
     m = sm.machine
@@ -151,7 +149,7 @@ describe RedSteak do
     m.transition_queue.size.should == 0
 
     # Nothing queued.
-    m.run! 
+    m.run!
     m.state.name.should == :b
 
     # auto_run is turned off, transition! should not auto run!
@@ -162,7 +160,7 @@ describe RedSteak do
     m.run! :single
     m.state.name.should == :c
 
-    m.run! 
+    m.run!
     m.at_end?.should == true
 
     m.context.history.should ==
@@ -181,7 +179,7 @@ describe RedSteak do
        :d,
       ]
   end
-  
+
 
   it 'should executed pending Transition before run! and execute blocks until at_end or no pending Transitions' do
     m = sm.machine
@@ -247,7 +245,5 @@ describe RedSteak do
        :d,
       ]
   end
- 
+
 end # describe
-
-

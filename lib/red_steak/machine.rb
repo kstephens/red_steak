@@ -1,5 +1,3 @@
-# require 'debug'
-
 require 'red_steak'
 
 module RedSteak
@@ -15,7 +13,7 @@ module RedSteak
   # Example:
   #
   #   sm = RedSteak::Builder.new.build do
-  #     statemachine :my_sm do 
+  #     statemachine :my_sm do
   #       initial :start
   #       final :end
   #
@@ -73,7 +71,7 @@ module RedSteak
   #   m.transition!(:'b->end')
   #   m.run!(:single)
   #   m.at_end? # => true
-  #   
+  #
   class Machine < Base
     # The StateMachine.
     attr_accessor :stateMachine # UML
@@ -112,8 +110,8 @@ module RedSteak
     # * :previous_state - the State before the Transition.
     # * :new_state - the State after the Transition.
     # * :event - the #event being processed during the Transition.
-    # 
-    # #start! will create an initial #history entry 
+    #
+    # #start! will create an initial #history entry
     # where :transition and :previous_state is nil.
     #
     attr_accessor :history
@@ -167,7 +165,7 @@ module RedSteak
     # The trigger that matched the event being processed.
     attr_reader :trigger
 
-    
+
     def initialize opts
       @stateMachine = nil
       @state = nil
@@ -191,7 +189,7 @@ module RedSteak
 
       super
     end
-    
+
 
     # Support for Copier.
     def deepen_copy! copier, src
@@ -201,7 +199,7 @@ module RedSteak
       @history = @history && @history.dup
     end
 
- 
+
     # Returns true if #start! has been called.
     def started?
       ! @state.nil?
@@ -245,7 +243,7 @@ module RedSteak
 
     # Queues an event for #run_events!.
     #
-    # _event_ is an Array containing a Symbol at the beginning, 
+    # _event_ is an Array containing a Symbol at the beginning,
     # with subsequent elements representing the event's arguments.
     #
     # A lone Symbol is coerced to an Array as decribed above.
@@ -275,35 +273,35 @@ module RedSteak
     # Returns the last Transition fired.
     #
     # The Machine will respond to an event with different Transitions
-    # depending on the current State and the outgoing Transitions' guards 
-    # and fire the unique Transition that matches.  
-    # 
+    # depending on the current State and the outgoing Transitions' guards
+    # and fire the unique Transition that matches.
+    #
     # The event abstracts the interaction between the context and Transtions.
     #
     # Transitions have 0..* Triggers (which are ruby Symbols)
     # which match the first element of an event; an Array with a Symbol at the
     # front representing the method selector.
-    # 
+    #
     # An event represents a message.  A good design principal is to queue an
     # event in the Machine at the end of a method in the context.
     #
-    # Events are queued in the Machine with #event!(e). 
+    # Events are queued in the Machine with #event!(e).
     #
     # #run_event! executes events until the event queue is empty or until
     # pause! is called.
     #
     # Machine#run_event! takes an event from the
     # event queue, and finds the first singular Transition that has a Trigger that
-    # matches the event *and* has a guard that evaluates as true.  
+    # matches the event *and* has a guard that evaluates as true.
     #
     # The Transition is queued and #run!(:single) is called.
-    # 
+    #
     # A block given to #run_events! is passed to #run!.
     #
     def run_events! &blk
       transition_fired = nil
       @paused = false
-      while ! @paused && (@event = @event_queue.shift) 
+      while ! @paused && (@event = @event_queue.shift)
         _log { "event #{event.inspect}" }
         t = transitions_matching_event(@event)
         case t.size
@@ -344,7 +342,7 @@ module RedSteak
       state.ancestors.each do | s |
         s.outgoing.each do | trans |
           if (trigger = trans.matches_event?(event)) &&
-              _guard?(trans, event_args) 
+              _guard?(trans, event_args)
             result << [ trans, trigger ]
             break if limit && result.size >= limit
           end
@@ -355,7 +353,7 @@ module RedSteak
 
 
     # Run pending transitions.
-    # 
+    #
     # Only the top-level #run! will process pending transitions,
     # #run! has no effect if called recursively, i.e. from a State #doActivity or Transition #effect.
     # Returns self if #run! is at the top-level, nil if a #run! is already active.
@@ -382,21 +380,21 @@ module RedSteak
     # 3.1. as a side-effect of the entry, doActivity, exit and effect actions (see UML 2 Superstructure for definitions),
     # 3.2. or as stimuli external to the statemachine and it's implied context object.
     #
-    # "3.1." describes what might be called a "synchronous" statemachine: 
-    # the statemachine was designed such that it should never pause for external stimulus; 
-    # there is always a unambiguous transition that is applicable until the end state is reached.  
+    # "3.1." describes what might be called a "synchronous" statemachine:
+    # the statemachine was designed such that it should never pause for external stimulus;
+    # there is always a unambiguous transition that is applicable until the end state is reached.
     # The statemachine assumes control of the application's execution thread.
     #
-    # "3.2." describes an "asynchronous" statemachine: the statemachine may pause at a state 
-    # if there is no queued transition.  
+    # "3.2." describes an "asynchronous" statemachine: the statemachine may pause at a state
+    # if there is no queued transition.
     # The statemachine must not assume control of the application's execution thread,
     # because the application interacts asynchronously with external stimulus:
     # i.e. a human user behind a web browser.
     #
-    # In some cases a statemachine may need to be used synchronously and asynchronously 
-    # during a single lifetime. 
+    # In some cases a statemachine may need to be used synchronously and asynchronously
+    # during a single lifetime.
     #
-    # The UML does not specify that a statemachine should or must *always* fire a transition 
+    # The UML does not specify that a statemachine should or must *always* fire a transition
     # if a transition is possible.  The consequences are:
     #
     # 1) Machine#run! may not "do" anything, if no transitions were queued.
@@ -505,7 +503,7 @@ module RedSteak
         stateMachine.state[state]
       end
     end
- 
+
 
     # Coerces a String or Symbol to a Transition.
     # Strings are rooted from the #rootStateMachine.
@@ -520,7 +518,7 @@ module RedSteak
         stateMachine.transition[trans]
       end
     end
- 
+
 
     # Returns true if a Transition is possible from the active #state.
     # Queries the Transition#guard.
@@ -560,15 +558,15 @@ module RedSteak
     end
 
 
-    # Find the sole Transition whose Transition#guard? is true and queue it. 
+    # Find the sole Transition whose Transition#guard? is true and queue it.
     #
-    # If all outgoing Transitions#guard? are false or more than one 
+    # If all outgoing Transitions#guard? are false or more than one
     # #transition#guard? is true:
     # raise an Error::AmbiguousTransition or Error::UnknownTransition error if _raise_error_ is true,
     # or return nil.
     def transition_to_next_state!(raise_error = true, *args)
       trans = valid_transitions(*args)
-      
+
       if trans.size > 1
         _raise Error::AmbiguousTransition, :transition_to_next_state!, :transitions => trans if raise_error
         return nil
@@ -586,9 +584,9 @@ module RedSteak
     # from one State to another.
     def transition_to! state, *args
       state = to_state(state)
-      
+
       trans = transitions_to(state, *args)
-      
+
       case trans.size
       when 0
         _raise Error::UnknownTransition, :transition_to!, :state => state
@@ -620,14 +618,14 @@ module RedSteak
         name = trans.name
 
         _log { "transition! #{name.inspect}" }
-        
+
         trans = nil unless @state === trans.source && _guard?(trans, args)
       else
         name = trans
         name = name.to_sym
-        
+
         _log { "transition! #{name.inspect}" }
-        
+
         # Find a valid outgoing transition.
         trans = @state.outgoing.select do | t |
           # $stderr.puts "  testing t = #{t.inspect}"
@@ -673,7 +671,7 @@ module RedSteak
       history_to_s = [ :previous_state, :new_state, :transition ]
       h[:history] = (x = h[:history]) && x.map do | hh |
         hh = hh.dup
-        history_to_s.each do | k |          
+        history_to_s.each do | k |
           hh[k] = (x = hh[k]) && x.to_s
         end
         hh
@@ -725,7 +723,7 @@ module RedSteak
 
     def _log msg = nil
       return unless @logger
-      case 
+      case
       when Proc === @logger
         msg ||= yield
         @logger.call(msg)
@@ -749,7 +747,7 @@ module RedSteak
       self
     end
 
-    
+
     # Prints #history on the _out_ stream.
     def show_history out = $stdout
       @history.each_with_index{|h, i| out.puts "#{i + 1}: #{h[:previous_state].to_s} -> #{h[:new_state].to_s}"}
@@ -809,9 +807,9 @@ module RedSteak
     def queue_transition! trans, args
       _log { "queue_transition! #{trans.inspect}" }
       if @in_entry || @in_exit || @in_effect
-        _raise Error::UnexpectedRecursion, :queue_transition, 
-          :in_entry => @in_entry, 
-          :in_exit => @in_exit, 
+        _raise Error::UnexpectedRecursion, :queue_transition,
+          :in_entry => @in_entry,
+          :in_exit => @in_exit,
           :in_effect => @in_effect
       end
 
@@ -901,12 +899,12 @@ module RedSteak
       @in_effect = false
 
       # Go to the new state.
-      _goto_state!(trans.target, trans, args) do 
-        record_history! do 
+      _goto_state!(trans.target, trans, args) do
+        record_history! do
           {
             :time => Time.now.gmtime,
-            :previous_state => old_state, 
-            :transition => trans, 
+            :previous_state => old_state,
+            :transition => trans,
             :new_state => state,
             :event => @event,
             :trigger => @trigger,
@@ -929,11 +927,11 @@ module RedSteak
       _log { "goto_state! #{state.inspect}" }
       _goto_state! state, nil, args do
         clear_history!
-        record_history! do 
+        record_history! do
           {
             :time => Time.now.gmtime,
-            :previous_state => nil, 
-            :transition => nil, 
+            :previous_state => nil,
+            :transition => nil,
             :new_state => @state,
           }
         end
@@ -982,12 +980,12 @@ module RedSteak
 
       # Yield to block.
       yield if block_given?
-      
+
       # Behavior: entry state.
       _raise Error::UnexpectedRecursion, :entry if @in_entry
       @in_entry = true
       if old_state != state
-        (to - from).reverse_each do | s | 
+        (to - from).reverse_each do | s |
           if ! trans || trans.kind != :internal
             _log { "entry! #{s.inspect} => #{s.entry.inspect}" }
             s.entry!(self, args)

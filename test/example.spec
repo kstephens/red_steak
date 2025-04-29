@@ -1,10 +1,7 @@
-# -*- ruby -*-
-
 require 'red_steak'
 require 'ostruct'
 require 'fileutils' # FileUtil.mkdir_p
 require 'pp'
-
 
 describe 'RedSteak LoanOfficer Example' do
 
@@ -31,10 +28,10 @@ describe 'RedSteak LoanOfficer Example' do
     end
 
     ######################################3
-    # Customer 
+    # Customer
     #
 
-    @@required_customer_data = 
+    @@required_customer_data =
       [
        :first_name,
        :last_name,
@@ -42,7 +39,7 @@ describe 'RedSteak LoanOfficer Example' do
        :email,
        :income,
        ]
-                       
+
     def do_merge_customer_data! m, state, *args
       _log
       @data.merge!(controller.params)
@@ -74,7 +71,7 @@ describe 'RedSteak LoanOfficer Example' do
     # Loan
     #
 
-    @@required_loan_data = 
+    @@required_loan_data =
       [
        :amount,
        :due_date,
@@ -103,7 +100,7 @@ describe 'RedSteak LoanOfficer Example' do
     end
 
     def start_risk_assessment! *args
-      @loan[:approved?] = 
+      @loan[:approved?] =
         @loan[:denied?] = false
     end
 
@@ -124,7 +121,7 @@ describe 'RedSteak LoanOfficer Example' do
     end
 
     def machine
-      @machine ||= 
+      @machine ||=
         begin
           m = sm.machine
           m.context = self
@@ -183,12 +180,12 @@ describe 'RedSteak LoanOfficer Example' do
             :effect => :deny_loan!
 
           state :display_contract
-          transition :loan_approved, 
+          transition :loan_approved,
             :name => :sign_contract!
-          transition :loan_unsigned, 
+          transition :loan_unsigned,
             :name => :loan_signature_timeout!
- 
- 
+
+
           state :loan_approved
           transition :complete
 
@@ -198,7 +195,7 @@ describe 'RedSteak LoanOfficer Example' do
             :name => :revise_customer_data!
           transition :loan_data,
             :name => :revise_loan_data!
- 
+
           state :loan_unsigned
           transition :complete
 
@@ -336,5 +333,3 @@ describe 'RedSteak LoanOfficer Example' do
   end
 
 end # describe
-
-

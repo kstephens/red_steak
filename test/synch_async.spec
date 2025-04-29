@@ -1,9 +1,6 @@
-# -*- ruby -*-
-
 require 'red_steak'
 require 'ostruct'
 require 'pp'
-
 
 describe "RedSteak Synchronous/Asynchronous Interactions" do
   def sm name = nil
@@ -12,21 +9,21 @@ describe "RedSteak Synchronous/Asynchronous Interactions" do
         statemachine(name || (raise 'no name')) do
           initial :start
           final :final
-        
+
           state :start
           transition :state_a
-        
+
           state :state_a
           transition :state_b
           transition :state_c
-        
+
           state :state_b
           transition :state_a
           transition :state_c
-        
+
           state :state_c
           transition :final
-        
+
           state :final
         end
       end
@@ -80,7 +77,7 @@ describe "RedSteak Synchronous/Asynchronous Interactions" do
     def _interaction! expr
       @tracker.context! expr
     end
-    
+
 
     def _exec! *args
       exec = args.pop
@@ -148,7 +145,7 @@ describe "RedSteak Synchronous/Asynchronous Interactions" do
       #$stderr.puts "\t\tmachine! #{expr}"
       @top_level[-1][:machine] << { :expr => expr, :context => [ ]}
     end
-    
+
     def context! expr
       #$stderr.puts "\t\t\t\tcontext! #{expr}"
       x = @top_level[-1][:machine]
@@ -270,6 +267,4 @@ describe "RedSteak Synchronous/Asynchronous Interactions" do
     tracker.render_text $stdout
   end
 
-
 end
-

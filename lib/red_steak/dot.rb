@@ -1,4 +1,3 @@
-
 module RedSteak
 
   # Renders a StateMachine as a Dot syntax stream.
@@ -59,7 +58,7 @@ module RedSteak
         context.each { | c | @dot_name[[ x, c ]] = r }
         r
       else
-        @dot_name[[ x, context ]] ||= 
+        @dot_name[[ x, context ]] ||=
           _dot_name(x, context)
       end
     end
@@ -109,7 +108,7 @@ module RedSteak
 
         # Put the State#entry,#exit and #doActivity in the label.
         once = false
-        [ 
+        [
          [ :show_entry, :entry,      'entry / %s' ],
          [ :show_exit,  :exit,       'exit / %s' ],
          [ :show_do,    :doActivity, 'do / %s' ],
@@ -134,7 +133,7 @@ module RedSteak
             end
           end
         end
-        
+
         label
 
       # See UML Spec 2.1 superstructure p. 574:
@@ -146,9 +145,9 @@ module RedSteak
         # pp x, dot_opts
 
         label = ''
-        
+
         # Put the Transition#guard and #effect in the label.
-        [ 
+        [
          [ :show_name,    :name,    '"%s"' ],
          [ :show_trigger, :trigger, x.trigger.empty? ? nil : x.trigger.join(', ') ],
          [ :show_guard,   :guard,  '[%s]' ],
@@ -169,9 +168,9 @@ module RedSteak
             end
           end
         end
-        
+
         # $stderr.puts "  _dot_label #{x.inspect} => #{label.inspect}"
-        
+
         label
 
       when String, Integer
@@ -188,13 +187,13 @@ module RedSteak
       case x
       when Machine
         @machine = x
-        options[:history] ||= 
+        options[:history] ||=
           x.history
-        options[:highlight_states] ||= 
+        options[:highlight_states] ||=
           [ x.state ].compact
-        options[:highlight_transitions] ||= 
+        options[:highlight_transitions] ||=
           (
-           x.transition_queue.map{|e| e.first} << 
+           x.transition_queue.map{|e| e.first} <<
            x.transition
            ).compact
         render x.stateMachine
@@ -228,7 +227,7 @@ module RedSteak
       end
 
       # Map deprecated options.
-      { 
+      {
         :show_guards => :show_guard,
         :show_effects => :show_effect,
       }.each do | k, v |
@@ -249,7 +248,7 @@ module RedSteak
       stream.puts %Q{  fontname="Verdana"; }
 =end
       stream.puts %Q{  label=#{dot_label(sm).inspect}; }
- 
+
       # stream.puts "subgraph ROOT {"
 
       start_name = dot_name(sm, :start)
@@ -258,7 +257,7 @@ module RedSteak
       stream.puts %Q{  node [ shape="circle", label="", style=filled, fillcolor=black ] #{start_name}; }
 
       sm.states.each { | s | render_State(s) }
-      
+
       render_transitions(sm)
 
       stream.puts "}"
@@ -309,10 +308,10 @@ module RedSteak
       if hide_decomposition && false
         dot_opts[:label] += "\\r    o-o"
       end
- 
+
       stream.puts "#{type} {"
       stream.puts %Q{  #{render_opts(dot_opts, ";\n  ")}}
-      
+
       yield if block_given?
 
       unless hide_decomposition
@@ -325,8 +324,8 @@ module RedSteak
 
       stream.puts "}"
       stream.puts "// } #{sm.inspect}\n"
-    end 
-    
+    end
+
 
     # Renders the State object as Dot syntax.
     def render_State s
@@ -334,9 +333,9 @@ module RedSteak
       @rendered[s] = true
 
       stream.puts "\n// #{s.inspect}"
-      
+
       sequence = [ ]
-      
+
       if options[:history]
         options[:history].each_with_index do | hist, i |
           if hist[:new_state] && s.is_a_superstate_of?(hist[:new_state])
@@ -370,7 +369,7 @@ module RedSteak
         if options[:highlight_state_history] && (s.submachine ? hide_decomposition : true)
           dot_opts[:fillcolor] = :grey
         end
-        if options[:show_state_sequence] 
+        if options[:show_state_sequence]
           dot_opts[:label] += "\\n(#{sequence_to_s(sequence)})\\r"
         end
       else
@@ -390,7 +389,7 @@ module RedSteak
       # Invert the colors to be more like UML.
       case
       when s.end_state?
-        dot_opts[:label] = "" 
+        dot_opts[:label] = ""
         dot_opts[:fillcolor], dot_opts[:fontcolor] =
           dot_opts[:fontcolor], dot_opts[:fillcolor]
       end
@@ -447,7 +446,7 @@ module RedSteak
       return unless @rendered[t.target] && @rendered[t.source]
 
       sequence = [ ]
-      
+
       if options[:history]
         # $stderr.puts "\n  trans = #{t.inspect}, sm = #{t.stateMachine.inspect}"
         options[:history].each_with_index do | hist, i |
@@ -462,7 +461,7 @@ module RedSteak
 
       # $stderr.puts "  #{t.inspect}\n    #{options.inspect}"
 
-      dot_opts = { 
+      dot_opts = {
         :label => dot_label(t),
       }
 
@@ -483,7 +482,7 @@ module RedSteak
         if options[:highlight_transition_history]
           dot_opts[:color] = :grey
           dot_opts[:fontcolor] = :grey
-        end        
+        end
       end
 
       dot_opts[:color] ||= :black
@@ -505,7 +504,7 @@ module RedSteak
       else
         t = [ ]
         s.each do | i |
-          case (r = t[-1]) 
+          case (r = t[-1])
           when nil
           when Range
             if r.last == i - 1
@@ -533,7 +532,7 @@ module RedSteak
     def dot_opts_for x, opts = nil
       opts ||= { }
 
-      kind = 
+      kind =
       case x
       when StateMachine
         :graph
@@ -592,12 +591,12 @@ module RedSteak
     #
     # Returns self.
     #
-    # File Options: 
+    # File Options:
     #
-    #   :dir  
+    #   :dir
     #     The directory to create the .dot and .dot.svg files.
     #     Defaults to '.'
-    #   :name 
+    #   :name
     #     The base filename to use.  Defaults to the name of
     #     StateMachine object.
     #
@@ -656,7 +655,7 @@ module RedSteak
         file = "#{dir}/"
         file += opts[:name_prefix].to_s
         opts[:name] ||= sm.name
-        file += opts[:name].to_s 
+        file += opts[:name].to_s
         file += opts[:name_suffix].to_s
         file += '-history' if opts[:show_history]
         file += ".dot"
@@ -695,8 +694,8 @@ module RedSteak
 
         # Check for file.
         unless File.exist?(file_svg)
-          err = Error.new(:message => 'dot command failed', 
-                          :command => cmd, 
+          err = Error.new(:message => 'dot command failed',
+                          :command => cmd,
                           :file => file_svg,
                           :output => @dot_command_output)
           # $stderr.puts "Error: #{err.inspect}"
@@ -707,7 +706,7 @@ module RedSteak
         _log { "Generated: file://#{file_svg}" }
       else
         _log { "Warning: #{cmd} failed" }
-        raise Error, :message => 'dot command not found', 
+        raise Error, :message => 'dot command not found',
           :command => cmd
       end
 
@@ -737,7 +736,7 @@ module RedSteak
 
     def _log msg = nil
       msg ||= yield
-      case 
+      case
       when Proc === @logger
         @logger.call(msg)
       when ::IO === @logger || @@verbose

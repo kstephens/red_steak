@@ -1,7 +1,4 @@
-# -*- ruby -*-
-
 require 'red_steak/copier'
-
 require 'pp'
 
 describe 'RedSteak::Copier' do
@@ -62,7 +59,7 @@ describe 'RedSteak::Copier' do
     y = '1234asdf'.freeze
     a1 = [ x, y, 1 ]
     a2 = [ x, a1, y ]
-    
+
     c[a1].should == a1
     c[a1].object_id.should_not == a1.object_id
     c[a1].object_id.should == c[a1].object_id
@@ -83,7 +80,7 @@ describe 'RedSteak::Copier' do
     y = '1234asdf'.freeze
     a1 = { :a => x, y => y, 1 => 2 }
     a2 = { x => :b, :a1 => a1, y => [1, 2, 3] }
-    
+
     c[a1].should == a1
     c[a1].object_id.should_not == a1.object_id
     c[a1].object_id.should == c[a1].object_id
@@ -100,5 +97,3 @@ describe 'RedSteak::Copier' do
   end
 
 end # describe
-
-

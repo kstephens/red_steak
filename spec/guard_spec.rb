@@ -1,10 +1,7 @@
-# -*- ruby -*-
-
 require 'red_steak'
 require 'ostruct'
 require 'fileutils' # FileUtils.mkdir_p
 require 'pp'
-
 
 describe 'RedSteak::Machine guard spec' do
 
@@ -113,22 +110,22 @@ RUBY
 
   attr_accessor :c, :m
 
-  before(:each) do 
+  before(:each) do
     begin
       self.c = GuardTestContext.new
       c.name = "t"
       sm = c.sm
       self.m = sm.machine
       m.context = c
-      
+
       c.m = m
       m.logger = lambda { | msg | $stderr.puts "  m #{msg}" }
       m.history = [ ]
       render_graph(m)
-      
+
       m.start!
       render_graph(m)
-      
+
     rescue Exception => err
       $stderr.puts "UNEXPECTED ERROR: #{err.inspect}"
       raise err
@@ -139,7 +136,7 @@ RUBY
     lambda do
       c.guard1.should == nil
       c.guard2.should == nil
-      
+
       c.event1
       m.run_events!
     end.should raise_error(RedSteak::Error::UnhandledEvent, "No transitions for event")
@@ -150,7 +147,7 @@ RUBY
       c.guard1 = c.guard2 = false
       c.guard1.should == false
       c.guard2.should == false
-      
+
       c.event1
       m.run_events!
     end.should raise_error(RedSteak::Error::UnhandledEvent, "No transitions for event")
@@ -161,7 +158,7 @@ RUBY
       c.guard1 = c.guard2 = true
       c.guard1.should == true
       c.guard2.should == true
-      
+
       c.event1
       m.run_events!
     end.should raise_error(RedSteak::Error::UnhandledEvent, "Too many transititons for event")
@@ -172,7 +169,7 @@ RUBY
       c.guard1 = true
       c.guard1.should == true
       c.guard2.should == nil
-      
+
       c.event1
       m.run_events!
       m.state.name.should == :state1
@@ -188,7 +185,7 @@ RUBY
       c.guard1.should == true
       c.guard2.should == nil
       c.guard3.should == true
-      
+
       c.event1
       c.event2
       c.event3
@@ -200,5 +197,3 @@ RUBY
   end
 
 end # describe
-
-

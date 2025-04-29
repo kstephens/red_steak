@@ -1,10 +1,9 @@
-
 module RedSteak
 
-  # 
+  #
   class Pseudostate < Vertex
     # See PseudostateKind.
-    # 
+    #
     # initial
     # deepHistory
     # shallowHistory
@@ -33,12 +32,5 @@ module RedSteak
         e << :outgoing_transition_from_initial_vertex_may_not_have_guard unless outgoing.select{|x| x.guard}.size == 0
       end
     end
-
   end # class
-
 end # module
-
-
-###############################################################################
-# EOF
-
