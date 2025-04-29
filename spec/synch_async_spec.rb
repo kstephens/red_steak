@@ -222,7 +222,7 @@ describe "RedSteak Synchronous/Asynchronous Interactions" do
         t.machine = machine
         machine.logger = lambda do | msg |
           t.machine! "m.#{msg}"
-        end
+        end if ENV['TEST_VERBOSE']
         t
       end
   end

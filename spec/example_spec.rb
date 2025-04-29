@@ -230,13 +230,13 @@ describe 'RedSteak LoanOfficer Example' do
 
   it 'transitions using transition_if_valid!' do
     self.lo = LoanOfficer.new
-    # lo._logger = $stdout
+    # lo._logger = $stdout if ENV['TEST_VERBOSE']
     controller = OpenStruct.new(:params => { })
     lo.controller = controller
 
     m = lo.machine
     m.history = [ ]
-    m.logger = lo._logger
+    m.logger = lo._logger if ENV['TEST_VERBOSE']
     m.auto_run = true
     render_graph(m)
 

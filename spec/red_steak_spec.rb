@@ -275,9 +275,7 @@ describe RedSteak do
 
     m.history = [ ]
 
-    if ENV['TEST_VERBOSE']
-      m.logger = $stdout
-    end
+    m.logger = $stdout if ENV['TEST_VERBOSE']
 
     m.context = RedSteak::TestContext.new
 
@@ -308,7 +306,7 @@ describe RedSteak do
     c = m.context
 
     c.clear!
-    # c._logger = $stderr
+    # c._logger = $stderr if ENV['TEST_VERBOSE']
 
     #################################
     # Start
@@ -638,7 +636,7 @@ describe RedSteak do
 
 
   it 'should handle transitions across substates and states' do
-    logger = nil && $stderr
+    logger = $stderr if ENV['TEST_VERBOSE']
     sm = RedSteak::StateMachine.
       new(:name => :test2, :logger => logger).
       build(:logger => logger) do
@@ -717,7 +715,7 @@ describe RedSteak do
     m = machine_with_context(sm)
     m.auto_run = true
     c = m.context
-    m.logger = $stderr
+    m.logger = $stderr if ENV['TEST_VERBOSE']
 
     c.clear!
     m.start!

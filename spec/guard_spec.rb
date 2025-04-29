@@ -119,7 +119,7 @@ RUBY
       m.context = c
 
       c.m = m
-      m.logger = lambda { | msg | $stderr.puts "  m #{msg}" }
+      m.logger = lambda { | msg | $stderr.puts "  m #{msg}" } if ENV['TEST_VERBOSE']
       m.history = [ ]
       render_graph(m)
 

@@ -80,10 +80,10 @@ describe RedSteak do
   it 'should queue transition executions inside doActions, if auto_run is enabled' do
     m = sm.machine
     m.auto_run = true
-    # m.logger = $stderr
+    # m.logger = $stderr if ENV['TEST_VERBOSE']
     m.history = [ ]
     m.context = RedSteak::TestContext2.new
-    # m.context._logger = $stderr
+    # m.context._logger = $stderr if ENV['TEST_VERBOSE']
 
     m.start!
     m.state.name.should == :a
@@ -132,10 +132,10 @@ describe RedSteak do
   it 'should not queue transition executions inside doActions, if auto_run is disabled' do
     m = sm.machine
     m.auto_run = false
-    # m.logger = $stderr
+    # m.logger = $stderr if ENV['TEST_VERBOSE']
     m.history = [ ]
     m.context = RedSteak::TestContext2.new
-    # m.context._logger = $stderr
+    # m.context._logger = $stderr if ENV['TEST_VERBOSE']
 
     m.start!
     m.state.name.should == :a
@@ -181,7 +181,7 @@ describe RedSteak do
   it 'should executed pending Transition before run! and execute blocks until at_end or no pending Transitions' do
     m = sm.machine
     m.auto_run = false
-    # m.logger = $stderr
+    # m.logger = $stderr if ENV['TEST_VERBOSE']
     m.history = [ ]
     m.context = RedSteak::TestContext2.new
     m.context.do_trans = false
