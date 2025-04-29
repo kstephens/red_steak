@@ -4,8 +4,7 @@ require 'rake'
 begin
   require 'echoe'
 
-  $e = Echoe.new('redsteak', '0.1') do |p|
-    p.rubyforge_name = 'red_steak'
+  $e = Echoe.new('redsteak', '0.2.1') do |p|
     p.summary = "RedSteak - A UML 2 Statemachine for Ruby."
     p.description = ""
     p.url = "http://github.com/kstephens/red_steak"
