@@ -6,3 +6,13 @@ gem "echoe", "= 4.6.6"
 gem "webrick", "= 1.9.1"
 
 gem "rspec", "= 3.13.0"
+
+gem "guard-rspec", "~> 4.7"
+
+gem "pry-byebug", "~> 3.11"
+
+gem "awesome_print", "~> 1.9"
+
+gem "simplecov", "~> 0.22.0"
+
+gem "pry-stackexplorer", "~> 0.5.1"
