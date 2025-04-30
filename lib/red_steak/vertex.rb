@@ -90,6 +90,7 @@ module RedSteak
 
     # Returns true if this matches x.
     def === x
+      self.equal?(x) ||
       case x
       when self.class
         self == x

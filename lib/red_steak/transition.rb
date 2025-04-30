@@ -48,6 +48,7 @@ module RedSteak
 
     # Returns true if X matches this Transition by name.x
     def === x
+      self.equal?(x) ||
       case x
       when self.class
         x == self

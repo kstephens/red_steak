@@ -105,6 +105,7 @@ module RedSteak
 
     # Returns true if this State matches x or is a substate of x.
     def === x
+      self.equal?(x) ||
       case x
       when self.class
         self.is_a_substate_of?(x)
