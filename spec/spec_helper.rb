@@ -1,25 +1,21 @@
 # frozen_string_literal: true
 
-require 'simplecov'
-SimpleCov.start
-
-$LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
-
 require 'pry-byebug'
 require 'pry-stackexplorer'
 require 'awesome_print'
 
-if (ENV['COVERAGE'] || 0).to_i > 0
+if (ENV['COVERAGE'] || '1').to_i > 0
   require 'simplecov'
+  SimpleCov.start do
+    enable_coverage :branch
+  end
   SimpleCov.at_exit do
     # Workaround GC Bug: simplecov-html.rb:22:in `close': Bad file descriptor @ fptr_finalize
     GC.start
     SimpleCov.result.format!
   end
-  SimpleCov.start do
-    enable_coverage :branch
-  end
-end
+
+$LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
