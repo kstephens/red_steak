@@ -1,4 +1,6 @@
-$: << 'lib'
+# frozen_string_literal: true
+
+$LOAD_PATH << 'lib'
 require 'red_steak'
 
 $sm = RedSteak::StateMachine.build do
@@ -22,11 +24,13 @@ class Example1Context
     puts "   #{self.class} exit #{args.inspect.gsub(/^\[|\]$/, '')}"
     self
   end
+
   def method_missing sel, *args
     puts "   #{self.class} #{sel} #{args.inspect.gsub(/^\[|\]$/, '')}"
     self
   end
-  def respond_to? sel
+
+  def respond_to? _sel
     true
   end
 end
@@ -38,4 +42,3 @@ $m.auto_run = :single
 $m.context = $c
 $m.history = [ ]
 $m.start!
-

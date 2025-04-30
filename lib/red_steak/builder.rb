@@ -23,7 +23,7 @@ module RedSteak
         end
       end
 
-      build &blk if block_given?
+      build(&blk) if block_given?
     end
 
     # Begins building StateMachine by evaluating block.
@@ -115,7 +115,7 @@ module RedSteak
               end # statemachine
 
               # Outermost statemachine?
-              if @context[:statemachine] == nil
+              if @context[:statemachine].nil?
                 _log { "\n\nCreating transitions:" }
                 # Create transitions.
                 @transitions.each do | t |
@@ -154,7 +154,7 @@ module RedSteak
     end
 
     # Defines a Pseudostate.
-    def pseudostate kind, name, opts = { }
+    def pseudostate _kind, _name, _opts = { }
       raise NotImplemented, :message => :pseudostate
     end
 
@@ -185,7 +185,7 @@ module RedSteak
 
       opts[:name] = name
 
-      if x = opts.delete(:do)
+      if (x = opts.delete(:do))
         opts[:doActivity] = x
       end
 
@@ -193,9 +193,7 @@ module RedSteak
 
       _with_context :namespace, s do
         _with_context :state, s do
-          if blk
-            instance_eval &blk
-          end
+          instance_eval(&blk) if blk
         end
       end
 
@@ -268,28 +266,20 @@ module RedSteak
 
     def _with_context name, val
       current_save = @current
-
       (@context_stack[name] ||= [ ]).push(@context[name])
-
-      @current =
-        @context[name] =
-        val
-
-      if name == :namespace
-        (@context[:namespaces] ||= [ ]).push(val)
-      end
-
-      yield
-
-    ensure
-      @previous[name] = val
-
-      @current = current_save
-
-      @context[name] = @context_stack[name].pop
-
-      if name == :namespace
-        (@context[:namespaces] ||= [ ]).pop
+      @current = @context[name] = val
+      begin
+        if name == :namespace
+          (@context[:namespaces] ||= [ ]).push(val)
+        end
+        yield
+      ensure
+        @previous[name] = val
+        @current = current_save
+        @context[name] = @context_stack[name].pop
+        if name == :namespace
+          (@context[:namespaces] ||= [ ]).pop
+        end
       end
     end
 

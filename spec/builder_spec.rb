@@ -2,7 +2,6 @@ require 'red_steak'
 require 'pp'
 
 RSpec.describe 'RedSteak::Builder' do
-
   it 'should handle undefined ambiguous Transition names' do
     sm = RedSteak::Builder.new.build do
       statemachine :test1 do
@@ -37,7 +36,6 @@ RSpec.describe 'RedSteak::Builder' do
     expect(t2.trigger).to eq([ :trigger2 ])
   end
 
-
   it 'should raise error overloaded Transition names' do
     expect do
       sm = RedSteak::Builder.new.build do
@@ -55,7 +53,6 @@ RSpec.describe 'RedSteak::Builder' do
       end
       pp sm
     end.to raise_error(RedSteak::Error, /Ambiguous Transition Name/)
-
   end
 
   it 'should find original States when augmenting' do
@@ -82,7 +79,7 @@ RSpec.describe 'RedSteak::Builder' do
     end
     expect(a).to be(s1)
     expect(b).to be(s2)
-  end # it
+  end
 
   it 'should uniquely name Transtions when augmenting' do
     sm = RedSteak::Builder.new.build do
@@ -120,6 +117,5 @@ RSpec.describe 'RedSteak::Builder' do
     expect(t2).to_not be(t1)
     expect(t2.name).to eq(:'initial->final-2')
 =end
-
-  end # it
-end # describe
+  end
+end

@@ -2,8 +2,9 @@ AllCops:
   TargetRubyVersion: 2.6
 
 Style/StringLiterals:
-  Enabled: true
-  EnforcedStyle: double_quotes
+  Enabled: false
+  # Enabled: true
+  # EnforcedStyle: double_quotes
 
 Style/StringLiteralsInInterpolation:
   Enabled: true
@@ -11,3 +12,60 @@ Style/StringLiteralsInInterpolation:
 
 Layout/LineLength:
   Max: 120
+
+#################
+
+AllCops:
+  Exclude:
+    - 'Gemfile'
+    - 'Guardfile'
+    - 'Rakefile'
+    - '*.gemspec'
+
+Style/StringLiteralsInInterpolation:
+  Enabled: false
+
+Style/MethodDefParentheses:
+  Enabled: false
+
+Layout/SpaceAroundBlockParameters:
+  Enabled: false
+
+Style/GlobalVars:
+  Enabled: false
+
+Layout/SpaceInsideArrayLiteralBrackets:
+  Enabled: false
+
+Metrics/MethodLength:
+  Enabled: false
+
+Metrics/AbcSize:
+  Enabled: false
+
+Security/Eval:
+  Enabled: false
+
+Style/Alias:
+  Enabled: false
+
+# Layout/SpaceBeforeBlockBraces:
+#   Enabled: false
+
+Naming/MethodParameterName:
+  Enabled: false
+
+Naming/MethodName:
+  Enabled: false
+
+Style/MissingRespondToMissing:
+  Enabled: false
+
+Layout/SpaceInsideHashLiteralBraces:
+  Enabled: false
+
+Layout/SpaceAfterNot:
+  Enabled: false
+
+Style/TrailingCommaInHashLiteral:
+  Enabled: false

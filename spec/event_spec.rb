@@ -264,5 +264,4 @@ RUBY
     raise err
   end
   end
-
 end # describe

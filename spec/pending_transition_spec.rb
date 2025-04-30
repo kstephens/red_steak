@@ -1,7 +1,6 @@
 require 'red_steak'
 
 RSpec.describe RedSteak do
-
   # A test context for the Statemachine.
   class RedSteak::TestContext2
     include RedSteak::Logging
@@ -248,5 +247,4 @@ RSpec.describe RedSteak do
       ]
     )
   end
-
 end # describe

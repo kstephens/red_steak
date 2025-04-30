@@ -83,7 +83,6 @@ module RedSteak
       end
     end
 
-
     # Transition is unknown by name.
     class UnknownTransition < self; end
 

@@ -4,7 +4,6 @@ require 'fileutils' # FileUtil.mkdir_p
 require 'pp'
 
 RSpec.describe 'RedSteak LoanOfficer Example' do
-
   # A test context for the StateMachine.
   class LoanOfficer
     include RedSteak::Logging
@@ -123,7 +122,6 @@ RSpec.describe 'RedSteak LoanOfficer Example' do
         end
     end
 
-
     def _log *args
       line = caller(1).first
       line =~ /`([^']*)'/
@@ -131,7 +129,6 @@ RSpec.describe 'RedSteak LoanOfficer Example' do
       super("#{method} #{args * ' '}")
       self
     end
-
 
     def sm
       @sm ||=
