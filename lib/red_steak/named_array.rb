@@ -32,6 +32,11 @@ module RedSteak
       end
     end
 
+    def each &blk
+      to_a.each(&blk)
+      self
+    end
+
     def select &blk
       self.class.new(@a.select(&blk), @axis)
     end
@@ -69,7 +74,3 @@ module RedSteak
   end # class
 
 end # module
-
-
-###############################################################################
-# EOF
