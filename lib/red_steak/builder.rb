@@ -263,7 +263,7 @@ module RedSteak
 
       if (xn = x[:opts][:name]) && @transitions.any? { | x2 | (x2n = x2[:opts][:name]) && x2n == xn }
         raise Error,
-          :message => 'Ambigous Transition Name',
+          :message => 'Ambiguous Transition Name',
           :data => x,
           :others => @transitions
       end

@@ -190,74 +190,76 @@ describe RedSteak do
   it 'should build a statemachine' do
     sm = statemachine
 
-    sm.inspect.should == "#<RedSteak::StateMachine test>"
-    sm.rootNamespace.should == sm
+    expect(sm.inspect).to eq("#<RedSteak::StateMachine test>")
+    expect(sm.rootNamespace).to be(sm)
 
-    sm.states.
+    expect(
+      sm.states.
       map{ | s | s.name }.
-      sort { | a, b | a.to_s <=> b.to_s }.
-      should ==
+      sort { | a, b | a.to_s <=> b.to_s }
+    ).to eq(
       [
        :a, :b, :c, :d, :e, :end, :f
       ].sort { | a, b | a.to_s <=> b.to_s }
+    )
 
-    sm.transitions.
+    expect(
+      sm.transitions.
       map{ | t | t.name }.
-      sort { | a, b | a.to_s <=> b.to_s }.
-      should ==
+      sort { | a, b | a.to_s <=> b.to_s }
+    ).to eq(
       [
         :bar, :a_to_b, :'b->c', :c2, :'c->a', :'c->end', :'a->d', :'d->end', :e1, :"f->d", :"f->end", :foo, :tran_e_1, :tran_e_2
       ].sort { | a, b | a.to_s <=> b.to_s }
+    )
 
-    sm.start_state.name.should == :a
-    sm.end_state.name.should == :end
+    expect(sm.start_state.name).to eq(:a)
+    expect(sm.end_state.name).to eq(:end)
 
     # Check State.options[] and State#[].
     a = sm.states[:a]
-    a.should_not == nil
-    a.options[:option_foo].should_not == nil
-    a[:option_foo].should == a.options[:option_foo]
+    expect(a).to_not eq(nil)
+    expect(a.options[:option_foo]).to_not eq(nil)
+    expect(a[:option_foo]).to eq(a.options[:option_foo])
 
     b = sm.states[:b]
-    b.should_not == nil
-    b.options[:option_foo].should == nil
-    b[:option_foo].should == b.options[:option_foo]
+    expect(b).to_not eq(nil)
+    expect(b.options[:option_foo]).to eq(nil)
+    expect(b[:option_foo]).to eq(b.options[:option_foo])
 
-    sm.states[:end].inspect.should ==
-      "#<RedSteak::State test end>"
+    expect(sm.states[:end].inspect).to eq("#<RedSteak::State test end>")
 
     d = sm.states[:d]
-    d.submachine.should_not == nil
-    d.submachine.rootNamespace.should == d.submachine
+    expect(d.submachine).to_not eq(nil)
+    expect(d.submachine.rootNamespace).to be(d.submachine)
 
     d_d1 = d.submachine.states[:d1]
-    d_d1.inspect.should ==
-      "#<RedSteak::State test::d d::d1>"
-    d.is_a_superstate_of?(d_d1).should == true
-    d_d1.is_a_superstate_of?(d).should == false
-    d_d1.is_a_substate_of?(d).should == true
-    d.is_a_substate_of?(d_d1).should == false
+    expect(d_d1.inspect).to eq("#<RedSteak::State test::d d::d1>")
+    expect(d.is_a_superstate_of?(d_d1)).to eq(true)
+    expect(d_d1.is_a_superstate_of?(d)).to eq(false)
+    expect(d_d1.is_a_substate_of?(d)).to eq(true)
+    expect(d.is_a_substate_of?(d_d1)).to eq(false)
 
     e = sm.states[:end]
-    e.should_not == nil
-    e.transitions.to_a.map{|t| t.name}.should == [ :'c->end', :'f->end', :'d->end', :'d::end->end' ]
-    e.targets.to_a.should == [ ]
-    e.sources.to_a.map{|s| s.to_s}.should == [ 'c', 'f', 'd', 'd::end' ]
+    expect(e).to_not eq(nil)
+    expect(e.transitions.to_a.map{|t| t.name}).to eq([ :'c->end', :'f->end', :'d->end', :'d::end->end' ])
+    expect(e.targets.to_a).to eq([ ])
+    expect(e.sources.to_a.map{|s| s.to_s}).to eq([ 'c', 'f', 'd', 'd::end' ])
 
-    sm.states[:a].options[:option_foo].should == :foo
+    expect(sm.states[:a].options[:option_foo]).to eq(:foo)
 
-    sm.validate.should == [ ]
+    expect(sm.validate).to eq([ ])
 
     ssm = sm.states[:d].submachine
-    ssm.should_not == nil
-    ssm.start_state.name.should == :d1
-    ssm.end_state.name.should == :end
+    expect(ssm).to_not eq(nil)
+    expect(ssm.start_state.name).to eq(:d1)
+    expect(ssm.end_state.name).to eq(:end)
 
-    ssm.state[:d1].stateMachine.should == ssm
-    ssm.state[:d1].superstate.should == sm.state[:d]
+    expect(ssm.state[:d1].stateMachine).to be(ssm)
+    expect(ssm.state[:d1].superstate).to be(sm.state[:d])
 
-    sm.state[:d].ancestors.map{|s| s.to_s}.should == [ "d" ]
-    ssm.state[:d1].ancestors.map{|s| s.to_s}.should == [ "d::d1", "d" ]
+    expect(sm.state[:d].ancestors.map{|s| s.to_s}).to eq([ "d" ])
+    expect(ssm.state[:d1].ancestors.map{|s| s.to_s}).to eq([ "d::d1", "d" ])
   end
 
 
@@ -299,6 +301,9 @@ describe RedSteak do
     m.auto_run = true
     c = m.context
 
+    a = m.statemachine.states[:a]
+    b = m.statemachine.states[:b]
+
     c.clear!
     # c._logger = $stderr if ENV['TEST_VERBOSE']
 
@@ -306,25 +311,26 @@ describe RedSteak do
     # Start
     #
 
-    m.history.size.should == 0
+    expect(m.history.size).to eq(0)
     m.start!
-    m.at_start?.should == true
-    m.at_end?.should == false
+    expect(m.at_start?).to eq(true)
+    expect(m.at_end?).to eq(false)
 
-    m.state.name.should == :a
-    m.state.should === :a
+    expect(m.state.name).to eq(:a)
+    expect(m.state === :a).to eq(true)
+    expect(m.state).to be(a)
 
-    c._machine.should == m
-    c._state.should == m.stateMachine.states[:a]
-    c._transition.should == nil
-    c._guard.should == [ ]
-    c._effect.should == [ ]
-    c._entry.should == [ [ "a" ] ]
-    c._exit.should == [ ]
-    c._doActivity.should == [ [ "a" ] ]
-    m.history.size.should == 1
+    expect(c._machine).to be(m)
+    expect(c._state).to be(m.stateMachine.states[:a])
+    expect(c._transition).to eq(nil)
+    expect(c._guard).to eq([ ])
+    expect(c._effect).to eq([ ])
+    expect(c._entry).to eq([ [ "a" ] ])
+    expect(c._exit).to eq([ ])
+    expect(c._doActivity).to eq([ [ "a" ] ])
+    expect(m.history.size).to eq(1)
 
-    m.guard?.should == true
+    expect(m.guard?).to eq(true)
 
     #################################
     # Transition 1
@@ -332,22 +338,23 @@ describe RedSteak do
 
     c.clear!
     m.transition! "a_to_b", :arg1
-    m.at_start?.should == false
-    m.at_end?.should == false
+    expect(m.at_start?).to eq(false)
+    expect(m.at_end?).to eq(false)
 
-    m.state.name.should == :b
-    m.state.should === :b
+    expect(m.state.name).to eq(:b)
+    expect(m.state === :b).to eq(true)
+    expect(m.state).to be(b)
 
-    c._machine.should == m
-    c._transition.name.should == :a_to_b
-    c._guard.should == [ [ :arg1 ] ]
-    c._a_to_b.should == [ :arg1 ]
-    c._effect.should == [ [ :arg1 ] ]
-    c._state.name.should == :b
-    c._entry.should == [ [ "b", :arg1 ] ]
-    c._exit.should == [ [ "a", :arg1 ] ]
-    c._doActivity.should == [ [ "b", :arg1 ] ]
-    m.history.size.should == 2
+    expect(c._machine).to be(m)
+    expect(c._transition.name).to eq(:a_to_b)
+    expect(c._guard).to eq([ [ :arg1 ] ])
+    expect(c._a_to_b).to eq([ :arg1 ])
+    expect(c._effect).to eq([ [ :arg1 ] ])
+    expect(c._state.name).to eq(:b)
+    expect(c._entry).to eq([ [ "b", :arg1 ] ])
+    expect(c._exit).to eq([ [ "a", :arg1 ] ])
+    expect(c._doActivity).to eq([ [ "b", :arg1 ] ])
+    expect(m.history.size).to eq(2)
 
     #################################
     # Transition 2
@@ -355,71 +362,71 @@ describe RedSteak do
 
     c.clear!
     m.transition! :"b->c"
-    m.state.name.should == :c
-    m.at_start?.should == false
-    m.at_end?.should == false
-    m.history.size.should == 3
+    expect(m.state.name).to eq(:c)
+    expect(m.at_start?).to eq(false)
+    expect(m.at_end?).to eq(false)
+    expect(m.history.size).to eq(3)
 
     c.clear!
     m.transition! :"c->a"
-    m.state.name.should == :a
-    m.history.size.should == 4
-    m.state.outgoing.map{|t| t.name}.should == [ :foo, :bar, :a_to_b, :'a->d' ]
+    expect(m.state.name).to eq(:a)
+    expect(m.history.size).to eq(4)
+    expect(m.state.outgoing.map{|t| t.name}).to eq([ :foo, :bar, :a_to_b, :'a->d' ])
 
     m.transition! "foo"
-    m.state.name.should == :a
-    m.history.size.should == 5
-    m.state.outgoing.map{|t| t.name}.should == [ :foo, :bar, :a_to_b, :"a->d" ]
+    expect(m.state.name).to eq(:a)
+    expect(m.history.size).to eq(5)
+    expect(m.state.outgoing.map{|t| t.name}).to eq([ :foo, :bar, :a_to_b, :"a->d" ])
 
     m.transition! :bar
-    m.state.name.should == :a
-    m.history.size.should == 6
-    m.state.outgoing.map{|t| t.name}.should == [ :foo, :bar, :a_to_b, :"a->d" ]
+    expect(m.state.name).to eq(:a)
+    expect(m.history.size).to eq(6)
+    expect(m.state.outgoing.map{|t| t.name}).to eq([ :foo, :bar, :a_to_b, :"a->d" ])
 
     m.transition! "foo"
-    m.state.name.should == :a
-    m.history.size.should == 7
+    expect(m.state.name).to eq(:a)
+    expect(m.history.size).to eq(7)
 
     m.transition_to! :b
-    m.state.name.should == :b
-    m.history.size.should == 8
+    expect(m.state.name).to eq(:b)
+    expect(m.history.size).to eq(8)
 
     m.transition! :'c2'
-    m.state.name.should == :c
-    m.history.size.should == 9
+    expect(m.state.name).to eq(:c)
+    expect(m.history.size).to eq(9)
 
     m.transition! :e1
-    m.state.name.should == :e
-    m.history.size.should == 10
+    expect(m.state.name).to eq(:e)
+    expect(m.history.size).to eq(10)
 
     m.transition_to_next_state!
-    m.state.name.should == :f
-    m.history.size.should == 11
+    expect(m.state.name).to eq(:f)
+    expect(m.history.size).to eq(11)
 
     m.transition_to! :end
-    m.at_start?.should == false
-    m.at_end?.should == true
-    m.guard?.should == false
-    m.state.name.should == :end
-    m.history.size.should == 12
+    expect(m.at_start?).to eq(false)
+    expect(m.at_end?).to eq(true)
+    expect(m.guard?).to eq(false)
+    expect(m.state.name).to eq(:end)
+    expect(m.history.size).to eq(12)
 
-    m.transition_to_next_state!(false).should == nil
-    lambda { m.transition_to_next_state!(true)}.should raise_error(RedSteak::Error::UnknownTransition)
+    expect(m.transition_to_next_state!(false)).to eq(nil)
+    expect { m.transition_to_next_state!(true) }.to raise_error(RedSteak::Error::UnknownTransition)
     begin
       m.transition_to_next_state!(true)
     rescue Object => err
-      (RedSteak::Error === err).should == true
+      expect((RedSteak::Error === err)).to eq(true)
       # pp err.inspect
       # pp err.options
-      err.machine.should == m
-      err.message.should == "transition_to_next_state!"
-      err[:transitions].should == nil
-      err[:state].should == m.state
-      err.state.should == m.state
-      err.inspect.should == "#<RedSteak::Error::UnknownTransition \"transition_to_next_state!\"\n  :machine => #<RedSteak::Machine :test [:end]>\n  :state => #<RedSteak::State test end>>"
+      expect(err.machine).to be(m)
+      expect(err.message).to eq("transition_to_next_state!")
+      expect(err[:transitions]).to eq(nil)
+      expect(err[:state]).to be(m.state)
+      expect(err.state).to be(m.state)
+      expect(err.inspect).to eq("#<RedSteak::Error::UnknownTransition \"transition_to_next_state!\"\n  :machine => #<RedSteak::Machine :test [:end]>\n  :state => #<RedSteak::State test end>>")
     end
 
-    m.history.map { |h| h[:previous_state].to_s }.should ==
+    expect(m.history.map { |h| h[:previous_state].to_s }).to eq(
     [
      "", # nil.to_s
      "a",
@@ -434,8 +441,9 @@ describe RedSteak do
      "e",
      "f",
     ]
+    )
 
-    m.history.map { |h| h[:new_state].to_s }.should ==
+    expect(m.history.map { |h| h[:new_state].to_s }).to eq(
     [
      "a",
      "b",
@@ -450,8 +458,9 @@ describe RedSteak do
      "f",
      "end",
     ]
+    )
 
-    m.history.map { |h| h[:transition].to_s }.should ==
+    expect(m.history.map { |h| h[:transition].to_s }).to eq(
     [
       '', # nil.to_s
       'a_to_b',
@@ -466,6 +475,7 @@ describe RedSteak do
       'tran_e_1',
       'f->end',
     ]
+    )
 
     render_graph m, :show_history => true
   end
@@ -476,16 +486,16 @@ describe RedSteak do
     sm = m.stateMachine
 
     s = sm.state[:a]
-    s.should_not == nil
-    m.to_state(s).should == s
-    m.to_state(:a).should == s
-    m.to_state("a").should == s
+    expect(s).to_not eq(nil)
+    expect(m.to_state(s)).to be(s)
+    expect(m.to_state(:a)).to be(s)
+    expect(m.to_state("a")).to be(s)
 
     s = sm.state[:d].submachine.state[:d1]
-    s.should_not == nil
-    m.to_state(s).should == s
-    m.to_state("d::d1").should == s
-    m.to_state(:"d::d1").should == nil
+    expect(s).to_not eq(nil)
+    expect(m.to_state(s)).to be(s)
+    expect(m.to_state("d::d1")).to be(s)
+    expect(m.to_state(:"d::d1")).to eq(nil)
   end
 
   it 'should handle #to_transition' do
@@ -493,14 +503,14 @@ describe RedSteak do
     sm = m.stateMachine
 
     t = sm.transition[:'a_to_b']
-    t.should_not == nil
-    m.to_transition(t).should == t
-    m.to_transition('a_to_b').should == t
-    m.to_transition(:'a_to_b').should == t
+    expect(t).to_not eq(nil)
+    expect(m.to_transition(t)).to be(t)
+    expect(m.to_transition('a_to_b')).to be(t)
+    expect(m.to_transition(:'a_to_b')).to be(t)
 
     t = sm.state[:d].submachine.transition[:'d::d1->d::d2']
-    t.should_not == nil
-    m.to_transition(t).should == t
+    expect(t).to_not eq(nil)
+    expect(m.to_transition(t)).to be(t)
   end
 
   it 'should handle #to_transition for namespaced transitions.' do
@@ -509,12 +519,12 @@ describe RedSteak do
     sm = m.stateMachine
 
     t = sm.state[:d].submachine.transition[:'d::d1->d::d2']
-    t.should_not == nil
-    m.to_transition(t).should == t
-    m.to_transition("d::d1->d::d2").should == t
-    m.to_transition(:"d::d1->d::d2").should == nil
+    expect(t).to_not eq(nil)
+    expect(m.to_transition(t)).to be(t)
+    expect(m.to_transition("d::d1->d::d2")).to be(t)
+    expect(m.to_transition(:"d::d1->d::d2")).to eq(nil)
 
-    m.to_transition("d::d1->d2").should == nil
+    expect(m.to_transition("d::d1->d2")).to eq(nil)
   end
 
   it 'should handle submachines' do
@@ -523,52 +533,52 @@ describe RedSteak do
     sm = m.stateMachine
 
     m.start!
-    m.state.name.should == :a
-    m.state.submachine.should == nil
-    m.state_is_active?(nil).should == false
-    m.state_is_active?(sm.states[:a]).should == true
+    expect(m.state.name).to eq(:a)
+    expect(m.state.submachine).to eq(nil)
+    expect(m.state_is_active?(nil)).to eq(false)
+    expect(m.state_is_active?(sm.states[:a])).to eq(true)
 
     m.transition_to! :d
-    m.state.name.should == :d1
-    m.state.should === :d1
+    expect(m.state.name).to eq(:d1)
+    expect(m.state === :d1).to eq(true)
     d = sm.states[:d]
-    m.state.should === d
+    expect(m.state === d).to eq(true)
     d_d1 = d.submachine.states[:d1]
-    m.state_is_active?(d).should == true
-    m.state_is_active?(d_d1).should == true
-    m.state_is_active?(nil).should == false
-    m.state_is_active?(sm.states[:a]).should == false
+    expect(m.state_is_active?(d)).to eq(true)
+    expect(m.state_is_active?(d_d1)).to eq(true)
+    expect(m.state_is_active?(nil)).to eq(false)
+    expect(m.state_is_active?(sm.states[:a])).to eq(false)
 
     # start transitions in substates of State :d.
 =begin
     ssm = m.sub
-    ssm.should_not == nil
+    expect(ssm).to_not eq(nil)
 =end
     ssm = m
 
-    ssm.state.name.should == :d1
-    ssm.state.should === :d1
-    ssm.state.should === "d::d1"
-    ssm.state.should === /^d::/
-    ssm.state.should === ssm.state.superstate
-    # ssm.at_start?.should == true
+    expect(ssm.state.name).to eq(:d1)
+    expect(ssm.state === :d1).to eq(true)
+    expect(ssm.state === "d::d1").to eq(true)
+    expect(ssm.state === /^d::/).to eq(true)
+    expect(ssm.state === ssm.state.superstate).to eq(true)
+    # expect(ssm.at_start?).to eq(true)
 
     ssm.transition_to! "d::d2"
-    ssm.state.name.should == :d2
-    ssm.at_end?.should == false
+    expect(ssm.state.name).to eq(:d2)
+    expect(ssm.at_end?).to eq(false)
 
     ssm.transition_to! "d::d1"
-    ssm.state.name.should == :d1
-    ssm.at_end?.should == false
+    expect(ssm.state.name).to eq(:d1)
+    expect(ssm.at_end?).to eq(false)
 
     ssm.transition_to! "d::end"
-    ssm.state.name.should == :end
-    # ssm.at_end?.should == true
+    expect(ssm.state.name).to eq(:end)
+    # expect(ssm.at_end?).to eq(true)
 
-    m.at_end?.should == false
+    expect(m.at_end?).to eq(false)
 
     m.transition_to! :end
-    m.at_end?.should == true
+    expect(m.at_end?).to eq(true)
 
     render_graph m, :name => "with-substates", :show_history => true
   end
@@ -579,11 +589,11 @@ describe RedSteak do
     sm.name = "#{sm.name}-augmented"
 
     a = sm.states[:a]
-    a.should_not == nil
-    a.targets.map{|s| s.name}.should == [ :a, :b, :d ]
+    expect(a).to_not eq(nil)
+    expect(a.targets.map{|s| s.name}).to eq([ :a, :b, :d ])
     e = sm.states[:end]
-    e.should_not == nil
-    e.sources.map{|s| s.name}.should == [ :c, :f, :d, :end ]
+    expect(e).to_not eq(nil)
+    expect(e.sources.map{|s| s.name}).to eq([ :c, :f, :d, :end ])
 
     # Add state :f and transitions from :a and to :end.
     sm.builder do
@@ -594,11 +604,11 @@ describe RedSteak do
 
     render_graph sm
 
-    a.object_id.should == sm.states[:a].object_id
-    e.object_id.should == sm.states[:end].object_id
+    expect(a.object_id).to eq(sm.states[:a].object_id)
+    expect(e.object_id).to eq(sm.states[:end].object_id)
 
-    sm.states[:a].targets.map{|s| s.name}.should == [ :a, :b, :d, :f ]
-    sm.states[:end].sources.map{|s| s.name}.should == [ :c, :f, :d, :end ]
+    expect(sm.states[:a].targets.map{|s| s.name}).to eq([ :a, :b, :d, :f ])
+    expect(sm.states[:end].sources.map{|s| s.name}).to eq([ :c, :f, :d, :end ])
 
     ############################################
 
@@ -607,22 +617,22 @@ describe RedSteak do
     c = m.context
 
     m.start! :foo, :bar
-    m.at_start?.should == true
-    m.at_end?.should == false
+    expect(m.at_start?).to eq(true)
+    expect(m.at_end?).to eq(false)
 
-    m.state.name.should == :a
-    c._machine.should == m
-    c._state.name.should == :a
-    c._entry.should == [ [ "a", :foo, :bar ] ]
-    c._exit.should == [ ]
+    expect(m.state.name).to eq(:a)
+    expect(c._machine).to be(m)
+    expect(c._state.name).to eq(:a)
+    expect(c._entry).to eq([ [ "a", :foo, :bar ] ])
+    expect(c._exit).to eq([ ])
 
     render_graph m, :show_history => true
 
     m.transition_to! :f
-    m.state.name.should == :f
+    expect(m.state.name).to eq(:f)
 
     m.transition_to! :end
-    m.state.name.should == :end
+    expect(m.state.name).to eq(:end)
 
     render_graph m, :show_history => true
 
@@ -677,32 +687,32 @@ describe RedSteak do
 
     render_graph sm
 
-    sm.state[:a].should == sm.state['a']
-    sm.state[:b].should == sm.state['b']
-    sm.state[:c].should == sm.state['c']
+    expect(sm.state[:a]).to be(sm.state['a'])
+    expect(sm.state[:b]).to be(sm.state['b'])
+    expect(sm.state[:c]).to be(sm.state['c'])
 
-    sm.state[:a].source.map{|s| s.to_s}.should == [ "b::a" ]
-    sm.state[:a].target.map{|s| s.to_s}.should == [ ]
+    expect(sm.state[:a].source.map{|s| s.to_s}).to eq([ "b::a" ])
+    expect(sm.state[:a].target.map{|s| s.to_s}).to eq([ ])
 
-    sm.state[:a].state.map{|s| s.to_s}.should == [ "a::a", "a::b", "a::c" ]
-    sm.state["a::a"].superstate.should == sm.states["a"]
-    sm.state["a::a"].should === sm.states["a"]
+    expect(sm.state[:a].state.map{|s| s.to_s}).to eq([ "a::a", "a::b", "a::c" ])
+    expect(sm.state["a::a"].superstate).to be(sm.states["a"])
+    expect(sm.state["a::a"] === sm.states["a"]).to eq(true)
 
-    sm.state["a::a"].target.map{|s| s.to_s}.should == [ "b", "a::c", "c" ]
-    sm.state["a::a"].source.map{|s| s.to_s}.should == [ ]
+    expect(sm.state["a::a"].target.map{|s| s.to_s}).to eq([ "b", "a::c", "c" ])
+    expect(sm.state["a::a"].source.map{|s| s.to_s}).to eq([ ])
 
-    sm.state["a::b"].target.map{|s| s.to_s}.should == [ "c", "a::c" ]
-    sm.state["a::b"].source.map{|s| s.to_s}.should == [ "b::b" ]
+    expect(sm.state["a::b"].target.map{|s| s.to_s}).to eq([ "c", "a::c" ])
+    expect(sm.state["a::b"].source.map{|s| s.to_s}).to eq([ "b::b" ])
 
-    sm.state["a::c"].target.map{|s| s.to_s}.should == [ "c" ]
-    sm.state["a::c"].source.map{|s| s.to_s}.should == [ "a::a", "a::b" ]
+    expect(sm.state["a::c"].target.map{|s| s.to_s}).to eq([ "c" ])
+    expect(sm.state["a::c"].source.map{|s| s.to_s}).to eq([ "a::a", "a::b" ])
 
-    sm.state[:b].state.map{|s| s.to_s}.should == [ "b::a", "b::b" ]
-    sm.state[:b].source.map{|s| s.to_s}.should == [ 'a::a' ]
-    sm.state[:b].target.map{|s| s.to_s}.should == [ 'c' ]
+    expect(sm.state[:b].state.map{|s| s.to_s}).to eq([ "b::a", "b::b" ])
+    expect(sm.state[:b].source.map{|s| s.to_s}).to eq([ 'a::a' ])
+    expect(sm.state[:b].target.map{|s| s.to_s}).to eq([ 'c' ])
 
-    sm.state[:c].state.map{|s| s.to_s}.should == [ ]
-    sm.state[:c].source.map{|s| s.to_s}.should == ["a::a", "a::b", "a::c", "b", "b::a"]
+    expect(sm.state[:c].state.map{|s| s.to_s}).to eq([ ])
+    expect(sm.state[:c].source.map{|s| s.to_s}).to eq(["a::a", "a::b", "a::c", "b", "b::a"])
 
     m = machine_with_context(sm)
     m.auto_run = true
@@ -711,40 +721,40 @@ describe RedSteak do
 
     c.clear!
     m.start!
-    c._exit.should == [ ]
-    c._entry.should == [ [ "a" ], [ "a::a" ] ]
+    expect(c._exit).to eq([ ])
+    expect(c._entry).to eq([ [ "a" ], [ "a::a" ] ])
 
     c.clear!
     m.transition_to! "b"
-    c._exit.should == [["a::a"], ["a"]]
-    c._entry.should == [ [ "b" ], [ "b::a" ] ]
+    expect(c._exit).to eq([["a::a"], ["a"]])
+    expect(c._entry).to eq([ [ "b" ], [ "b::a" ] ])
 
     c.clear!
     m.transition_to! "b::b"
-    c._exit.should == [["b::a"]]
-    c._entry.should == [["b::b"]]
+    expect(c._exit).to eq([["b::a"]])
+    expect(c._entry).to eq([["b::b"]])
 
     c.clear!
     m.transition_to! "a::b"
-    c._exit.should == [["b::b"], ["b"]]
-    c._entry.should == [["a"], ["a::b"]]
+    expect(c._exit).to eq([["b::b"], ["b"]])
+    expect(c._entry).to eq([["a"], ["a::b"]])
 
     c.clear!
     m.transition_to! "c"
-    c._exit.should == [["a::b"], ["a"]]
-    c._entry.should == [["c"]]
+    expect(c._exit).to eq([["a::b"], ["a"]])
+    expect(c._entry).to eq([["c"]])
 
     render_graph m, :show_history => true
 
     svg_data = RedSteak::Dot.new.render_graph_svg_data(m, :show_history => true)
-    svg_data.should =~ /\A<\?xml/
-    svg_data.should =~ /<svg /
-    svg_data.should =~ /<\/svg>/
+    expect(svg_data).to match(/\A<\?xml/)
+    expect(svg_data).to match(/<svg /)
+    expect(svg_data).to match(/<\/svg>/)
 
     svg_data = RedSteak::Dot.new.render_graph_svg_data(m, :show_history => true, :xml_header => false)
-    svg_data.should_not =~ /\A<\?xml/
-    svg_data.should =~ /\A<svg /
-    svg_data.should =~ /<\/svg>/
+    expect(svg_data).to_not match(/\A<\?xml/)
+    expect(svg_data).to match(/\A<svg /)
+    expect(svg_data).to match(/<\/svg>/)
   end
 
 end # describe

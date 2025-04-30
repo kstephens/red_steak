@@ -21,25 +21,25 @@ describe 'RedSteak::Builder' do
       end
     end
 
-    sm.transition.size.should == 2
-    sm.state.size.should == 2
+    expect(sm.transition.size).to eq(2)
+    expect(sm.state.size).to eq(2)
 
-    (t1 = sm.transition[:'initial->final']).should_not == nil
-    sm.transition[0].should == t1
-    t1.source.name.should == :initial
-    t1.target.name.should == :final
-    t1.trigger.should == [ :trigger1 ]
+    expect((t1 = sm.transition[:'initial->final'])).to_not eq(nil)
+    expect(sm.transition[0]).to be(t1)
+    expect(t1.source.name).to eq(:initial)
+    expect(t1.target.name).to eq(:final)
+    expect(t1.trigger).to eq([ :trigger1 ])
 
-    (t2 = sm.transition[:'initial->final-2']).should_not == nil
-    sm.transition[1].should == t2
-    t2.source.name.should == :initial
-    t2.target.name.should == :final
-    t2.trigger.should == [ :trigger2 ]
+    expect((t2 = sm.transition[:'initial->final-2'])).to_not eq(nil)
+    expect(sm.transition[1]).to be(t2)
+    expect(t2.source.name).to eq(:initial)
+    expect(t2.target.name).to eq(:final)
+    expect(t2.trigger).to eq([ :trigger2 ])
   end
 
 
   it 'should raise error overloaded Transition names' do
-    lambda {
+    expect do
       sm = RedSteak::Builder.new.build do
         statemachine :test2 do
           initial :initial
@@ -54,7 +54,7 @@ describe 'RedSteak::Builder' do
         end
       end
       pp sm
-    }.should raise_error(RedSteak::Error)
+    end.to raise_error(RedSteak::Error, /Ambiguous Transition Name/)
 
   end
 
@@ -73,12 +73,15 @@ describe 'RedSteak::Builder' do
       end
     end
 
-    (t1 = sm.transition[0]).should_not == nil
+    expect((t1 = sm.transition[0])).to_not eq(nil)
 
+    a = b = nil
     sm.build do
-      state(:initial).should == s1
-      state(:final).should == s2
+      a = state(:initial)
+      b = state(:final)
     end
+    expect(a).to be(s1)
+    expect(b).to be(s2)
   end # it
 
   it 'should uniquely name Transtions when augmenting' do
@@ -95,16 +98,16 @@ describe 'RedSteak::Builder' do
       end
     end
 
-    (t1 = sm.transition[0]).should_not == nil
-    t1.name.should == :'initial->final'
-    t1[:foo].should == 1
+    expect((t1 = sm.transition[0])).to_not eq(nil)
+    expect(t1.name).to eq(:'initial->final')
+    expect(t1[:foo]).to eq(1)
 
     sm.build do
       transition :initial, :final, :foo => 2
     end
 
-    t1[:foo].should == 2
-    (t2 = sm.transition[1]).should == nil
+    expect(t1[:foo]).to eq(2)
+    (t2 = expect(sm.transition[1])).to eq(nil)
 
     sm.build do
       transition :initial, :final
@@ -113,9 +116,9 @@ describe 'RedSteak::Builder' do
 
 =begin
     # FIXME!!!
-    (t2 = sm.transition[1]).should_not == nil
-    t2.should_not == t1
-    t2.name.should == :'initial->final-2'
+    expect((t2 = sm.transition[1])).to_not eq(nil)
+    expect(t2).to_not be(t1)
+    expect(t2.name).to eq(:'initial->final-2')
 =end
 
   end # it

@@ -5,41 +5,41 @@ describe 'RedSteak::Error' do
 
   it 'should handle (:message)' do
     e = RedSteak::Error.new(:message)
-    e.message.should == "message"
-    e.options.keys.should == [ ]
-    e.options[:message].should == nil
-    e.message.should == "message"
-    e.inspect.should == "#<RedSteak::Error \"message\">"
+    expect(e.message).to eq("message")
+    expect(e.options.keys).to eq([ ])
+    expect(e.options[:message]).to eq(nil)
+    expect(e.message).to eq("message")
+    expect(e.inspect).to eq("#<RedSteak::Error \"message\">")
   end
 
 
   it 'should handle ("message")' do
     e = RedSteak::Error.new("message")
-    e.message.should == "message"
-    e.options.keys.should == [ ]
-    e.options[:message].should == nil
-    e.message.should == "message"
-    e.inspect.should == "#<RedSteak::Error \"message\">"
+    expect(e.message).to eq("message")
+    expect(e.options.keys).to eq([ ])
+    expect(e.options[:message]).to eq(nil)
+    expect(e.message).to eq("message")
+    expect(e.inspect).to eq("#<RedSteak::Error \"message\">")
   end
 
 
   it 'should handle (:message => "message")' do
     e = RedSteak::Error.new(:message => "message")
-    e.message.should == "message"
-    e.options.keys.should == [ ]
-    e.options[:message].should == nil
-    e.message.should == "message"
-    e.inspect.should == "#<RedSteak::Error \"message\">"
+    expect(e.message).to eq("message")
+    expect(e.options.keys).to eq([ ])
+    expect(e.options[:message]).to eq(nil)
+    expect(e.message).to eq("message")
+    expect(e.inspect).to eq("#<RedSteak::Error \"message\">")
   end
 
   it 'should handle ("message", :foo => :bar)' do
     e = RedSteak::Error.new("message", :foo => :bar)
-    e.message.should == "message"
-    e.options.keys.should == [ :foo ]
-    e.options[:message].should == nil
-    e.options[:foo].should == :bar
-    e.message.should == "message"
-    e.inspect.should == "#<RedSteak::Error \"message\"\n  :foo => :bar>"
+    expect(e.message).to eq("message")
+    expect(e.options.keys).to eq([ :foo ])
+    expect(e.options[:message]).to eq(nil)
+    expect(e.options[:foo]).to eq(:bar)
+    expect(e.message).to eq("message")
+    expect(e.inspect).to eq("#<RedSteak::Error \"message\"\n  :foo => :bar>")
   end
 
 

@@ -9,48 +9,48 @@ describe 'RedSteak::Copier' do
   end
 
   it 'should handle nil, true, false, Numeric, Symbol without extra memory' do
-    c[nil].should == nil
-    c.size.should == 0
+    expect(c[nil]).to eq(nil)
+    expect(c.size).to eq(0)
 
-    c[true].should == true
-    c.size.should == 0
+    expect(c[true]).to eq(true)
+    expect(c.size).to eq(0)
 
-    c[false].should == false
-    c.size.should == 0
+    expect(c[false]).to eq(false)
+    expect(c.size).to eq(0)
 
-    c[:a].should == :a
-    c[:b].should == :b
-    c.size.should == 0
+    expect(c[:a]).to eq(:a)
+    expect(c[:b]).to eq(:b)
+    expect(c.size).to eq(0)
 
-    c[12].should == 12
-    c.size.should == 0
+    expect(c[12]).to eq(12)
+    expect(c.size).to eq(0)
 
     x = 12.34
-    c[x].should == x
-    c[x].object_id.should == x.object_id
-    c.size.should == 0
+    expect(c[x]).to eq(x)
+    expect(c[x].object_id).to eq(x.object_id)
+    expect(c.size).to eq(0)
 
     x = 192384719283741923874
-    c[x].should == x
-    c[x].object_id.should == x.object_id
-    c.size.should == 0
+    expect(c[x]).to eq(x)
+    expect(c[x].object_id).to eq(x.object_id)
+    expect(c.size).to eq(0)
   end
 
   it 'should copy Strings only once.' do
     x = '1234asdf'
     y = '1234asdf'.freeze
 
-    c[x].should == x
-    c[x].object_id.should_not == x.object_id
-    c[x].object_id.should == c[x].object_id
-    c[x].frozen?.should == false
+    expect(c[x]).to eq(x)
+    expect(c[x].object_id).to_not eq(x.object_id)
+    expect(c[x].object_id).to eq(c[x].object_id)
+    expect(c[x].frozen?).to eq(false)
 
-    c[y].should == y
-    c[y].should == x
-    c[y].object_id.should_not == y.object_id
-    c[y].object_id.should == c[y].object_id
-    c[y].object_id.should_not == c[x].object_id
-    c[y].frozen?.should == true
+    expect(c[y]).to eq(y)
+    expect(c[y]).to eq(x)
+    expect(c[y].object_id).to_not eq(y.object_id)
+    expect(c[y].object_id).to eq(c[y].object_id)
+    expect(c[y].object_id).to_not eq(c[x].object_id)
+    expect(c[y].frozen?).to eq(true)
   end
 
 
@@ -60,18 +60,18 @@ describe 'RedSteak::Copier' do
     a1 = [ x, y, 1 ]
     a2 = [ x, a1, y ]
 
-    c[a1].should == a1
-    c[a1].object_id.should_not == a1.object_id
-    c[a1].object_id.should == c[a1].object_id
-    c[a1].frozen?.should == false
+    expect(c[a1]).to eq(a1)
+    expect(c[a1].object_id).to_not eq(a1.object_id)
+    expect(c[a1].object_id).to eq(c[a1].object_id)
+    expect(c[a1].frozen?).to eq(false)
 
-    c[a2].should == a2
-    c[a2][1].should == c[a1]
-    c[a2][1].object_id.should == c[a1].object_id
-    c[a2][1].object_id.should_not == a1.object_id
+    expect(c[a2]).to eq(a2)
+    expect(c[a2][1]).to eq(c[a1])
+    expect(c[a2][1].object_id).to eq(c[a1].object_id)
+    expect(c[a2][1].object_id).to_not eq(a1.object_id)
 
     # pp c.map
-    c.size.should == 6
+    expect(c.size).to eq(6)
   end
 
 
@@ -81,18 +81,18 @@ describe 'RedSteak::Copier' do
     a1 = { :a => x, y => y, 1 => 2 }
     a2 = { x => :b, :a1 => a1, y => [1, 2, 3] }
 
-    c[a1].should == a1
-    c[a1].object_id.should_not == a1.object_id
-    c[a1].object_id.should == c[a1].object_id
-    c[a1].frozen?.should == false
+    expect(c[a1]).to eq(a1)
+    expect(c[a1].object_id).to_not eq(a1.object_id)
+    expect(c[a1].object_id).to eq(c[a1].object_id)
+    expect(c[a1].frozen?).to eq(false)
 
-    c[a2].should == a2
-    c[a2][:a1].should == c[a1]
-    c[a2][:a1].object_id.should == c[a1].object_id
-    c[a2][:a1].object_id.should_not == a1.object_id
+    expect(c[a2]).to eq(a2)
+    expect(c[a2][:a1]).to eq(c[a1])
+    expect(c[a2][:a1].object_id).to eq(c[a1].object_id)
+    expect(c[a2][:a1].object_id).to_not eq(a1.object_id)
 
     # pp c.map
-    c.size.should == 9
+    expect(c.size).to eq(9)
 
   end
 

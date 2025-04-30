@@ -86,46 +86,48 @@ describe RedSteak do
     # m.context._logger = $stderr if ENV['TEST_VERBOSE']
 
     m.start!
-    m.state.name.should == :a
-    m.transition_queue.size.should == 1
+    expect(m.state.name).to eq(:a)
+    expect(m.transition_queue.size).to eq(1)
 
     m.run! :single
-    m.state.name.should == :b
-    m.transition_queue.size.should == 0
+    expect(m.state.name).to eq(:b)
+    expect(m.transition_queue.size).to eq(0)
 
     # Nothing pending so run! does nothing here.
     m.run!
-    m.state.name.should == :b
+    expect(m.state.name).to eq(:b)
 
     # This transition should invoke run!,
     # until at_end?
     m.transition! :'b->c'
-    m.state.name.should == :d
+    expect(m.state.name).to eq(:d)
 
     block_executed = false
     m.run! do
       block_executed = true
     end
-    block_executed.should == false
-    m.state.name.should == :d
+    expect(block_executed).to eq(false)
+    expect(m.state.name).to eq(:d)
 
-    m.at_end?.should == true
+    expect(m.at_end?).to eq(true)
 
-    m.context.history.should ==
+    expect(m.context.history).to eq(
       [
        :a,
        :b,
        :c,
        :d,
       ]
+    )
 
-    m.history.map { | h | h[:new_state].name }.should ==
+    expect(m.history.map { | h | h[:new_state].name }).to eq(
       [
        :a,
        :b,
        :c,
        :d,
       ]
+    )
   end
 
 
@@ -138,43 +140,45 @@ describe RedSteak do
     # m.context._logger = $stderr if ENV['TEST_VERBOSE']
 
     m.start!
-    m.state.name.should == :a
-    m.transition_queue.size.should == 1
+    expect(m.state.name).to eq(:a)
+    expect(m.transition_queue.size).to eq(1)
 
     m.run! :single
-    m.state.name.should == :b
-    m.transition_queue.size.should == 0
+    expect(m.state.name).to eq(:b)
+    expect(m.transition_queue.size).to eq(0)
 
     # Nothing queued.
     m.run!
-    m.state.name.should == :b
+    expect(m.state.name).to eq(:b)
 
     # auto_run is turned off, transition! should not auto run!
     m.transition! :'b->c'
-    m.state.name.should == :b
+    expect(m.state.name).to eq(:b)
 
     # Explicit run is required.
     m.run! :single
-    m.state.name.should == :c
+    expect(m.state.name).to eq(:c)
 
     m.run!
-    m.at_end?.should == true
+    expect(m.at_end?).to eq(true)
 
-    m.context.history.should ==
+    expect(m.context.history).to eq(
       [
        :a,
        :b,
        :c,
        :d,
       ]
+    )
 
-    m.history.map { | h | h[:new_state].name }.should ==
+    expect(m.history.map { | h | h[:new_state].name }).to eq(
       [
        :a,
        :b,
        :c,
        :d,
       ]
+    )
   end
 
 
@@ -187,29 +191,29 @@ describe RedSteak do
     m.context.do_trans = false
 
     m.start!
-    m.state.name.should == :a
-    m.transition_queue.size.should == 0
+    expect(m.state.name).to eq(:a)
+    expect(m.transition_queue.size).to eq(0)
 
     # this sequence should to nothing
     # because no transitions are valid.
     block_executed = false
     m.run! do | x |
       block_executed = true
-      x.should == m
-      m.transition_if_valid!.should == nil
+      expect(x).to be(m)
+      expect(m.transition_if_valid!).to eq(nil)
     end
-    block_executed.should == true
-    m.state.name.should == :a
+    expect(block_executed).to eq(true)
+    expect(m.state.name).to eq(:a)
 
     m.transition! :'a->b'
-    m.transition_queue.size.should == 1
+    expect(m.transition_queue.size).to eq(1)
     block_executed = false
     m.run!(:single) do | x |
       block_executed = true
     end
-    block_executed.should == false
-    m.transition_queue.size.should == 0
-    m.state.name.should == :b
+    expect(block_executed).to eq(false)
+    expect(m.transition_queue.size).to eq(0)
+    expect(m.state.name).to eq(:b)
 
     block_executed = false
     s = t = nil
@@ -218,29 +222,31 @@ describe RedSteak do
       s = x.state
       t = m.transition_if_valid!
     end
-    block_executed.should == true
-    m.transition_queue.size.should == 0
-    m.state.name.should == :d
-    s.name.should == :c
-    t.name.should == :"c->d"
+    expect(block_executed).to eq(true)
+    expect(m.transition_queue.size).to eq(0)
+    expect(m.state.name).to eq(:d)
+    expect(s.name).to eq(:c)
+    expect(t.name).to eq(:"c->d")
 
-    m.at_end?.should == true
+    expect(m.at_end?).to eq(true)
 
-    m.context.history.should ==
+    expect(m.context.history).to eq(
       [
        :a,
        :b,
        :c,
        :d,
       ]
+    )
 
-    m.history.map { | h | h[:new_state].name }.should ==
+    expect(m.history.map { | h | h[:new_state].name }).to eq(
       [
        :a,
        :b,
        :c,
        :d,
       ]
+    )
   end
 
 end # describe

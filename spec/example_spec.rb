@@ -242,85 +242,85 @@ describe 'RedSteak LoanOfficer Example' do
 
     m.start!
     render_graph(m)
-    m.state.name.should == :start
+    expect(m.state.name).to eq(:start)
     lo._log m.valid_transitions.inspect
-    m.transition_if_valid!.should_not == nil
+    expect(m.transition_if_valid!).to_not eq(nil)
 
     render_graph(m)
-    m.state.name.should == :customer_data
+    expect(m.state.name).to eq(:customer_data)
     controller.params[:first_name] = 'Joe'
     lo._log m.valid_transitions.inspect
-    m.transition_if_valid!.should_not == nil
+    expect(m.transition_if_valid!).to_not eq(nil)
 
     render_graph(m)
-    m.state.name.should == :customer_data
+    expect(m.state.name).to eq(:customer_data)
     controller.params[:last_name] = 'Borrower'
-    m.transition_if_valid!.should_not == nil
+    expect(m.transition_if_valid!).to_not eq(nil)
 
     render_graph(m)
-    m.state.name.should == :customer_data
+    expect(m.state.name).to eq(:customer_data)
     controller.params[:ssn] = '123456789'
     controller.params[:email] = 'joeb@asdf.com'
     controller.params[:income] = 1000
-    m.transition_if_valid!.should_not == nil
+    expect(m.transition_if_valid!).to_not eq(nil)
 
     render_graph(m)
-    m.transition_if_valid!.should_not == nil
+    expect(m.transition_if_valid!).to_not eq(nil)
 
     render_graph(m)
-    m.state.name.should == :loan_data
-    lo.customer.should_not == nil
+    expect(m.state.name).to eq(:loan_data)
+    expect(lo.customer).to_not eq(nil)
     controller.params[:amount] = 500
-    m.transition_if_valid!.should_not == nil
+    expect(m.transition_if_valid!).to_not eq(nil)
 
     render_graph(m)
-    m.state.name.should == :loan_data
+    expect(m.state.name).to eq(:loan_data)
     controller.params[:due_date] = '2009/01/20'
-    m.transition_if_valid!.should_not == nil
+    expect(m.transition_if_valid!).to_not eq(nil)
 
     render_graph(m)
-    m.transition_if_valid!.should_not == nil
+    expect(m.transition_if_valid!).to_not eq(nil)
 
     render_graph(m)
-    m.state.name.should == :risk_assessment
-    lo.loan.should_not == nil
-    lo.loan[:approved?].should == false
-    lo.loan[:denied?].should == false
-    m.transition_if_valid!.should_not == nil
+    expect(m.state.name).to eq(:risk_assessment)
+    expect(lo.loan).to_not eq(nil)
+    expect(lo.loan[:approved?]).to eq(false)
+    expect(lo.loan[:denied?]).to eq(false)
+    expect(m.transition_if_valid!).to_not eq(nil)
 
     render_graph(m)
-    m.state.name.should == :loan_denied
-    lo.loan.should_not == nil
-    lo.loan[:approved?].should == false
-    lo.loan[:denied?].should == true
+    expect(m.state.name).to eq(:loan_denied)
+    expect(lo.loan).to_not eq(nil)
+    expect(lo.loan[:approved?]).to eq(false)
+    expect(lo.loan[:denied?]).to eq(true)
     m.transition! :revise_loan_data!
 
     render_graph(m)
-    m.state.name.should == :loan_data
+    expect(m.state.name).to eq(:loan_data)
     lo.loan[:amount] = 100
-    m.transition_if_valid!.should_not == nil
+    expect(m.transition_if_valid!).to_not eq(nil)
 
     render_graph(m)
-    m.state.name.should == :risk_assessment
-    lo.loan[:approved?].should == false
-    lo.loan[:denied?].should == false
-    m.transition_if_valid!.should_not == nil
+    expect(m.state.name).to eq(:risk_assessment)
+    expect(lo.loan[:approved?]).to eq(false)
+    expect(lo.loan[:denied?]).to eq(false)
+    expect(m.transition_if_valid!).to_not eq(nil)
 
     render_graph(m)
-    m.state.name.should == :display_contract
-    lo.loan[:approved?].should == true
-    lo.loan[:denied?].should == false
+    expect(m.state.name).to eq(:display_contract)
+    expect(lo.loan[:approved?]).to eq(true)
+    expect(lo.loan[:denied?]).to eq(false)
     m.transition! :sign_contract!
 
     render_graph(m)
-    m.state.name.should == :loan_approved
-    m.transition_if_valid!.should_not == nil
+    expect(m.state.name).to eq(:loan_approved)
+    expect(m.transition_if_valid!).to_not eq(nil)
 
     render_graph(m)
-    m.state.name.should == :complete
-    (lo.loan[:approved?] || lo.loan[:denied?]).should == true
-    m.at_end?.should == true
-    m.transition_if_valid!.should == nil
+    expect(m.state.name).to eq(:complete)
+    expect(lo.loan[:approved?] || lo.loan[:denied?]).to eq(true)
+    expect(m.at_end?).to eq(true)
+    expect(m.transition_if_valid!).to eq(nil)
   end
 
 end # describe

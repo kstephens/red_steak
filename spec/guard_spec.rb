@@ -133,46 +133,46 @@ RUBY
   end
 
   it 'it will error if all guards return nil for multiple transitions.' do
-    lambda do
-      c.guard1.should == nil
-      c.guard2.should == nil
+    expect do
+      expect(c.guard1).to eq(nil)
+      expect(c.guard2).to eq(nil)
 
       c.event1
       m.run_events!
-    end.should raise_error(RedSteak::Error::UnhandledEvent, "No transitions for event")
+    end.to raise_error(RedSteak::Error::UnhandledEvent, "No transitions for event")
   end
 
   it 'it will error if all guards return false for multiple transitions.' do
-    lambda do
+    expect do
       c.guard1 = c.guard2 = false
-      c.guard1.should == false
-      c.guard2.should == false
+      expect(c.guard1).to eq(false)
+      expect(c.guard2).to eq(false)
 
       c.event1
       m.run_events!
-    end.should raise_error(RedSteak::Error::UnhandledEvent, "No transitions for event")
+    end.to raise_error(RedSteak::Error::UnhandledEvent, "No transitions for event")
   end
 
   it 'it will error if all guards return true for multiple transitions.' do
-    lambda do
+    expect do
       c.guard1 = c.guard2 = true
-      c.guard1.should == true
-      c.guard2.should == true
+      expect(c.guard1).to eq(true)
+      expect(c.guard2).to eq(true)
 
       c.event1
       m.run_events!
-    end.should raise_error(RedSteak::Error::UnhandledEvent, "Too many transititons for event")
+    end.to raise_error(RedSteak::Error::UnhandledEvent, "Too many transititons for event")
   end
 
   it 'it will not error if one and only one guard returns true' do
     lambda do
       c.guard1 = true
-      c.guard1.should == true
-      c.guard2.should == nil
+      expect(c.guard1).to eq(true)
+      expect(c.guard2).to eq(nil)
 
       c.event1
       m.run_events!
-      m.state.name.should == :state1
+      expect(m.state.name).to eq(:state1)
     end.call
   end
 
@@ -182,17 +182,17 @@ RUBY
       c.guard3 = true
       c._guard = true
 
-      c.guard1.should == true
-      c.guard2.should == nil
-      c.guard3.should == true
+      expect(c.guard1).to eq(true)
+      expect(c.guard2).to eq(nil)
+      expect(c.guard3).to eq(true)
 
       c.event1
       c.event2
       c.event3
       c.event4
       m.run_events!
-      c.guard_called.should == 2
-      m.state.name.should == :final
+      expect(c.guard_called).to eq(2)
+      expect(m.state.name).to eq(:final)
     end.call
   end
 
