@@ -2,13 +2,6 @@ require 'red_steak'
 require 'fileutils' # FileUtils.mkdir_p
 
 RSpec.describe RedSteak do
-
-=begin
-  before(:all) do
-    RedSteak::Dot.verbose = true
-  end
-=end
-
   # A test context for the StateMachine.
   class RedSteak::TestContext
     include RedSteak::Logging
@@ -749,12 +742,11 @@ RSpec.describe RedSteak do
     svg_data = RedSteak::Dot.new.render_graph_svg_data(m, :show_history => true)
     expect(svg_data).to match(/\A<\?xml/)
     expect(svg_data).to match(/<svg /)
-    expect(svg_data).to match(/<\/svg>/)
+    expect(svg_data).to match(%r{</svg>})
 
     svg_data = RedSteak::Dot.new.render_graph_svg_data(m, :show_history => true, :xml_header => false)
     expect(svg_data).to_not match(/\A<\?xml/)
     expect(svg_data).to match(/\A<svg /)
-    expect(svg_data).to match(/<\/svg>/)
+    expect(svg_data).to match(%r{</svg>})
   end
-
-end # describe
+end

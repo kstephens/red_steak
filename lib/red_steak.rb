@@ -15,7 +15,8 @@
 # * State entry, doActivity and exit behaviors are supported.
 # * StateMachine, State and Transition objects can be extended with metadata.
 # * History of Transitions can be logged per Machine.
-# * StateMachine and Machine#history records can be rendered as Dot syntax and SVG; See link:example/red_steak-loan_application-09.dot.svg.
+# * StateMachine and Machine#history records can be rendered as Dot syntax and SVG;
+#   See link:doc/example/red_steak-loan_application-09.dot.svg.
 #
 module RedSteak
   EMPTY_ARRAY = [ ].freeze
@@ -23,7 +24,7 @@ module RedSteak
   EMPTY_STRING = ''.freeze
 
   SEP = '::'.freeze
-end # module
+end
 
 # Support
 require 'red_steak/version'
@@ -35,7 +36,7 @@ require 'red_steak/base'
 require 'red_steak/named_element'
 require 'red_steak/namespace'
 require 'red_steak/state_machine'
-#require 'red_steak/region' # NOT IMPLEMENTED, YET!
+# require 'red_steak/region' # NOT IMPLEMENTED, YET!
 require 'red_steak/vertex'
 require 'red_steak/state'
 require 'red_steak/transition'

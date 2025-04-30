@@ -2,7 +2,6 @@ require 'red_steak/error'
 require 'pp'
 
 RSpec.describe 'RedSteak::Error' do
-
   it 'should handle (:message)' do
     e = RedSteak::Error.new(:message)
     expect(e.message).to eq("message")

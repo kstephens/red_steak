@@ -29,7 +29,6 @@ RSpec.describe "RedSteak Synchronous/Asynchronous Interactions" do
       end
   end
 
-
   class TestContext
     attr_accessor :tracker
     attr_reader :m
@@ -38,17 +37,14 @@ RSpec.describe "RedSteak Synchronous/Asynchronous Interactions" do
       _log!(sel, *args)
     end
 
-
-    def respond_to? sel
+    def respond_to? _sel
       # _log!(:respond_to?, sel)
       true
     end
 
-
     def exit *args
       _log!(:exit, *args)
     end
-
 
     def doActivity m, s, *args
       _log!(:doActivity, m, s, *args)
@@ -61,23 +57,19 @@ RSpec.describe "RedSteak Synchronous/Asynchronous Interactions" do
       end
     end
 
-
     def guard m, t, *args
       result = t == @next_transition
       _interaction! "c.guard(#{_format_args([m, t] + args)}) => #{result.inspect}"
       result
     end
 
-
     def _log! sel, *args
       _interaction! "c.#{sel}(#{_format_args(args)})"
     end
 
-
     def _interaction! expr
       @tracker.context! expr
     end
-
 
     def _exec! *args
       exec = args.pop
@@ -86,16 +78,14 @@ RSpec.describe "RedSteak Synchronous/Asynchronous Interactions" do
       eval(exec)
     end
 
-
     def _format_args args
       case args
       when Array
-        args.map{ | x | _format_arg x }.join(', ')
+        args.map { | x | _format_arg x }.join(', ')
       else
         raise ArgumentError, args.inspect
       end
     end
-
 
     def _format_arg arg
       case arg
@@ -108,14 +98,12 @@ RSpec.describe "RedSteak Synchronous/Asynchronous Interactions" do
       when RedSteak::Transition
         arg.name.inspect
       when Array
-        '[ ' + _format_args(arg) + ' ]'
+        "[ #{_format_args(arg)} ]"
       else
         arg.inspect
       end
     end
-
   end
-
 
   class Tracker
     attr_accessor :machine, :context
@@ -135,7 +123,6 @@ RSpec.describe "RedSteak Synchronous/Asynchronous Interactions" do
       eval(expr)
     end
 
-
     def top_level! expr
       @top_level << { :expr => expr, :machine => [ ]}
     end
@@ -151,14 +138,13 @@ RSpec.describe "RedSteak Synchronous/Asynchronous Interactions" do
       x << { :expr => expr }
     end
 
-
     def render_text out
       out.puts "\n\n#{machine.stateMachine.name} interactions:"
       out.write "\n"
       out.puts "top-level\tmachine\t\tcontext"
       out.puts "=========\t=======\t\t======="
       @top_level.each do | i |
-        out.puts "#{i[:expr]}"
+        out.puts i[:expr].to_s
         i[:machine].each do | m |
           out.puts "\t\t#{m[:expr]}"
           m[:context].each do | c |
@@ -168,7 +154,6 @@ RSpec.describe "RedSteak Synchronous/Asynchronous Interactions" do
       end
       out.write "\n\n"
     end
-
 
     def render_html out
       out.puts "<h2>#{machine.stateMachine.name} interactions:</h2>"
@@ -191,12 +176,7 @@ RSpec.describe "RedSteak Synchronous/Asynchronous Interactions" do
       out.puts "</tbody>"
       out.puts "</table>"
     end
-
   end
-
-
-  ####################################################################
-
 
   def context
     @context ||=
@@ -206,7 +186,6 @@ RSpec.describe "RedSteak Synchronous/Asynchronous Interactions" do
       end
   end
 
-
   def tracker
     @tracker ||=
       begin
@@ -214,13 +193,14 @@ RSpec.describe "RedSteak Synchronous/Asynchronous Interactions" do
         t.context = context
         context.tracker = t
         t.machine = machine
-        machine.logger = lambda do | msg |
-          t.machine! "m.#{msg}"
-        end if ENV['TEST_VERBOSE']
+        if ENV['TEST_VERBOSE']
+          machine.logger = lambda do | msg |
+            t.machine! "m.#{msg}"
+          end
+        end
         t
       end
   end
-
 
   def machine
     @machine ||=
@@ -232,9 +212,7 @@ RSpec.describe "RedSteak Synchronous/Asynchronous Interactions" do
       end
   end
 
-
   ####################################################################
-
 
   it 'handles synchronous run! events' do
     sm :synchronous
@@ -244,7 +222,6 @@ RSpec.describe "RedSteak Synchronous/Asynchronous Interactions" do
 
     tracker.render_text $stdout
   end
-
 
   it 'handles asynchronous run! events' do
     sm :asynchronous
@@ -260,5 +237,4 @@ RSpec.describe "RedSteak Synchronous/Asynchronous Interactions" do
 
     tracker.render_text $stdout
   end
-
 end

@@ -4,7 +4,6 @@ require 'fileutils' # FileUtils.mkdir_p
 require 'pp'
 
 RSpec.describe 'RedSteak::Machine guard spec' do
-
   # A test context for the StateMachine.
   class GuardTestContext
     attr_accessor :name, :m
@@ -195,5 +194,4 @@ RUBY
       expect(m.state.name).to eq(:final)
     end.call
   end
-
 end # describe

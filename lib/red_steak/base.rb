@@ -20,6 +20,7 @@ module RedSteak
       # If some options are already set, merge them.
       if @options
         return @options if opts.empty?
+
         @options.update(_dup_opts(opts))
       else
         @options = _dup_opts opts
@@ -34,8 +35,6 @@ module RedSteak
           @options.delete k
         end
       end
-
-      @options
     end
 
     # Shorthand for self.options[...].
@@ -46,7 +45,6 @@ module RedSteak
     # Sets the name as a Symbol.
     def name= x
       @name = x && x.to_sym
-      x
     end
 
     # Returns the name Symbol.
@@ -75,7 +73,7 @@ module RedSteak
 
     # Deepens @options.
     # Subclasses should call super.
-    def deepen_copy! copier, src
+    def deepen_copy! _copier, _src
       @options = _dup_opts @options
     end
 
@@ -99,23 +97,16 @@ module RedSteak
     # Runs _validate method and collects errors into an Array.
     def validate errors = nil
       errors ||= [ ]
-
       e = [ ]
       _validate e
-
       e.each do | msg |
-        case msg
-        when Array
-        else
-          msg = [ msg, self ]
-        end
+        msg = [ msg, self ] unless msg.instance_of?(Array)
         errors << msg
       end
-
       errors
     end
 
-    def _validate e
+    def _validate _e
       self
     end
 
@@ -127,13 +118,13 @@ module RedSteak
     # Returns self if this object is valid.
     # Otherwise it raises a Error::ObjectInvalid error.
     def validate!
-      if (errors = self.validate) && ! errors.empty?
-        pp errors
+      if (errors = validate) && ! errors.empty?
+        # pp errors
         raise Error::ObjectInvalid, :message => :validate!, :object => self, :errors => errors
       end
     end
-  end # class
-end # module
+  end
+end
 
 require 'red_steak/copier'
 require 'red_steak/named_array'

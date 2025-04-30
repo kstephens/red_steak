@@ -2,7 +2,6 @@ require 'red_steak/copier'
 require 'pp'
 
 RSpec.describe 'RedSteak::Copier' do
-
   attr_reader :c
   before(:all) do
     @c = RedSteak::Copier.new
@@ -53,7 +52,6 @@ RSpec.describe 'RedSteak::Copier' do
     expect(c[y].frozen?).to eq(true)
   end
 
-
   it 'should copy Arrays.' do
     x = '1234asdf'
     y = '1234asdf'.freeze
@@ -74,7 +72,6 @@ RSpec.describe 'RedSteak::Copier' do
     expect(c.size).to eq(6)
   end
 
-
   it 'should copy Hashes.' do
     x = '1234asdf'
     y = '1234asdf'.freeze
@@ -93,7 +90,5 @@ RSpec.describe 'RedSteak::Copier' do
 
     # pp c.map
     expect(c.size).to eq(9)
-
   end
-
 end # describe
