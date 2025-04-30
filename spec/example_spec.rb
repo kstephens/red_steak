@@ -3,7 +3,7 @@ require 'ostruct'
 require 'fileutils' # FileUtil.mkdir_p
 require 'pp'
 
-describe 'RedSteak LoanOfficer Example' do
+RSpec.describe 'RedSteak LoanOfficer Example' do
 
   # A test context for the StateMachine.
   class LoanOfficer

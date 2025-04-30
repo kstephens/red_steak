@@ -1,7 +1,7 @@
 require 'red_steak'
 require 'pp'
 
-describe 'RedSteak::Builder' do
+RSpec.describe 'RedSteak::Builder' do
 
   it 'should handle undefined ambiguous Transition names' do
     sm = RedSteak::Builder.new.build do

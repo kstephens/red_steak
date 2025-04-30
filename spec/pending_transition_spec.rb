@@ -1,6 +1,6 @@
 require 'red_steak'
 
-describe RedSteak do
+RSpec.describe RedSteak do
 
   # A test context for the Statemachine.
   class RedSteak::TestContext2

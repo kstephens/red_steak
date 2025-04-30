@@ -3,7 +3,7 @@ require 'ostruct'
 require 'fileutils' # FileUtils.mkdir_p
 require 'pp'
 
-describe 'RedSteak::Machine#event!' do
+RSpec.describe 'RedSteak::Machine#event!' do
 
   # A test context for the StateMachine.
   class Telephone

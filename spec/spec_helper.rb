@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require 'simplecov'
+SimpleCov.start
+
 $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 
 require 'pry-byebug'
@@ -33,5 +36,3 @@ RSpec.configure do |config|
 end
 
 TEST_VERBOSE = ENV.fetch('TEST_VERBOSE', '0').to_i != 0
-
-require 'webmock/rspec'

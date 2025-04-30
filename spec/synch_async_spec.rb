@@ -2,7 +2,7 @@ require 'red_steak'
 require 'ostruct'
 require 'pp'
 
-describe "RedSteak Synchronous/Asynchronous Interactions" do
+RSpec.describe "RedSteak Synchronous/Asynchronous Interactions" do
   def sm name = nil
     @sm ||=
       RedSteak::Builder.new.build do

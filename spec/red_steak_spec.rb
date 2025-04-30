@@ -1,7 +1,7 @@
 require 'red_steak'
 require 'fileutils' # FileUtils.mkdir_p
 
-describe RedSteak do
+RSpec.describe RedSteak do
 
 =begin
   before(:all) do

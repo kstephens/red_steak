@@ -1,7 +1,7 @@
 require 'red_steak/error'
 require 'pp'
 
-describe 'RedSteak::Error' do
+RSpec.describe 'RedSteak::Error' do
 
   it 'should handle (:message)' do
     e = RedSteak::Error.new(:message)

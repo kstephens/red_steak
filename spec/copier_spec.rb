@@ -1,7 +1,7 @@
 require 'red_steak/copier'
 require 'pp'
 
-describe 'RedSteak::Copier' do
+RSpec.describe 'RedSteak::Copier' do
 
   attr_reader :c
   before(:all) do
