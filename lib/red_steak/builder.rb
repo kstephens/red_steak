@@ -1,5 +1,4 @@
 module RedSteak
-
   # DSL for building StateMachine objects.
   class Builder
     include Logging
@@ -27,7 +26,6 @@ module RedSteak
       build &blk if block_given?
     end
 
-
     # Begins building StateMachine by evaluating block.
     # Returns the generated StateMachine.
     # The StateMachine is validated before returning.
@@ -37,7 +35,6 @@ module RedSteak
       @result.validate! if @result.respond_to?(:validate!)
       @result
     end
-
 
     ##################################################################
     # DSL methods
@@ -134,7 +131,6 @@ module RedSteak
       sm
     end
 
-
     # Defines a submachine inside a State.
     def submachine opts = { }, &blk
       raise ArgumentError, "submachine only valid inside a state" unless State === @current
@@ -143,14 +139,12 @@ module RedSteak
       statemachine name, opts, &blk
     end
 
-
     # Defines the initial state.
     def initial name, opts = { }
       opts[:name] = name
       @context[:initial] = opts
       self
     end
-
 
     # Defines the final state.
     def final name, opts = { }
@@ -159,12 +153,10 @@ module RedSteak
       self
     end
 
-
     # Defines a Pseudostate.
     def pseudostate kind, name, opts = { }
       raise NotImplemented, :message => :pseudostate
     end
-
 
     # Creates a state.
     #
@@ -209,7 +201,6 @@ module RedSteak
 
       s
     end
-
 
     # Creates a transition between two states.
     #
@@ -273,9 +264,7 @@ module RedSteak
       self
     end
 
-
     private
-
 
     def _with_context name, val
       current_save = @current
@@ -304,7 +293,6 @@ module RedSteak
       end
     end
 
-
     # Determine what object should own
     # a new State if one is created.
     def _owner
@@ -312,7 +300,6 @@ module RedSteak
         @root_statemachine ||
         (raise Exception, "statemachine is unknown")
     end
-
 
     # Locates a state by name or creates a new object.
     def _find_state opts, param = EMPTY_HASH
@@ -374,7 +361,6 @@ module RedSteak
         end
       end
 
-
       _log { "  state = #{state.inspect} in #{owner.inspect}" }
 
       # Create a new one, if requested.
@@ -392,7 +378,6 @@ module RedSteak
 
       state
     end
-
 
     # Called after all States have been created.
     def _create_transition! t
@@ -454,7 +439,5 @@ module RedSteak
 
       t
     end
-
   end # class
-
 end # module

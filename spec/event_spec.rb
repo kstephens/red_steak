@@ -4,17 +4,21 @@ require 'fileutils' # FileUtils.mkdir_p
 require 'pp'
 
 RSpec.describe 'RedSteak::Machine#event!' do
-
   # A test context for the StateMachine.
   class Telephone
     attr_accessor :name
-
     attr_reader :number
-
     attr_accessor :m
 
     def initialize
       @number = ""
+      @counter = 0
+    end
+
+    def tick! ; @counter += 1 ; self; end
+    def log kind, msg
+      $stderr.puts("%3d | %-7s | %s" % [@counter, kind, msg])
+      $stderr.puts("%3s   %-7s | %s" % ['', '', inspect])
     end
 
     ########################################
@@ -53,19 +57,24 @@ RSpec.describe 'RedSteak::Machine#event!' do
       ! (number =~ /^\d+$/)
     end
 
-
     ########################################
     # Methods that generate events.
     #
 
     def dial_digit n
       @number << n
-      @m.event! [ :dial_digit, n ]
+      event! [ :dial_digit, n ]
+    end
+
+    def event! e
+      tick!
+      log :event, e.join(', ')
+      @m.event! e
     end
 
     [
      :after_timeout,
-     :lift_reciever,
+     :lift_receiver,
      :connected,
      :busy,
      :callee_answers,
@@ -75,22 +84,19 @@ RSpec.describe 'RedSteak::Machine#event!' do
     ].each do | meth |
       class_eval <<"RUBY", __FILE__, __LINE__
 def #{meth}
-  $stderr.puts "#{name} #{meth}()"
-  @m.event! [ #{meth.inspect} ]
+  event! [ #{meth.inspect} ]
 end
 RUBY
     end
 
-
     def inspect
-      "#{self.class} #{name} n=#{number.inspect} t=#{call_type.inspect} state=#{@m.state.to_s}"
+      "#{self.class} state=#{@m.state.to_s} n=#{number.inspect} t=#{call_type.inspect}"
     end
-
 
     def method_missing sel, *args
-      $stderr.puts "#{name} #{sel}(#{args.inspect.gsub(/^\[|\]$/, '')})"
+      tick!
+      log :do, "#{sel}(#{args.inspect.gsub(/^\[|\]$/, '')})"
     end
-
 
     def sm
       @sm ||=
@@ -101,7 +107,7 @@ RUBY
 
           state :idle
           transition :active,
-            :trigger => :lift_reciever,
+            :trigger => :lift_receiver,
             :effect => :get_dial_tone,
             :dot_options => { :color => :green }
           transition :final,
@@ -179,7 +185,6 @@ RUBY
     end
   end
 
-
   def render_graph sm, opts = { }
     opts[:dir] ||= File.expand_path(File.dirname(__FILE__) + '/../doc/example')
     FileUtils.mkdir_p(opts[:dir])
@@ -205,9 +210,7 @@ RUBY
     # pp sm.history
   end
 
-
   ####################################################################
-
 
   attr_accessor :t
 
@@ -229,7 +232,7 @@ RUBY
 
     events =
       [
-       :lift_reciever,
+       :lift_receiver,
        [ :dial_digit, "5" ],
        [ :dial_digit, "5" ],
        [ :dial_digit, "5" ],
@@ -244,7 +247,7 @@ RUBY
       ]
 
     until m.at_end?
-      $stderr.puts "t = #{t.inspect}"
+      # t.log :context, t.inspect
       event = events.shift
       raise "out of events" unless events
       case event

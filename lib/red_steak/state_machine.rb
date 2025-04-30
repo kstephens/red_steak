@@ -1,8 +1,6 @@
 module RedSteak
-
   # A StateMachine object.
   class StateMachine < Namespace
-
     # List of State objects.
     # subsets ownedMember
     attr_reader :states # not UML
@@ -34,7 +32,6 @@ module RedSteak
     # Log level method Symbol if Log4r::Logger === logger.
     attr_accessor :log_level
 
-
     def initialize opts
       @states = NamedArray.new([ ], :state)
       @transitions = NamedArray.new([ ])
@@ -48,7 +45,6 @@ module RedSteak
       super
     end
 
-
     def deepen_copy! copier, src
       super
 
@@ -60,12 +56,10 @@ module RedSteak
       @end_state   = copier[@end_state]
     end
 
-
     # Returns the outer-most StateMachine.
     def rootStateMachine
       @submachineState ? superstatemachine.rootStateMachine : self
     end
-
 
     # Sets the start state.
     def start_state= x
@@ -80,7 +74,6 @@ module RedSteak
       x
     end
 
-
     # Sets the end state.
     def end_state= x
       @end_state = x
@@ -94,16 +87,13 @@ module RedSteak
       x
     end
 
-
     alias :s :states
     alias :t :transitions
-
 
     # Returns the superstatemachine of this State.
     def superstatemachine
       @submachineState && @submachineState.stateMachine
     end
-
 
     # Adds a State to this StateMachine.
     def add_state! s
@@ -122,7 +112,6 @@ module RedSteak
 
       s
     end
-
 
     # Removes a State from this StateMachine.
     # Also removes any Transitions associated with the State.
@@ -146,7 +135,6 @@ module RedSteak
       transitions
     end
 
-
     # Adds a Pseudostate to this StateMachine.
     def add_connectionPoint! s
       _log { "add_connectionPoint! #{s.inspect}" }
@@ -164,7 +152,6 @@ module RedSteak
 
       s
     end
-
 
     # Removes a Pseudostate from this StateMachine.
     def remove_connectionPoint! s
@@ -184,7 +171,6 @@ module RedSteak
       self
     end
 
-
     # Adds a Transition to this StateMachine.
     def add_transition! t
       _log { "add_transition! #{t.inspect}" }
@@ -202,7 +188,6 @@ module RedSteak
 
       t
     end
-
 
     # Removes a Transition from this StateMachine.
     def remove_transition! t
@@ -225,7 +210,6 @@ module RedSteak
       self
     end
 
-
     # Returns a list of validation errors.
     def _validate errors = [ ]
       errors << :no_start_state unless start_state
@@ -239,7 +223,6 @@ module RedSteak
       errors
     end
 
-
     # Returns the path name for this statemachine.
     def to_a
       if ss = superstate
@@ -251,7 +234,6 @@ module RedSteak
       x
     end
 
-
     # Creates a new Builder to augment an existing StateMachine.
     def self.build opts = { }, &blk
       b = Builder.new(opts)
@@ -262,7 +244,6 @@ module RedSteak
         b
       end
     end
-
 
     # Creates a new Builder to augment an existing Statemachine.
     # Executes block in builder, if given.
@@ -277,19 +258,14 @@ module RedSteak
     end
     alias :build :builder
 
-
     # Creates a new Machine for this StateMachine.
     def machine opts = { }
       opts[:stateMachine] ||= self
       Machine.new(opts)
     end
 
-
-    ##################################################################
-
     def inspect
       "#<#{self.class} #{to_s}>"
     end
-
   end # class
 end # module

@@ -1,5 +1,4 @@
 module RedSteak
-
   #
   class Pseudostate < Vertex
     # See PseudostateKind.

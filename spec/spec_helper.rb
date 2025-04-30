@@ -4,6 +4,8 @@ require 'pry-byebug'
 require 'pry-stackexplorer'
 require 'awesome_print'
 
+TEST_VERBOSE = ENV.fetch('TEST_VERBOSE', '0').to_i != 0
+
 if (ENV['COVERAGE'] || '1').to_i > 0
   require 'simplecov'
   SimpleCov.start do
@@ -14,6 +16,7 @@ if (ENV['COVERAGE'] || '1').to_i > 0
     GC.start
     SimpleCov.result.format!
   end
+end
 
 $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 
@@ -31,4 +34,3 @@ RSpec.configure do |config|
   config.full_backtrace = true if ENV['TEST_BACKTRACE']
 end
 
-TEST_VERBOSE = ENV.fetch('TEST_VERBOSE', '0').to_i != 0

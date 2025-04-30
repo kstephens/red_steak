@@ -1,5 +1,4 @@
 module RedSteak
-
   # Base class for RedSteak objects.
   class Base
     include Logging
@@ -15,7 +14,6 @@ module RedSteak
       @options = nil
       self.options = opts
     end
-
 
     # Sets all options.
     def options= opts
@@ -40,12 +38,10 @@ module RedSteak
       @options
     end
 
-
     # Shorthand for self.options[...].
     def [](*args)
       options[*args]
     end
-
 
     # Sets the name as a Symbol.
     def name= x
@@ -53,12 +49,10 @@ module RedSteak
       x
     end
 
-
     # Returns the name Symbol.
     def to_sym
       @name
     end
-
 
     # Dups options Hashes deeply.
     def _dup_opts opts
@@ -74,19 +68,16 @@ module RedSteak
       h
     end
 
-
     # Creates a deep copy of this object.
     def copy
       Copier.copy(self)
     end
-
 
     # Deepens @options.
     # Subclasses should call super.
     def deepen_copy! copier, src
       @options = _dup_opts @options
     end
-
 
     # Returns the String representation of this object's namespace path.
     # This is related to its namespace.
@@ -95,18 +86,15 @@ module RedSteak
       to_a * SEP
     end
 
-
     # Returns the namespace path of this object.
     def to_a
       [ name ]
     end
 
-
     # Returns the class and the name as a String.
     def inspect
       "#<#{self.class} #{to_s}>"
     end
-
 
     # Runs _validate method and collects errors into an Array.
     def validate errors = nil
@@ -127,17 +115,14 @@ module RedSteak
       errors
     end
 
-
     def _validate e
       self
     end
-
 
     # Returns true if this object is valid.
     def valid?
       validate.empty?
     end
-
 
     # Returns self if this object is valid.
     # Otherwise it raises a Error::ObjectInvalid error.
@@ -147,10 +132,7 @@ module RedSteak
         raise Error::ObjectInvalid, :message => :validate!, :object => self, :errors => errors
       end
     end
-
   end # class
-
-
 end # module
 
 require 'red_steak/copier'

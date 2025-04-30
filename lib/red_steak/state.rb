@@ -1,5 +1,4 @@
 module RedSteak
-
   # A State in a StateMachine.
   # A State may have a submachine.
   class State < Vertex
@@ -27,7 +26,6 @@ module RedSteak
     # List of Pseudostates.
     attr_reader :connectionPoint # UML
 
-
     def initialize opts = { }
       @state_type = nil
       @entry = nil
@@ -38,7 +36,6 @@ module RedSteak
       super
     end
 
-
     def deepen_copy! copier, src
       super
 
@@ -46,18 +43,15 @@ module RedSteak
       @connectionPoint = copier[@connectionPoint]
     end
 
-
     def superstate
       @stateMachine && @stateMachine.submachineState
     end
-
 
     # Substate axis.
     def state
       @submachine ? @submachine.state : NamedArray::EMPTY
     end
     alias :substate :state
-
 
     # Adds a Pseudostate to this State.
     def add_connectionPoint! s
@@ -76,7 +70,6 @@ module RedSteak
       s
     end
 
-
     # Removes a Pseudostate from this State.
     def remove_connectionPoint! s
       _log { "remove_connectionPoint! #{s.inspect}" }
@@ -90,18 +83,15 @@ module RedSteak
       self
     end
 
-
     # Returns true if this a start state.
     def start_state?
       @state_type == :start
     end
 
-
     # Returns true if this an end state.
     def end_state?
       @state_type == :end
     end
-
 
     # Returns true if this State matches x or is a substate of x.
     def === x
@@ -114,20 +104,17 @@ module RedSteak
       end
     end
 
-
     # Returns true if this State is a substate of x.
     # All States are substates of themselves.
     def is_a_substate_of? x
       self.ancestors.include?(x)
     end
 
-
     # Returns true if this State is a superstate of x.
     # All States are superstates of themselves.
     def is_a_superstate_of? x
       x.ancestors.include?(self)
     end
-
 
     # A state with isComposite=true is said to be a composite state. A composite state is a state that contains at least one
     #   region. Default value is false.
@@ -161,7 +148,6 @@ module RedSteak
     # Non-UML alias
     alias :is_submachine_state? :isSubmachineState
 
-
     # Returns a NamedArray of all ancestor States.
     # self is the first element.
     def ancestors
@@ -175,12 +161,10 @@ module RedSteak
         end
     end
 
-
     # Called by Machine when State is entered.
     def entry! machine, args
       _behavior! :entry, machine, args
     end
-
 
     # Called by Machine when State is exited.
     def exit! machine, args
@@ -192,18 +176,15 @@ module RedSteak
       _behavior! :doActivity, machine, args
     end
 
-
     # Called after this State is added to the StateMachine.
     def state_added! statemachine
       transitions_changed!
     end
 
-
     # Called after a State removed from its StateMachine.
     def state_removed! statemachine
       transitions_changed!
     end
-
 
     # Adds a Pseudostate to this State.
     def add_connectionPoint! s
@@ -223,7 +204,6 @@ module RedSteak
       s
     end
 
-
     # Removes a Pseudostate from this StateMachine.
     def remove_connectionPoint! s
       _log { "remove_connectionPoint! #{s.inspect}" }
@@ -237,7 +217,6 @@ module RedSteak
 
       self
     end
-
 
     def _validate errors
       errors << :state_without_transitions unless transition.size != 0
@@ -255,6 +234,5 @@ module RedSteak
         errors << :end_state_has_substates unless ! end_state?
       end
     end
-
   end # class
 end # module

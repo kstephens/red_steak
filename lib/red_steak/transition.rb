@@ -1,5 +1,4 @@
 module RedSteak
-
   # Represents a transition from one state to another state in a statemachine.
   class Transition < Namespace
     # See TransitionKind.
@@ -27,14 +26,12 @@ module RedSteak
     # Using a Symbol is preferred.
     attr_accessor :effect # UML
 
-
     def initialize opts
       @kind = :external
       @trigger = EMPTY_ARRAY
       super
       @trigger = [ @trigger ] unless Array === @trigger
     end
-
 
     def deepen_copy! copier, src
       super
@@ -44,7 +41,6 @@ module RedSteak
       @trigger = copier[@trigger]
       @participant = nil
     end
-
 
     # Returns true if X matches this Transition by name.x
     def === x
@@ -57,14 +53,12 @@ module RedSteak
       end
     end
 
-
     # Returns the source and target.
     # FIXME: @paricipant needs to be invalidated if @source or @target change.
     def participant
       @participant ||=
         NamedArray.new([ @source, @target ].uniq.freeze, :state)
     end
-
 
     # Returns the first #trigger that matches the event.
     # Called by Machine#transitions_matching_event.
@@ -82,7 +76,6 @@ module RedSteak
       end
     end
 
-
     # Called by Machine to check #guard.
     # _args_ are the args from the Event.
     # If :guard is not defined, the guard is effectively true.
@@ -91,7 +84,6 @@ module RedSteak
       _behavior! :guard, machine, args, true
     end
 
-
     # Called by Machine to perform #effect when transition fires.
     # _args_ are the args from the Event.
     def effect! machine, args
@@ -99,11 +91,9 @@ module RedSteak
       self
     end
 
-
     def inspect
       "#<#{self.class} #{@stateMachine.to_s} #{name} #{source.to_s} -> #{target.to_s}>"
     end
-
 
     # Return a UML String representation.
     def to_uml_s
@@ -120,6 +110,5 @@ module RedSteak
           x
         end
     end
-
   end # class
 end # module

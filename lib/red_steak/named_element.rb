@@ -1,5 +1,4 @@
 module RedSteak
-
   # Base class for all elements in a StateMachine.
   class NamedElement < Base
     # The Namespace of this NamedElement.
@@ -16,22 +15,17 @@ module RedSteak
       super
     end
 
-
     def deepen_copy! copier, src
       super
       @namespace = copier[@namespace]
       @stateMachine = copier[@stateMachine]
     end
 
-
-
     def ownedMember_added! ns
     end
 
-
     def ownedMember_removed! ns
     end
-
 
     # Called by subclasses to notify/query the context object for specific actions.
     # Will get the method from local options or the StateMachine's options Hash.
@@ -80,10 +74,8 @@ module RedSteak
       default_value
     end
 
-
     def inspect
       "#<#{self.class} #{@stateMachine.to_s} #{to_s}>"
     end
-
   end # class
 end # module

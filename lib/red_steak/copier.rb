@@ -12,7 +12,6 @@ module RedSteak
       @map = { }
     end
 
-
     # Copies x deeply.
     #
     # 1) Dups x as xx
@@ -54,9 +53,7 @@ module RedSteak
 
       xx
     end
-
     alias :[] :copy
-
 
     def size
       @map.inject(@map.size) { | c, v | c += v.size }

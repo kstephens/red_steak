@@ -41,7 +41,6 @@ module RedSteak
       super
     end
 
-
     def dot_name x, context = nil
       case context
       when Array
@@ -53,7 +52,6 @@ module RedSteak
           _dot_name(x, context)
       end
     end
-
 
     def _dot_name x, context
       @dot_id +=1
@@ -79,13 +77,11 @@ module RedSteak
       prefix
     end
 
-
     # Returns the Dot label for the object.
     def dot_label x
       @dot_label[x] ||=
         _dot_label x
     end
-
 
     def _dot_label x
       case x
@@ -171,7 +167,6 @@ module RedSteak
       end
     end
 
-
     # Renders object as Dot syntax.
     def render x = @stateMachine
       case x
@@ -183,9 +178,9 @@ module RedSteak
           [ x.state ].compact
         options[:highlight_transitions] ||=
           (
-           x.transition_queue.map{|e| e.first} <<
-           x.transition
-           ).compact
+            x.transition_queue.map{|e| e.first} <<
+            x.transition
+          ).compact
         render x.stateMachine
       when StateMachine
         render_root x
@@ -197,7 +192,6 @@ module RedSteak
         raise ArgumentError, x.inspect
       end
     end
-
 
     def render_root sm
       # Map high-level options.
@@ -255,7 +249,6 @@ module RedSteak
       stream.puts "// } #{sm.inspect}\n"
     end
 
-
     def render_transitions sm
       sm.transitions.each { | t | render(t) }
       sm.states.each do | s |
@@ -273,7 +266,6 @@ module RedSteak
         end
       end
     end
-
 
     # Renders the StateMachine as Dot syntax.
     def render_StateMachine sm, dot_opts = nil
@@ -315,7 +307,6 @@ module RedSteak
       stream.puts "}"
       stream.puts "// } #{sm.inspect}\n"
     end
-
 
     # Renders the State object as Dot syntax.
     def render_State s
@@ -425,7 +416,6 @@ module RedSteak
       return self
     end
 
-
     # Renders the Dot syntax for the Transition.
     def render_Transition t
       return if @rendered[t]
@@ -533,7 +523,6 @@ module RedSteak
       t.join(',').gsub(/\.\./, '-').sub("\01", '...')
     end
 
-
     def dot_opts_for x, opts = nil
       opts ||= { }
       kind =
@@ -563,7 +552,6 @@ module RedSteak
       opts
     end
 
-
     def render_opts x, j = ', '
       case x
       when Hash
@@ -589,7 +577,6 @@ module RedSteak
         x.to_s.inspect
       end
     end
-
 
     # _machine_ can be a Machine or a Statemachine object.
     #
@@ -719,7 +706,6 @@ module RedSteak
       self
     end
 
-
     # Returns SVG data of the graph, using a temporary file.
     def render_graph_svg_data machine, opts = { }
       require 'tempfile'
@@ -737,6 +723,5 @@ module RedSteak
       File.unlink(self.file_dot) rescue nil
       File.unlink(self.file_svg) rescue nil
     end
-
   end # class
 end # module

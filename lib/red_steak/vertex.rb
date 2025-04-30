@@ -1,5 +1,4 @@
 module RedSteak
-
   # Abstract superclass for State and Pseudostate
   class Vertex < NamedElement
     # This vertex kind.
@@ -11,7 +10,6 @@ module RedSteak
     # List of Transitions away from this Vertex.
     attr_reader :outgoing # UML
 
-
     def initialize opts = { }
       @kind = nil
       transitions_changed!
@@ -20,14 +18,12 @@ module RedSteak
       super
     end
 
-
     def deepen_copy! copier, src
       super
       transitions_changed!
       @incoming = copier[@incoming]
       @outgoing = copier[@outgoing]
     end
-
 
     # Clears caches of related transitions.
     def transitions_changed!
@@ -36,7 +32,6 @@ module RedSteak
         @source =
         nil
     end
-
 
     # Called after a Transition is connected to this state.
     def transition_added! transition
@@ -49,12 +44,10 @@ module RedSteak
       end
     end
 
-
     # Called after a Transition removed from this Vertex.
     def transition_removed! transition
       transitions_changed!
     end
-
 
     # Returns a list of Transitions incoming to or outgoing from this Vertex.
     def transition
@@ -64,7 +57,6 @@ module RedSteak
                        )
     end
     alias :transitions :transition
-
 
     # Returns a list of Vertex objects that are immediately transitional from this one.
     def target
@@ -76,7 +68,6 @@ module RedSteak
     end
     alias :targets :target
 
-
     # Returns a list of Vertex that are immediately transitional to this one.
     def source
       @source ||=
@@ -86,7 +77,6 @@ module RedSteak
                        )
     end
     alias :sources :source
-
 
     # Returns true if this matches x.
     def === x
@@ -105,7 +95,6 @@ module RedSteak
       end
     end
 
-
     # Returns an Array representation of this Vertex.
     # Includes superstates and substates.
     def to_a
@@ -115,6 +104,5 @@ module RedSteak
         [ @name ]
       end
     end
-
   end # class
 end # module

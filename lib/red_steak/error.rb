@@ -1,7 +1,6 @@
 require 'red_steak'
 
 module RedSteak
-
   # Base class for all RedSteak errors.
   #
   # Instances of this Error class take a Hash as first argument.
@@ -28,7 +27,6 @@ module RedSteak
 
     # The message for this Error.
     attr_reader :message
-
 
     # Examples:
     #
@@ -67,18 +65,15 @@ module RedSteak
       super(@message)
     end
 
-
     def inspect
       @inspect ||=
         "#<#{self.class} #{@message.inspect}#{@options.keys.sort { |a, b| a.to_s <=> b.to_s }.map { | k | "\n  #{k.inspect} => #{@options[k].inspect}" }.join('')}>".freeze
     end
 
-
     def to_s
       @to_s ||=
         "#<#{self.class} #{@message.inspect}#{@options.empty? ? '' : ' ...'}>".freeze
     end
-
 
     def method_missing sel, *args
       if args.empty? && @options.key?(sel = sel.to_sym) && ! block_given?
@@ -87,9 +82,6 @@ module RedSteak
         super
       end
     end
-
-
-    ##################################################################
 
 
     # Transition is unknown by name.
@@ -121,6 +113,4 @@ module RedSteak
     # See Machine#run_events!.
     class UnhandledEvent < self; end
   end
-
 end
-

@@ -12,7 +12,6 @@ RSpec.describe 'RedSteak::Error' do
     expect(e.inspect).to eq("#<RedSteak::Error \"message\">")
   end
 
-
   it 'should handle ("message")' do
     e = RedSteak::Error.new("message")
     expect(e.message).to eq("message")
@@ -21,7 +20,6 @@ RSpec.describe 'RedSteak::Error' do
     expect(e.message).to eq("message")
     expect(e.inspect).to eq("#<RedSteak::Error \"message\">")
   end
-
 
   it 'should handle (:message => "message")' do
     e = RedSteak::Error.new(:message => "message")
@@ -41,6 +39,4 @@ RSpec.describe 'RedSteak::Error' do
     expect(e.message).to eq("message")
     expect(e.inspect).to eq("#<RedSteak::Error \"message\"\n  :foo => :bar>")
   end
-
-
 end # describe
