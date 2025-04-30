@@ -153,9 +153,5 @@ module RedSteak
 
 end # module
 
-
 require 'red_steak/copier'
 require 'red_steak/named_array'
-
-###############################################################################
-# EOF

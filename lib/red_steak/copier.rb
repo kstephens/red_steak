@@ -62,10 +62,4 @@ module RedSteak
       @map.inject(@map.size) { | c, v | c += v.size }
     end
   end
-
-
 end # module
-
-
-###############################################################################
-# EOF
