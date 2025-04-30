@@ -138,7 +138,7 @@ module RedSteak
 
         # Put the Transition#guard and #effect in the label.
         [
-         [ :show_name,    :name,    '"%s"' ],
+         [ :show_name,    :name,   '%s' ],
          [ :show_trigger, :trigger, x.trigger.empty? ? nil : x.trigger.join(', ') ],
          [ :show_guard,   :guard,  '[%s]' ],
          [ :show_effect,  :effect, '/%s' ],
@@ -335,9 +335,12 @@ module RedSteak
       end
 
       dot_opts = {
-        :label => dot_label(s),
-        :shape => :box,
-        :style => "filled",
+        label:     dot_label(s),
+        shape:     :box,
+        style:     "filled",
+        color:     :black,
+        fontcolor: :black,
+        fillcolor: :white,
       }
 
       case
@@ -357,25 +360,21 @@ module RedSteak
 
       unless sequence.empty?
         if options[:highlight_state_history] && (s.submachine ? hide_decomposition : true)
-          dot_opts[:fillcolor] = :grey
+          dot_opts.update(highlight_state_reached_options)
         end
         if options[:show_state_sequence]
-          dot_opts[:label] += "\\n(#{sequence_to_s(sequence)})\\r"
+          dot_opts[:label] += "\\n(#{sequence_to_s(sequence)})\\l" # "\\r"
         end
       else
         if options[:highlight_state_label_history]
-          dot_opts[:fontcolor] = :grey
+          dot_opts.update(highlight_state_unreached_options)
         end
         if options[:highlight_state_border_history]
-          dot_opts[:color] = :grey
+          dot_opts.update(highlight_state_unreached_options)
         end
       end
 
-      dot_opts[:color] ||= :black
-      dot_opts[:fontcolor] ||= :black
-      dot_opts[:fillcolor] ||= :white
-
-      # Dont label FinalStates, it causes too much clutter.
+      # Do not label FinalStates, it causes too much clutter.
       # Invert the colors to be more like UML.
       case
       when s.end_state?
@@ -448,13 +447,15 @@ module RedSteak
       stream.puts "\n// #{t.inspect}"
 
       dot_opts = {
-        :label => dot_label(t),
+        label:     dot_label(t),
+        color:     :black,
+        fontcolor: :black,
       }
 
       dot_opts = dot_opts_for t, dot_opts
 
       if (ht = options[:highlight_transitions]) && ht.include?(t)
-        dot_opts[:style] = 'bold'
+        dot_opts.update(highlight_transition_reached_options)
       end
 
       source_name = "#{dot_name(t.source, :source)}"
@@ -462,17 +463,16 @@ module RedSteak
 
       unless sequence.empty?
         if options[:show_transition_sequence]
-          dot_opts[:label] = "(#{sequence_to_s(sequence)}) #{dot_opts[:label]}"
+          dot_opts[:label] += "\\n(#{sequence_to_s(sequence)})\\l"
+        end
+        if options[:highlight_transition_history]
+          dot_opts.update(highlight_transition_reached_options)
         end
       else
         if options[:highlight_transition_history]
-          dot_opts[:color] = :grey
-          dot_opts[:fontcolor] = :grey
+          dot_opts.update(highlight_transition_unreached_options)
         end
       end
-
-      dot_opts[:color] ||= :black
-      dot_opts[:fontcolor] ||= :black
 
       return if dot_opts[:visible] == false
 
@@ -481,6 +481,25 @@ module RedSteak
       self
     end
 
+    # !!!: parameterize these:
+    def highlight_state_reached_options
+      { fillcolor: :grey85 }
+    end
+    def highlight_state_unreached_options
+      { fontcolor: :grey33 }
+    end
+    def highlight_transition_reached_options
+      {
+        style:    'bold',
+        penwidth:  1.5,
+      }
+    end
+    def highlight_transition_unreached_options
+      {
+        color:     :grey55,
+        fontcolor: :grey45,
+      }
+    end
 
     def sequence_to_s s, limit = 4
       s = s.sort
@@ -517,7 +536,6 @@ module RedSteak
 
     def dot_opts_for x, opts = nil
       opts ||= { }
-
       kind =
       case x
       when StateMachine
@@ -622,6 +640,9 @@ module RedSteak
     #   file_svg
     #     The *.svg file.
     #     Defaults to "#{file_dot}.svg"
+    #
+    # Color names:
+    # * https://graphviz.org/doc/info/colors.html
     #
     def render_graph(machine, opts = nil)
       opts ||= self.options
