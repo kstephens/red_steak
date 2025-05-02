@@ -116,7 +116,7 @@ RUBY
 
       c.event1
       m.run_events!
-    end.to raise_error(RedSteak::Error::UnhandledEvent, "No transitions for event")
+    end.to raise_error(RedSteak::Error::NoTransitions, "run_event!")
   end
 
   it 'it will error if all guards return false for multiple transitions.' do
@@ -127,7 +127,7 @@ RUBY
 
       c.event1
       m.run_events!
-    end.to raise_error(RedSteak::Error::UnhandledEvent, "No transitions for event")
+    end.to raise_error(RedSteak::Error::NoTransitions, "run_event!")
   end
 
   it 'it will error if all guards return true for multiple transitions.' do
@@ -138,7 +138,7 @@ RUBY
 
       c.event1
       m.run_events!
-    end.to raise_error(RedSteak::Error::UnhandledEvent, "Too many transititons for event")
+    end.to raise_error(RedSteak::Error::TooManyTransitions, "run_event!")
   end
 
   it 'it will not error if one and only one guard returns true' do

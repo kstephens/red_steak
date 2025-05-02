@@ -408,19 +408,20 @@ RSpec.describe RedSteak do
     expect(m.history.size).to eq(12)
 
     expect(m.transition_to_next_state!(false)).to eq(nil)
-    expect { m.transition_to_next_state!(true) }.to raise_error(RedSteak::Error::UnknownTransition)
+    expect { m.transition_to_next_state!(true) }.to raise_error(RedSteak::Error::NoTransitions)
     begin
       m.transition_to_next_state!(true)
     rescue Object => err
       expect((RedSteak::Error === err)).to eq(true)
       # pp err.inspect
       # pp err.options
+      expect(err.class).to be(RedSteak::Error::NoTransitions)
       expect(err.machine).to be(m)
       expect(err.message).to eq("transition_to_next_state!")
       expect(err[:transitions]).to eq(nil)
       expect(err[:state]).to be(m.state)
       expect(err.state).to be(m.state)
-      expect(err.inspect).to eq("#<RedSteak::Error::UnknownTransition \"transition_to_next_state!\"\n  :machine => #<RedSteak::Machine :test [:end]>\n  :state => #<RedSteak::State test end>>")
+      expect(err.event).to be(nil)
     end
 
     expect(m.history.map { |h| h[:previous_state].to_s }).to eq(

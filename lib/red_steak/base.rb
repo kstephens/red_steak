@@ -125,8 +125,9 @@ module RedSteak
     # Otherwise it raises a Error::ObjectInvalid error.
     def validate!
       if (errors = validate) && ! errors.empty?
-        # pp errors
-        raise Error::ObjectInvalid, :message => :validate!, :object => self, :errors => errors
+        attrs = {:message => :validate!, :object => self, :errors => errors}
+        pp attrs
+        raise Error::ObjectInvalid, attrs
       end
     end
   end

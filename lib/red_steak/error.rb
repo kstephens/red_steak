@@ -75,9 +75,14 @@ module RedSteak
         "#<#{self.class} #{@message.inspect}#{@options.empty? ? '' : ' ...'}>".freeze
     end
 
+    def respond_to? sel
+      super || @options.key?(sel.to_sym)
+    end
+
     def method_missing sel, *args
-      if args.empty? && @options.key?(sel = sel.to_sym) && ! block_given?
-        @options[sel]
+      raise unless Symbol === sel
+      if args.empty? && ! block_given?
+        @options[sel.to_sym]
       else
         super
       end
@@ -93,8 +98,11 @@ module RedSteak
     # to a guard.
     class CannotTransition < self; end
 
+    # No transition is possible.
+    class NoTransitions < CannotTransition; end
+
     # More than one transitions between two states is possible.
-    class AmbiguousTransition < self; end
+    class TooManyTransitions < CannotTransition; end
 
     # Unexpected recursion detected.
     class UnexpectedRecursion < self; end

@@ -30,7 +30,7 @@ module RedSteak
     # Returns the generated StateMachine.
     # The StateMachine is validated before returning.
     def build &blk
-      raise Error, "build: expected block" unless block_given?
+      _raise Error, "build: expected block" unless block_given?
       instance_eval &blk
       @result.validate! if @result.respond_to?(:validate!)
       @result
@@ -77,7 +77,7 @@ module RedSteak
       if superstate
         name = superstate.name
       end
-      raise(ArgumentError, 'invalid name') unless name
+      _raise(ArgumentError, 'invalid name') unless name
 
       case name
       when StateMachine
@@ -134,8 +134,8 @@ module RedSteak
 
     # Defines a submachine inside a State.
     def submachine opts = { }, &blk
-      raise Error, "submachine only valid inside a state" unless State === @current
-      raise Error, "submachine only valid once inside a state" if @current.submachine
+      _raise Error, "submachine only valid inside a state" unless State === @current
+      _raise Error, "submachine only valid once inside a state" if @current.submachine
       name = @current.name
       statemachine name, opts, &blk
     end
@@ -156,7 +156,7 @@ module RedSteak
 
     # Defines a Pseudostate.
     def pseudostate _kind, _name, _opts = { }
-      raise Error::NotImplemented, :message => :pseudostate
+      _raise Error::NotImplemented, :message => :pseudostate
     end
 
     # Creates a state.
@@ -182,7 +182,7 @@ module RedSteak
     #
     #
     def state name, opts = { }, &blk
-      raise Error, "states must be defined within a statemachine or submachine" unless StateMachine === @current
+      _raise Error, "states must be defined within a statemachine or submachine" unless StateMachine === @current
 
       opts[:name] = name
 
@@ -235,11 +235,11 @@ module RedSteak
       when 2 # source, target
         opts[:source], opts[:target] = *args
       else
-        raise Error, "expected (target) or (source, target)"
+        _raise Error, "expected (target) or (source, target)"
       end
 
-      raise Error, "source state not given" unless opts[:source]
-      raise Error, "target state not given" unless opts[:target]
+      _raise Error, "source state not given" unless opts[:source]
+      _raise Error, "target state not given" unless opts[:target]
 
       opts[:statemachine] = @context[:statemachine]
 
@@ -253,7 +253,7 @@ module RedSteak
 
       xn = x[:opts][:name]
       other = xn && @transitions.find { | x2 | (x2n = x2[:opts][:name]) && x2n == xn }
-      raise Error::NameConflict.conflict!(:transition, xn, x, other) if other
+      _raise Error::NameConflict.conflict!(:transition, xn, x, other) if other
 
       @transitions << x
 
@@ -286,7 +286,7 @@ module RedSteak
     def _owner
       @context[:statemachine] ||
         @root_statemachine ||
-        (raise Error, "statemachine is unknown")
+        (_raise Error, "statemachine is unknown")
     end
 
     # Locates a state by name or creates a new object.
@@ -308,7 +308,7 @@ module RedSteak
       when State
         return opts
       else
-        raise Error, "invalid opts, given #{opts.inspect}"
+        _raise Error, "invalid opts, given #{opts.inspect}"
       end
 
       # Split Strings on "::"
@@ -316,12 +316,12 @@ module RedSteak
 
       # Determine owner.
       owner ||= _owner unless owner
-      raise Error, "Cannot determine owner for new State #{name.inspect}" unless owner
+      _raise Error, "Cannot determine owner for new State #{name.inspect}" unless owner
 
       # Attempt to locate existing State object.
       case name
       when nil
-        raise Error, "State name not specified" unless name
+        _raise Error, "State name not specified" unless name
 
       # If Array is given, start at root StateMachine.
       when Array
@@ -333,7 +333,7 @@ module RedSteak
           break unless owner
           owner = _find_state(e.to_sym, :owner => owner)
         end
-        raise Error, "Cannot locate State #{name.inspect} in #{owner.inspect}" unless owner
+        _raise Error, "Cannot locate State #{name.inspect} in #{owner.inspect}" unless owner
 
         # Find existing State by name in owner.
         state = owner.state[name]
@@ -389,7 +389,7 @@ module RedSteak
 
     # Locates a transition by name or creates a new object.
     def _find_transition opts, owner
-      raise Error, "opts expected Hash" unless Hash === opts
+      _raise Error, "opts expected Hash" unless Hash === opts
 
       opts[:owner] ||= _owner
       owner ||= opts[:owner]
@@ -398,10 +398,10 @@ module RedSteak
 
       # Attempt to construct a unique Transition name.
       unless opts[:name]
-        name = :"#{opts[:source]}->#{opts[:target]}"
         i = 1
+        name = base_name = :"#{opts[:source]}->#{opts[:target]}"
         while @transitions.any?{ | t | t[:opts][:name] == name }
-          name = :"#{opts[:source]}->#{opts[:target]}-#{i += 1}"
+          name = :"#{base_name}-#{i += 1}"
         end
         opts[:name] = name
       end
@@ -411,12 +411,12 @@ module RedSteak
         opts[:name] == x.name
       end
 
-      # If found just update it's options.
+      # If found just update its options.
       # Otherwise create a new one.
       if t
-        raise Error, 'unexpected statemachine' unless opts[:statemachine] == t.statemachine
-        raise Error, 'unexpected source' unless opts[:source] == t.source
-        raise Error, 'unexpected target' unless opts[:target] == t.target
+        _raise Error, 'unexpected statemachine' unless opts[:statemachine] == t.statemachine
+        _raise Error, 'unexpected source' unless opts[:source] == t.source
+        _raise Error, 'unexpected target' unless opts[:target] == t.target
         opts.delete(:name)
         t.options = opts
       else
@@ -425,6 +425,12 @@ module RedSteak
       end
 
       t
+    end
+
+    def _raise cls, msg, opts = { }
+      opts[:message] = msg
+      pp [ cls, opts ] if @verbose
+      raise cls, opts
     end
   end
 end

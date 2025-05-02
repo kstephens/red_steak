@@ -523,7 +523,7 @@ module RedSteak
     #
     # If all outgoing Transitions#guard? are false or more than one
     # #transition#guard? is true:
-    # raise an Error::AmbiguousTransition or Error::UnknownTransition error if _raise_error_ is true,
+    # raise an Error::TooManyTransitions or Error::UnknownTransition error if _raise_error_ is true,
     # or return nil.
     def transition_to_next_state!(raise_error = true, *args)
       trans = valid_transitions(*args)
