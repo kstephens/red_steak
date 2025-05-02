@@ -99,6 +99,13 @@ module RedSteak
     # Unexpected recursion detected.
     class UnexpectedRecursion < self; end
 
+    # An object with the same name already exists.
+    class NameConflict < self
+      def self.conflict! msg, name, object, other
+        raise self, message: "#{msg}: #{other.class} named #{name.inspect} already exists", object: object, other: other
+      end
+    end
+
     # Feature is not implemented, yet.
     class NotImplemented < self; end
 

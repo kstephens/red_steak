@@ -84,8 +84,7 @@ module RedSteak
     # True if #pause! was called during #run!
     attr_reader :paused
 
-
-    # This object recieves Transition and State behavior callbacks:
+    # This object receives Transition and State behavior callbacks:
     #
     # Transition behaviors:
     #
@@ -165,7 +164,6 @@ module RedSteak
     # The trigger that matched the event being processed.
     attr_reader :trigger
 
-
     def initialize opts
       @stateMachine = nil
       @state = nil
@@ -175,7 +173,6 @@ module RedSteak
       @history_append = :<<
       @history_clear = :clear
       @auto_run = false
-
       @in_effect = false
       @in_entry = false
       @in_doActivity = false
@@ -184,7 +181,6 @@ module RedSteak
       @transition = nil
       @event = nil
       @trigger = nil
-
       super
     end
 
@@ -217,7 +213,7 @@ module RedSteak
     def state_is_active? s
       return false unless s && @state
       x = to_state(s)
-      return ArgumentError, "no State #{x.inspect}" unless x
+      raise Error, "no State #{x.inspect}" unless x
       x.is_a_superstate_of?(@state)
     end
 
@@ -249,7 +245,7 @@ module RedSteak
       when Symbol
         event = [ event ]
       else
-        raise ArgumentError, "expected Array or Symbol, given #{event.class}"
+        raise Error, "expected Array or Symbol, given #{event.class}"
       end
       event.freeze
       @event_queue << event
@@ -307,15 +303,11 @@ module RedSteak
           :event => @event,
           :transitions => t # .map { | x | [ x[0].to_uml_s, x[1] ] }
         end
-
         yield self if block_given?
-
         # Fire the pending transition.
         run!(:single, &blk)
       end
-
       transition_fired
-
     ensure
       @event = nil
       @trigger = nil
@@ -388,7 +380,7 @@ module RedSteak
     # 1) Machine#run! may not "do" anything, if no transitions were queued.
     # 2) Machine#run! may return before the statemachine reaches the end date.
     #
-    # The application or the statemachines's entry, doAction, exit or effect behaviors
+    # The application or the statemachines' entry, doAction, exit or effect behaviors
     # must explicitly queue a transition, this object will never automatically
     # queue transitions.
     #
@@ -512,12 +504,10 @@ module RedSteak
     # #state to the specified State where Transition#guard? is true.
     def transitions_to state, *args
       state = to_state(state)
-
       trans = @state.outgoing.select do | t |
         t.target == state &&
           _guard?(t, args)
       end
-
       trans
     end
 
@@ -537,7 +527,6 @@ module RedSteak
     # or return nil.
     def transition_to_next_state!(raise_error = true, *args)
       trans = valid_transitions(*args)
-
       if trans.size > 1
         _raise Error::AmbiguousTransition, :transition_to_next_state!, :transitions => trans if raise_error
         return nil
@@ -545,7 +534,6 @@ module RedSteak
         _raise Error::UnknownTransition, :transition_to_next_state!, :state => state if raise_error
         return nil
       end
-
       queue_transition! trans.first, args
     end
 
@@ -554,9 +542,7 @@ module RedSteak
     # from one State to another.
     def transition_to! state, *args
       state = to_state(state)
-
       trans = transitions_to(state, *args)
-
       case trans.size
       when 0
         _raise Error::UnknownTransition, :transition_to!, :state => state
@@ -584,29 +570,22 @@ module RedSteak
     def transition! trans, *args
       if Transition === trans
         name = trans.name
-
         _log { "transition! #{name.inspect}" }
-
         trans = nil unless @state === trans.source && _guard?(trans, args)
       else
         name = trans
         name = name.to_sym
-
         _log { "transition! #{name.inspect}" }
-
         # Find a valid outgoing transition.
         trans = @state.outgoing.select do | t |
           t === name &&
           _guard?(t, args)
         end
-
         if trans.size > 1
           _raise Error::AmbiguousTransition, :transition!, :transitions => trans
         end
-
         trans = trans.first
       end
-
       if trans
         queue_transition!(trans, args)
       else
@@ -630,7 +609,6 @@ module RedSteak
         k = k.sub(/^@/, '').to_sym unless Symbol === k
         h[k] = v
       end
-
       h[:state] = (x = h[:state]) && (x.to_s)
       h[:transition] = (x = h[:transition]) && (x.to_s)
       h[:transition_queue] = (x = h[:transition_queue]) && x.to_a.map { | a | a = a.dup; a[0] = a[0].to_s; a }
@@ -642,12 +620,9 @@ module RedSteak
         end
         hh
       end
-
       h[:stateMachine] = (x = h[:stateMachine]) && (x.to_s)
-
       h.delete(:context)
       h.delete(:logger)
-
       h
     end
 
@@ -658,7 +633,7 @@ module RedSteak
     #
     # #history is not restored.
     def from_hash h
-      # _raise NotImplemented, :from_hash
+      # _raise Error::NotImplemented, :from_hash
       h = h.dup
       h[:state] = to_state(h[:state])
       h[:transition] = to_transition(h[:transition])
@@ -788,7 +763,6 @@ module RedSteak
           fire_transition! *x
           return self if single
         end
-
         until @paused || at_end?
           yield self if block_given?
           if (x = @transition_queue.shift)
@@ -799,7 +773,6 @@ module RedSteak
           end
         end
       end
-
       self
     end
 
@@ -813,38 +786,34 @@ module RedSteak
     # it was queued; guards are not checked here.
     def fire_transition! trans, args
       _log { "fire_transition! #{trans.inspect}" }
-
       _raise Error::UnexpectedRecursion, :transition if @transition
-
       old_state = @state
-
       @transition = trans
-
-      # Behavior: Transition effect.
-      _raise Error::UnexpectedRecursion, :effect if @in_effect
-      @in_effect = true
-      _log { "effect! #{trans.inspect} => #{trans.effect.inspect}" }
-      trans.effect!(self, args)
-      @in_effect = false
-
-      # Go to the new state.
-      _goto_state!(trans.target, trans, args) do
-        record_history! do
-          {
-            :time => Time.now.gmtime,
-            :previous_state => old_state,
-            :transition => trans,
-            :new_state => state,
-            :event => @event,
-            :trigger => @trigger,
-          }
+      begin
+        # Behavior: Transition effect.
+        _raise Error::UnexpectedRecursion, :effect if @in_effect
+        @in_effect = true
+        _log { "effect! #{trans.inspect} => #{trans.effect.inspect}" }
+        trans.effect!(self, args)
+        @in_effect = false
+        # Go to the new state.
+        _goto_state!(trans.target, trans, args) do
+          record_history! do
+            {
+              :time => Time.now.gmtime,
+              :previous_state => old_state,
+              :transition => trans,
+              :new_state => state,
+              :event => @event,
+              :trigger => @trigger,
+            }
+          end
         end
+        self
+      ensure
+        @transition = nil
+        @in_effect = false
       end
-
-      self
-    ensure
-      @transition = nil
-      @in_effect = false
     end
 
     # Moves directly to a State.
@@ -905,46 +874,46 @@ module RedSteak
       # Move to next state.
       @state = state
 
-      # Yield to block.
-      yield if block_given?
+      begin
+        # Yield to block.
+        yield if block_given?
 
-      # Behavior: entry state.
-      _raise Error::UnexpectedRecursion, :entry if @in_entry
-      @in_entry = true
-      if old_state != state
-        (to - from).reverse_each do | s |
-          if ! trans || trans.kind != :internal
-            _log { "entry! #{s.inspect} => #{s.entry.inspect}" }
-            s.entry!(self, args)
+        # Behavior: entry state.
+        _raise Error::UnexpectedRecursion, :entry if @in_entry
+        @in_entry = true
+        if old_state != state
+          (to - from).reverse_each do | s |
+            if ! trans || trans.kind != :internal
+              _log { "entry! #{s.inspect} => #{s.entry.inspect}" }
+              s.entry!(self, args)
+            end
           end
         end
+        @in_entry = false
+
+        # Transition is fired.
+        @last_transition = @transition
+        @transition = nil
+
+        # Behavior: doActivity.
+        _raise Error::UnexpectedRecursion, :doActivity if @in_doActivity
+        @in_doActivity = true
+        @state.doActivity!(self, args)
+        @in_doActivity = false
+
+        self
+
+      rescue Exception => err
+        # Revert back to old state.
+        @state = old_state
+        raise err
+      ensure
+        # Clear statuses.
+        @in_exit = false
+        @in_entry = false
+        @in_doActivity = false
+        @transition = nil
       end
-      @in_entry = false
-
-      # Transition is fired.
-      @last_transition = @transition
-      @transition = nil
-
-      # Behavior: doActivity.
-      _raise Error::UnexpectedRecursion, :doActivity if @in_doActivity
-      @in_doActivity = true
-      @state.doActivity!(self, args)
-      @in_doActivity = false
-
-      self
-
-    rescue Exception => err
-      # Revert back to old state.
-      @state = old_state
-
-      raise err
-
-    ensure
-      # Clear statuses.
-      @in_exit = false
-      @in_entry = false
-      @in_doActivity = false
-      @transition = nil
     end
 
     def _raise cls, msg, opts = { }
@@ -962,5 +931,5 @@ module RedSteak
       # pp [ cls, opts ]
       raise cls, opts
     end
-  end # class
-end # module
+  end
+end

@@ -36,24 +36,30 @@ module RedSteak
       @states = NamedArray.new([ ], :state)
       @transitions = NamedArray.new([ ])
       @transitions.sep = nil
-
       @submachineState = nil
       @start_state = nil
       @end_state = nil
-
       @s = @t = nil
       super
     end
 
     def deepen_copy! copier, src
       super
-
       @states = copier[@states]
       @transitions = copier[@transitions]
       @submachineState = copier[@submachineState]
-
       @start_state = copier[@start_state]
       @end_state   = copier[@end_state]
+    end
+
+    def freeze
+      return self if frozen?
+      @states.freeze
+      @transitions.freeze
+      @submachineState.freeze
+      @start_state.freeze
+      @end_state.freeze
+      super
     end
 
     # Returns the outer-most StateMachine.
@@ -98,18 +104,12 @@ module RedSteak
     # Adds a State to this StateMachine.
     def add_state! s
       _log { "add_state! #{s.inspect}" }
-
-      if @states.find { | x | x.name == s.name }
-        raise ArgumentError, "state named #{s.name.inspect} already exists"
-      end
-
+      @states.check_name_conflict!(:add_state!, s)
       add_ownedMember!(s)
       @states << s
       s.stateMachine = self
-
       # Notify.
       s.state_added! self
-
       s
     end
 
@@ -118,95 +118,71 @@ module RedSteak
     # List of Transitions removed is returned.
     def remove_state! s
       _log { "remove_state! #{s.inspect}" }
-
       transitions = s.transitions
-
       remove_ownedMember!(s)
       @states.delete(s)
       s.stateMachine = nil
-
       s.transitions.each do | t |
         remove_transition! t
       end
-
       # Notify.
       s.state_removed! self
-
       transitions
     end
 
     # Adds a Pseudostate to this StateMachine.
     def add_connectionPoint! s
       _log { "add_connectionPoint! #{s.inspect}" }
-
-      if @connectionPoint.find { | x | x.name == s.name }
-        raise ArgumentError, "connectionPoint named #{s.name.inspect} already exists"
-      end
-
+      @connectionPoint.check_name_conflict!(:add_connectionPoint!, s)
+      @ownedMember.check_name_conflict!(:add_connectionPoint!, s)
       @ownedMember << s
       @connectionPoint << s
       s.stateMachine = self
-
       # Notify.
       s.connectionPoint_added! self
-
       s
     end
 
     # Removes a Pseudostate from this StateMachine.
     def remove_connectionPoint! s
       _log { "remove_Connection! #{s.inspect}" }
-
       @ownedMember.delete(s)
       @connectionPoint.delete(s)
       s.stateMachine = nil
-
       s.transitions.each do | t |
         remove_transition! t
       end
-
       # Notify.
       s.connectionPoint_removed! self
-
       self
     end
 
     # Adds a Transition to this StateMachine.
     def add_transition! t
       _log { "add_transition! #{t.inspect}" }
-
-      if @transitions.find { | x | x.name == t.name }
-        raise ArgumentError, "transition named #{s.name.inspect} already exists"
-      end
-
+      @transitions.check_name_conflict!(:add_transition!, t)
       @transitions << t
       t.stateMachine = self
-
       # Notify.
       t.target.transition_added! t
       t.source.transition_added! t
-
       t
     end
 
     # Removes a Transition from this StateMachine.
     def remove_transition! t
       _log "remove_transition! #{t.inspect}"
-
       @transitions.delete(t)
       t.stateMachine = nil
-
       # Notify.
       if t.source
         t.source.transition_removed! t
         t.source = nil
       end
-
       if t.target
         t.target.transition_removed! t
         t.target = nil
       end
-
       self
     end
 
@@ -267,5 +243,5 @@ module RedSteak
     def inspect
       "#<#{self.class} #{to_s}>"
     end
-  end # class
-end # module
+  end
+end

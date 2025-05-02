@@ -1,4 +1,5 @@
 require 'red_steak'
+require 'red_steak/example/render'
 require 'ostruct'
 require 'fileutils' # FileUtils.mkdir_p
 require 'pp'
@@ -9,6 +10,7 @@ RSpec.describe 'RedSteak::Machine guard spec' do
     attr_accessor :name, :m
     attr_accessor :_guard, :guard1, :guard2, :guard3
     attr_accessor :guard_called
+    attr_accessor :data
 
     def initialize
       @guard_called = 0
@@ -43,8 +45,7 @@ RUBY
     end
 
     def sm
-      @sm ||=
-        RedSteak::Builder.new.build do
+      @sm ||= RedSteak::Builder.new.build do
         statemachine :guard_test do
           initial :initial
           final :final
@@ -78,36 +79,13 @@ RUBY
     end
   end
 
-
-  def render_graph sm, opts = { }
-    opts[:dir] ||= File.expand_path(File.dirname(__FILE__) + '/../doc/example')
-    FileUtils.mkdir_p(opts[:dir])
-
-    opts[:name_prefix] = "red_steak-#{File.basename(__FILE__)}-"
-    @graph_id ||= 0
-    opts[:name_suffix] = "-%02d" % (@graph_id += 1)
-
-    opts[:show_state_sequence] = true
-    opts[:show_transition_sequence] = true
-    opts[:highlight_state_history] = true
-    opts[:highlight_transition_history] = true
-    opts[:show_effect] = true
-    opts[:show_guard] = true
-    opts[:show_entry] = true
-    opts[:show_exit] = true
-    opts[:show_do] = true
-
-    RedSteak::Dot.new.render_graph(sm, opts)
-  rescue RedSteak::Error => err
-    raise err unless err.to_s =~ /dot command failed/ # Old versions of dot might SEGV!
-    # pp sm.history
-  end
-
-
   ####################################################################
 
-
   attr_accessor :c, :m
+
+  def render_graph! opts = {}
+    RedSteak::Example::Render.new(context: self, machine: m).render_graph!(opts)
+  end
 
   before(:each) do
     begin
@@ -120,10 +98,10 @@ RUBY
       c.m = m
       m.logger = lambda { | msg | $stderr.puts "  m #{msg}" } if ENV['TEST_VERBOSE']
       m.history = [ ]
-      render_graph(m)
+      render_graph!
 
       m.start!
-      render_graph(m)
+      render_graph!
 
     rescue Exception => err
       $stderr.puts "UNEXPECTED ERROR: #{err.inspect}"
@@ -194,4 +172,4 @@ RUBY
       expect(m.state.name).to eq(:final)
     end.call
   end
-end # describe
+end

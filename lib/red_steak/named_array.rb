@@ -10,6 +10,12 @@ module RedSteak
       @sep = sep == :NOT_SPECIFIED ? SEP : sep
     end
 
+    def freeze
+      return self if frozen?
+      @a.freeze
+      super
+    end
+
     def [] pattern
       case pattern
       when Integer
@@ -70,7 +76,14 @@ module RedSteak
       @subset ? @a.select{|e| @subset === e} : @a
     end
 
-    EMPTY = self.new([ ].freeze) unless defined? EMPTY
-  end # class
+    def check_name_conflict! msg, obj, verify_class = false
+      other = @a.find do | x |
+        x.name == obj.name && (verify_class ? x.class == obj.class : true)
+      end
+      Error::NameConflict.conflict!(msg, obj.name, obj, other) if other
+      obj
+    end
 
-end # module
+    EMPTY = self.new([ ].freeze) unless defined? EMPTY
+  end
+end

@@ -11,41 +11,38 @@ module RedSteak
 
     def deepen_copy! copier, src
       super
-
       @ownedMember = copier[@ownedMember]
     end
 
+    def freeze
+      return self if frozen?
+      @ownedMember.freeze
+      super
+    end
+
     # Returns the outer-most Namespace
-    def rootNamespace
+    def rootNamespace # UML
       @namespace ? @namespace.rootNamespace : self
     end
+    alias :root_namespace :rootNamespace # NOT UML
 
     def add_ownedMember! m
       _log { "add_ownedMember! #{m.inspect}" }
-
-      if @ownedMember.find { | x | x.class == m.class && x.name == m.name }
-        raise ArgumentError, "object named #{m.name.inspect} already exists"
-      end
-
+      @ownedMember.check_name_conflict! :add_ownedMember!, m, :verify_class
       @ownedMember << m
       m.namespace = self
-
       # Notify.
       m.ownedMember_added! self
-
       m
     end
 
     def remove_ownedMember! m
       _log { "remove_ownedMember! #{m.inspect}" }
-
       @ownedMember.delete(m)
       m.namespace = nil
-
       # Notify.
       m.ownedMember_removed! self
-
       self
     end
-  end # class
-end # module
+  end
+end

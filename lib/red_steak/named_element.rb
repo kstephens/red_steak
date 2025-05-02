@@ -9,9 +9,14 @@ module RedSteak
     alias :statemachine :stateMachine # not UML
     alias :statemachine= :stateMachine= # not UML
 
-    def intialize opts
+    def initialize opts
       @namespace = nil
       @stateMachine = nil
+      super
+    end
+
+    def freeze
+      return self if frozen?
       super
     end
 
@@ -31,28 +36,23 @@ module RedSteak
     # Will get the method from local options or the StateMachine's options Hash.
     # The context is either the local object's context or the StateMachine's context.
     def _behavior! action, machine, args, default_value = nil
-      raise ArgumentError, 'action is not a Symbol' unless Symbol === action
-
+      raise Error, 'action is not a Symbol' unless Symbol === action
       args ||= EMPTY_ARRAY
-
       # Determine the behavior.
       behavior =
         (force_send =
          (send(action) ||
           @stateMachine.options[action])) ||
         action
-
       case
       when Proc === behavior
         return behavior.call(machine, self, *args)
       when Symbol === behavior &&
           (c = machine.context)
-
         # Don't force send unless the object responds.
         unless force_send
           force_send = c.respond_to?(behavior)
         end
-
         if force_send
           meth_arity = c.method(behavior).arity rescue args.size + 2
           case
@@ -77,5 +77,5 @@ module RedSteak
     def inspect
       "#<#{self.class} #{@stateMachine.to_s} #{to_s}>"
     end
-  end # class
-end # module
+  end
+end

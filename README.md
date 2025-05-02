@@ -1,6 +1,6 @@
 # RedSteak - a clonable, mutable UML 2 StateMachine for Ruby.
 
-## Features:
+## Features
 
 * Implements UML 2.1 StateMachines (partially).
 * StateMachines can be instantiated then cloned via StateMachine#copy.
@@ -14,3 +14,14 @@
 * History of transitions can be kept.
 * Multiple machines can execute the same statemachine without side-effects.
 * StateMachines and their transition history can be rendered as Dot syntax.
+
+## Things To Do
+
+- Machine#state=(String|Array).
+- Add :elapsed_time to history Hash - has performance implication.
+- Support StateMachine#freeze to avoid accidental changes to a running StateMachine.
+- Support UML Pseudostates.
+- Support UML Regions.
+- Support UML History, Deep History Pseudostate semantics.
+- Support UML Transition#kind.
+- Remove State#state_type and support UML FinalState.

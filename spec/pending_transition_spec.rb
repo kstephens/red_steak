@@ -247,4 +247,4 @@ RSpec.describe RedSteak do
       ]
     )
   end
-end # describe
+end

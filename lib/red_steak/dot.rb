@@ -1,16 +1,70 @@
-module RedSteak
+require 'tempfile'
+require 'pry'
 
+module RedSteak
   # Renders a StateMachine as a Dot syntax stream.
   #
   # Can also render SVG to a file or a String, if graphvis is installed.
   #
   # Example output:
   #
-  # link:example/red_steak-loan_application-09.dot.svg
+  # link:doc/example
   #
-  # More examples here:
+  # _machine_ can be a Machine or a Statemachine object.
   #
-  # link:example/
+  # Returns self.
+  #
+  # File Options:
+  #
+  #   :dir
+  #     The directory to create the .dot and .dot.svg files.
+  #     Defaults to '.'
+  #   :name
+  #     The base filename to use.  Defaults to the name of
+  #     StateMachine object.
+  #
+  # General Options:
+  #
+  #   :show_all
+  #     Same as :show_entry, :show_exit, :show_do, :show_trigger, :show_effect
+  #
+  # History options:
+  #
+  #   :show_history
+  #     If true, the history stored in Machine is shown as
+  #     numbered transitions between states.
+  #   :history
+  #     An enumeration of Hashes as stored in Machine#history.
+  #
+  # State Options:
+  #
+  #   :show_state_sequence
+  #   :show_entry
+  #   :show_exit
+  #   :show_do
+  #   :highlight_states
+  #     An enumeration of States to highlight.
+  #
+  # Transition Options:
+  #
+  #   :show_transition_sequence
+  #   :show_guard
+  #   :show_effect
+  #   :show_trigger
+  #   :highlight_transitions
+  #     An enumeration of Transitions to highlight.
+  #
+  # Results:
+  #
+  #   file_dot
+  #     The *.dot file.
+  #
+  #   file_svg
+  #     The *.svg file.
+  #     Defaults to "#{file_dot}.svg"
+  #
+  # Color names:
+  # * https://graphviz.org/doc/info/colors.html
   #
   class Dot < Base
     # The root StateMachine to be rendered.
@@ -37,395 +91,330 @@ module RedSteak
       @dot_label = { }
       @rendered = { }
       @dot_command_output = nil
-      @dot_id = 0
+      @dot_id = 1000
+      @indent = ""
+      @edges = nil
       super
     end
 
-    def dot_name x, context = nil
-      case context
-      when Array
-        r = dot_name(x)
-        context.each { | c | @dot_name[[ x, c ]] = r }
-        r
+    def render_graph(object, opts = nil)
+      opts = self.options.update(opts || {})
+      # Map high-level options.
+      if options[:show_history]
+        %w[show_transition_sequence highlight_state_history highlight_transition_history].each{|k| options[k.to_sym] = true}
+      end
+      if options[:show_all]
+        %w[show_entry show_do show_exit show_effect show_guard show_trigger].each{|k| options[k.to_sym] = true}
+      end
+      render_dot_file object, opts
+      render_svg_file file_dot, file_svg
+    end
+
+    def render_dot_file object, opts
+      case object
+      when RedSteak::Machine
+        machine = object
+        statemachine = object.statemachine
+        name = statemachine
+      when RedSteak::StateMachine
+        machine = object
+        statemachine = object
       else
-        @dot_name[[ x, context ]] ||=
-          _dot_name(x, context)
+        raise Error, "expected Machine or StateMachine, given #{machine.class}"
       end
-    end
 
-    def _dot_name x, context
-      @dot_id +=1
-      prefix = "x"
-      suffix = nil
-      case x
-      when State
-        if ssm = x.submachine
-          case context
-          when :source, :target
-            suffix = "_#{context}"
-          end
-        end
-      when StateMachine
-        prefix = "cluster_#{prefix}"
-        case context
-        when :start
-          suffix = "_START"
-        end
+      # Compute dot file name.
+      unless file_dot
+        dir = opts[:dir] || '.'
+        file = "#{dir}/"
+        file += opts[:name_prefix].to_s
+        opts[:name] ||= name || object.name
+        file += opts[:name].to_s
+        file += opts[:name_suffix].to_s
+        file += '-history' if opts[:show_history]
+        file += ".dot"
+        self.file_dot = file
       end
-      prefix << @dot_id.to_s
-      prefix << suffix if suffix
-      prefix
-    end
+      self.file_svg ||= "#{file_dot}.svg"
 
-    # Returns the Dot label for the object.
-    def dot_label x
-      @dot_label[x] ||=
-        _dot_label x
-    end
-
-    def _dot_label x
-      case x
-      when StateMachine
-        x.name.to_s
-
-      when State
-        dot_opts = dot_opts_for(x, options.dup) # YUCK
-        label = x.name.to_s
-
-        # Put the State#entry,#exit and #doActivity in the label.
-        once = false
-        [
-         [ :show_entry, :entry,      'entry / %s' ],
-         [ :show_exit,  :exit,       'exit / %s' ],
-         [ :show_do,    :doActivity, 'do / %s' ],
-        ].each do | (opt, sel, fmt) |
-          if dot_opts[opt]
-            case b = x.send(sel)
-            when nil
-              # NOTHING
-            when String, Symbol
-              b = b.inspect
-            else
-              b = '...'
-            end
-            if b && fmt
-              unless once
-                label += " \n"
-              else
-                label += " \\l"
-              end
-              label += (fmt % b)
-              once = true
-            end
-          end
-        end
-
-        label
-
-      # See UML Spec 2.1 superstructure p. 574:
-      #   trigger [ ',' trigger ]* [ '[' guard ']' ]? [ '/' effect ]?
-      when Transition
-        dot_opts = dot_opts_for(x, options.dup)
-        dot_opts[:show_name] = true if x.trigger.empty?
-        dot_opts[:show_trigger] = true unless dot_opts[:show_name]
-        # pp x, dot_opts
-
-        label = ''
-
-        # Put the Transition#guard and #effect in the label.
-        [
-         [ :show_name,    :name,   '%s' ],
-         [ :show_trigger, :trigger, x.trigger.empty? ? nil : x.trigger.join(', ') ],
-         [ :show_guard,   :guard,  '[%s]' ],
-         [ :show_effect,  :effect, '/%s' ],
-        ].each do | (opt, sel, fmt) |
-          if dot_opts[opt]
-            case b = x.send(sel)
-            when nil
-              # NOTHING
-            when String, Symbol
-              b = b.inspect
-            else
-              b = '...'
-            end
-            if b && fmt
-              label += " \n" unless label.empty?
-              label += (fmt % b.to_s)
-            end
-          end
-        end
-
-        # $stderr.puts "  _dot_label #{x.inspect} => #{label.inspect}"
-
-        label
-
-      when String, Integer
-        x.to_s
-
-      else
-        raise ArgumentError, x.inspect
+      # Write the dot file.
+      File.open(file_dot, 'w') do | stream |
+        @stream = stream
+        render object
       end
+      @stream = nil
     end
 
-    # Renders object as Dot syntax.
-    def render x = @stateMachine
+    def render_svg_file file_dot, file_svg
+      # Render dot to SVG.
+      cmd = "dot -V"
+      unless system("#{cmd} >/dev/null 2>&1") == true
+        _log { "Warning: #{cmd} failed" }
+        raise Error, :message => 'dot command not found',
+          :command => cmd
+      end
+
+      File.unlink(file_svg) rescue nil
+
+      # Try using cairo svg renderer.
+      cmd = "dot -Tsvg:cairo:cairo #{file_dot.inspect} -o #{file_svg.inspect}"
+      _log { "Run: #{cmd}" }
+      result = @dot_command_output = `#{cmd} 2>&1`
+      _log { "Result: #{result}" }
+
+      # Fall back to plain svg renderer.
+      if result =~ /Warning: language .* not recognized, use one of:|cairo: out of memory/ || ! File.exist?(file_svg)
+        cmd = "dot -Tsvg #{file_dot.inspect} -o #{file_svg.inspect}"
+        _log { "Run: #{cmd}" }
+        result = @dot_command_output = `#{cmd} 2>&1`
+        _log { "Result: #{result}" }
+      end
+
+      # Check for file.
+      unless File.exist?(file_svg)
+        err = Error.new(:message => 'dot command failed',
+                        :command => cmd,
+                        :file => file_svg,
+                        :output => @dot_command_output)
+        _log { "Error: #{err.inspect}" }
+        raise err
+      end
+
+      _log { "Generated: file://#{file_svg}" }
+
+      self
+    end
+
+    # Returns SVG data of the graph, using a temporary file.
+    def render_graph_svg_data machine, opts = { }
+      tmp = Tempfile.new("red_steak_dot")
+      self.file_dot = tmp.path + ".dot"
+      self.file_svg = nil
+      render_graph(machine, opts)
+      result = File.read(self.file_svg)
+      if opts[:xml_header] == false || options[:xml_header] == false
+        result.sub!(/\A.*?<svg /m, '<svg ')
+      end
+      result
+    ensure
+      tmp.unlink rescue nil
+      File.unlink(self.file_dot) rescue nil
+      File.unlink(self.file_svg) rescue nil
+    end
+
+    def emit *args
+      args.each do |a|
+        @stream.write @indent
+        @stream.puts a.to_s
+      end
+      @stream.flush
+      # args.each {|a| $stderr.puts a.to_s }
+      self
+    end
+
+    #################################################################################
+
+    def render x
       case x
       when Machine
         @machine = x
-        options[:history] ||=
-          x.history
-        options[:highlight_states] ||=
-          [ x.state ].compact
-        options[:highlight_transitions] ||=
-          (
-            x.transition_queue.map{|e| e.first} <<
-            x.transition
-          ).compact
+        options[:history] ||= x.history
+        options[:highlight_states] ||= [ x.state ].compact
+        options[:highlight_transitions] ||= (
+          x.transition_queue.map{|e| e.first} <<
+          x.transition
+        ).compact
         render x.stateMachine
       when StateMachine
-        render_root x
+        @stateMachine = x
+        render_Statemachine x
       when State
         render_State x
       when Transition
         render_Transition x
       else
-        raise ArgumentError, x.inspect
+        raise Error, x.inspect
       end
     end
 
-    def render_root sm
+    def render_Statemachine sm
       # Map high-level options.
       if options[:show_history]
-        options[:show_transition_sequence] = true
-        options[:highlight_state_history] = true
-        options[:highlight_transition_history] = true
+        %w[show_transition_sequence highlight_state_history highlight_transition_history]
+        .each {|k| options[k.to_sym] = true}
       end
       if options[:show_all]
-        options[:show_entry] =
-          options[:show_do] =
-          options[:show_exit] =
-          options[:show_effect] =
-          options[:show_guard] =
-          options[:show_trigger] =
-          true
+        %w[show_entry show_do show_exit show_effect show_guard show_trigger]
+        .each {|k| options[k.to_sym] = true}
       end
-
-      # Map deprecated options.
-      {
-        :show_guards => :show_guard,
-        :show_effects => :show_effect,
-      }.each do | k, v |
-        if options.key?(k)
-          _log { "WARNING: #{self.class} option[#{k.inspect}] is deprecated, use option[#{v.inspect}]" }
-          options[v] = options[k]
-        end
-      end
-
-      @stateMachine ||= sm
-      stream.puts "\n// {#{sm.inspect}"
-      # type = :graph
-      type = :digraph
-      stream.puts "#{type} #{dot_name(sm)} {"
-
-=begin
-      stream.puts %Q{  node [fontname="Verdana"]; }
-      stream.puts %Q{  fontname="Verdana"; }
-=end
-      stream.puts %Q{  label=#{dot_label(sm).inspect}; }
-
-      # stream.puts "subgraph ROOT {"
-
-      start_name = dot_name(sm, :start)
-      @rendered[start_name] = true
-      stream.puts "\n// Implicit :start Pseudostate for #{sm.to_s}"
-      stream.puts %Q{  node [ shape="circle", label="", style=filled, fillcolor=black ] #{start_name}; }
-
-      sm.states.each { | s | render_State(s) }
-
-      render_transitions(sm)
-
-      stream.puts "}"
-      # stream.puts "}"
-      stream.puts "// } #{sm.inspect}\n"
+      dot_opts = {
+        label: sm.name,
+        shape: :box,
+        style: "filled",
+        fontcolor: :black,
+        color: :white, # :black;
+        fillcolor: :white,
+      }
+      sm_opts = {
+        type: :digraph,
+        render_start: true,
+        render_end: true,
+        graph_opts: {
+          compound: true,
+        },
+      }
+      @edges = nil
+      render_statemachine(sm, dot_opts, sm_opts)
     end
 
-    def render_transitions sm
-      sm.transitions.each { | t | render(t) }
-      sm.states.each do | s |
-        start_name = dot_name(s.stateMachine, :start)
-        if s.start_state? && @rendered[start_name]
-          stream.puts "\n// Implicit Transition to :start Pseudostate for #{sm.to_s}"
-          stream.puts "#{start_name} -> #{dot_name(s, :target)};"
-        end
-        if ssm = s.submachine
-          if false
-            stream.puts "\n// Implicit source and target grouping link"
-            stream.puts %Q{#{dot_name(s, :source)} -> #{dot_name(s, :target)} [ color="gray", label="", arrowhead="none" ];}
-          end
-          render_transitions(ssm)
+    def render_statemachine sm, dot_opts, sm_opts
+      return if rendered?(sm)
+      dot_opts = dot_opts.merge(dot_opts_for sm)
+      return if dot_opts[:visible] == false
+
+      type = sm_opts.fetch(:type)
+      name = dot_name(sm)
+      label = sm_opts[:label] || dot_opts[:label] || dot_label(sm)
+      dot_opts = dot_opts.merge(sm_opts[:dot_opts] || {}).merge(label: label)
+      emit(
+        "// #{sm.inspect} ",
+        "#{type} #{name} { ",
+      )
+      _indent, @indent = @indent, @indent + "  "
+
+      if sm_opts[:graph_opts]
+        emit("graph [ #{render_opts(sm_opts[:graph_opts])} ];")
+      end
+      # emit("node  [ #{render_opts(dot_opts)} ];", '')
+      emit(*render_opts(dot_opts, ";\n"))
+
+      unless sm_opts[:show_decomposition] == false
+        _nodes, @nodes = @nodes, []
+        @edges = [] if type == :digraph
+
+        render_states sm, sm_opts
+        render_transitions sm, sm_opts
+
+        # @nodes.each{|e| emit(*e)}
+        # @nodes = _nodes
+
+        if type == :digraph
+          @edges.each{|e| emit(*e)}
+          @edges = nil
         end
       end
+
+      @indent = _indent
+      emit(
+        "}",
+        "// } #{sm.inspect}",
+        ""
+      )
     end
 
-    # Renders the StateMachine as Dot syntax.
-    def render_StateMachine sm, dot_opts = nil
-      return if @rendered[sm]
-      @rendered[sm] = true
-
-      dot_opts ||= { }
-      hide_decomposition = dot_opts.delete(:hide_decomposition)
-
-      stream.puts "\n// {#{sm.inspect}"
-      name = dot_opts.delete(:_node_name) || dot_name(sm)
-      type = "subgraph #{name}"
-
-      dot_opts[:label] ||= dot_label(sm.superstate)
-      dot_opts[:shape] = :box
-      dot_opts[:style] = 'filled,rounded'
-      dot_opts[:fillcolor] ||= :white
-      dot_opts[:fontcolor] ||= :black
-
-      dot_opts = dot_opts_for sm, dot_opts
-
-      if hide_decomposition && false
-        dot_opts[:label] += "\\r    o-o"
-      end
-
-      stream.puts "#{type} {"
-      stream.puts %Q{  #{render_opts(dot_opts, ";\n  ")}}
-
-      yield if block_given?
-
-      unless hide_decomposition
+    def render_states sm, sm_opts
+      if sm_opts.fetch(:render_start)
         start_name = dot_name(sm, :start)
-        @rendered[start_name] = true
-        stream.puts "\n// Implicit :start Pseudostate"
-        stream.puts %Q{  node [ shape="circle", label="", style=filled, fillcolor=black ] #{start_name}; }
-        sm.states.each { | s | render(s) }
+        desc = "#{sm} <start>"
+        render_node(desc, start_name,
+          label: "",
+          shape: :circle, style: "filled",
+          color: :black,
+          fillcolor: :black,
+          fontcolor: :black,
+          # width: 0.5,
+        )
+      end
+      if sm_opts.fetch(:render_end)
+        end_name = dot_name(sm, :end)
       end
 
-      stream.puts "}"
-      stream.puts "// } #{sm.inspect}\n"
+      sm.states.each do | s |
+        if s.start_state? && start_name
+          name = dot_name(s)
+          render_edge("#{desc} -> ", start_name, name, {})
+        end
+
+        opts = render_State s, sm_opts
+
+        if s.end_state? && end_name
+          end_opts = opts
+          name = dot_name(s)
+          render_edge("#{s} -> <end>", name, end_name, {})
+        end
+      end
+
+      if end_name
+        desc = "#{sm} <end>"
+        opts = {
+          label: "",
+          shape: :doublecircle, style: "filled",
+          color: :black,
+          fillcolor: :black,
+          fontcolor: :white,
+          # width: 0.5,
+        }
+        if sm.superstate
+          # https://graphviz.org/docs/attrs/style/
+          opts.update(style: :invis)
+          # opts.update(color: :none, fillcolor: :none, fontcolor: :none)
+        end
+        render_node(desc, end_name, opts)
+      end
     end
 
-    # Renders the State object as Dot syntax.
-    def render_State s
-      return if @rendered[s]
-      @rendered[s] = true
+    def render_State s, sm_opts
+      return if rendered?(s)
+      dot_opts = dot_opts_State(s)
+      dot_opts = dot_opts.update(dot_opts_for s)
+      return if dot_opts[:visible] == false
 
-      stream.puts "\n// #{s.inspect}"
+      show_decomposition = dot_opts.delete(:show_decomposition)
+      name = dot_name(s) # , [:source, :target])
+      if (sm = s.submachine) && show_decomposition
+        sm_opts = {
+          type: :subgraph,
+          render_start: true,
+          render_end: true,
+          label: dot_opts[:label],
+          show_decomposition: show_decomposition,
+          dot_opts: {
+            style: "rounded",
+          },
+        }
+        render_statemachine sm, dot_opts, sm_opts
+      else
+        render_node(s.inspect, name, dot_opts)
+      end
+      dot_opts
+    end
 
-      sequence = [ ]
+    def render_transitions sm, sm_opts
+      sm.transitions.each do | t |
+        render_Transition t, sm_opts
+      end
+    end
 
-      if options[:history]
-        options[:history].each_with_index do | hist, i |
-          if hist[:new_state] && s.is_a_superstate_of?(hist[:new_state])
-            sequence << i + 1
-          end
-        end
+    def render_Transition t, sm_opts
+      return if rendered?(t)
+
+      unless was_rendered?(t.source) && was_rendered?(t.target)
+        emit "// #{t.inspect} : skipped: source or target not rendered"
+        return
       end
 
       dot_opts = {
-        label:     dot_label(s),
-        shape:     :box,
-        style:     "filled",
+        label:     dot_label(t),
         color:     :black,
         fontcolor: :black,
-        fillcolor: :white,
-      }
+      }.update(dot_opts_for t)
+      return if dot_opts[:visible] == false
 
-      case
-      when s.end_state?
-        dot_opts[:label] = "" # DONT BOTH LABELING END STATES.
-        dot_opts[:shape] = :doublecircle
+      if (ht = options[:highlight_transitions]) && ht.include?(t)
+        dot_opts.update(highlight_transition_reached_options)
       end
-
-      dot_opts = dot_opts_for s, dot_opts
-
-      hide_decomposition = dot_opts.delete(:hide_decomposition)
-      stream.puts "  // hide_decomposition = #{hide_decomposition.inspect}"
-
-      if (hs = options[:highlight_states]) && hs.include?(s)
-        dot_opts[:style] += ',bold'
-      end
-
-      unless sequence.empty?
-        if options[:highlight_state_history] && (s.submachine ? hide_decomposition : true)
-          dot_opts.update(highlight_state_reached_options)
-        end
-        if options[:show_state_sequence]
-          dot_opts[:label] += "\\n(#{sequence_to_s(sequence)})\\l" # "\\r"
-        end
-      else
-        if options[:highlight_state_label_history]
-          dot_opts.update(highlight_state_unreached_options)
-        end
-        if options[:highlight_state_border_history]
-          dot_opts.update(highlight_state_unreached_options)
-        end
-      end
-
-      # Do not label FinalStates, it causes too much clutter.
-      # Invert the colors to be more like UML.
-      case
-      when s.end_state?
-        dot_opts[:label] = ""
-        dot_opts[:fillcolor], dot_opts[:fontcolor] =
-          dot_opts[:fontcolor], dot_opts[:fillcolor]
-      end
-
-      if ssm = s.submachine
-        # Composite States are rendered as
-        # a subgraph cluster with a target and source "connection point" for external connections.
-        # This is where the dot_name(s, :source || :target) is defined.
-        # Subsequence Transitions edges will used these connnection points.
-        implicit_dot_opts = dot_opts.dup
-        dot_opts[:hide_decomposition] = hide_decomposition
-        render_StateMachine(ssm, dot_opts) do
-          dot_opts = implicit_dot_opts
-          dot_opts[:shape] = :point
-          dot_opts[:label] = "[]"
-
-          stream.puts %Q'\n  subgraph cluster_#{dot_name(s, :source)} {'
-          stream.puts %Q{    color=none;}
-          stream.puts %Q{    fillcolor=none;}
-          stream.puts %Q{    fontcolor=none;}
-          stream.puts %Q{    label="";}
-          stream.puts %Q{    shape="plaintext";}
-          stream.puts %Q{    style="none";}
-
-          dot_opts[:color] = :black
-          dot_opts[:fillcolor] = :black
-          stream.puts "\n// Implicit target point for State #{s.to_s}"
-          stream.puts %Q{  node [ #{render_opts(dot_opts)} ] #{dot_name(s, :target)};}
-
-          dot_opts[:color] = :black
-          dot_opts[:fillcolor] = :white
-          stream.puts "\n// Implicit source point for State #{s.to_s}"
-          stream.puts %Q{  node [ #{render_opts(dot_opts)} ] #{dot_name(s, :source)};}
-          stream.puts "\n  }\n"
-        end
-        return self
-      end
-
-      # Non-composite States are rendered as simple nodes.
-      # In this case dot_name(s, :source || :target) == dot_name(s).
-      dot_opts[:style] += ',rounded'
-      stream.puts %Q{  node [ #{render_opts(dot_opts)} ] #{dot_name(s, [:source, :target])};}
-
-      return self
-    end
-
-    # Renders the Dot syntax for the Transition.
-    def render_Transition t
-      return if @rendered[t]
-      @rendered[t] = true
-
-      # Do not render Transition if source and target States are both rendered.
-      return unless @rendered[t.target] && @rendered[t.source]
 
       sequence = [ ]
-
       if options[:history]
         options[:history].each_with_index do | hist, i |
           if hist[:transition] === t
@@ -434,27 +423,13 @@ module RedSteak
         end
       end
 
-      stream.puts "\n// #{t.inspect}"
-
-      dot_opts = {
-        label:     dot_label(t),
-        color:     :black,
-        fontcolor: :black,
-      }
-
-      dot_opts = dot_opts_for t, dot_opts
-
-      if (ht = options[:highlight_transitions]) && ht.include?(t)
-        dot_opts.update(highlight_transition_reached_options)
+      label_more = dot_opts[:label] + "#{sequence_to_s(sequence)}\\l"
+      if options[:show_transition_sequence]
+        dot_opts[:label] = label_more
+      else
+        # dot_opts[:tooltip] = label_more
       end
-
-      source_name = "#{dot_name(t.source, :source)}"
-      target_name = "#{dot_name(t.target, :target)}"
-
       unless sequence.empty?
-        if options[:show_transition_sequence]
-          dot_opts[:label] += "\\n(#{sequence_to_s(sequence)})\\l"
-        end
         if options[:highlight_transition_history]
           dot_opts.update(highlight_transition_reached_options)
         end
@@ -464,36 +439,218 @@ module RedSteak
         end
       end
 
-      return if dot_opts[:visible] == false
-
-      stream.puts "#{source_name} -> #{target_name} [ #{render_opts(dot_opts)} ];"
+      if m = t.source.submachine
+        source_name = dot_name(m, :end)
+        dot_opts[:ltail] = dot_name(m)
+      else
+        source_name = dot_name(t.source) # , :source)
+      end
+      if m = t.target.submachine
+        target_name = dot_name(m, :start)
+        dot_opts[:lhead] = dot_name(m)
+      else
+        target_name = dot_name(t.target) # , :target)
+      end
+      render_edge(t, source_name, target_name, dot_opts)
 
       self
     end
 
+    def render_node desc, name, dot_opts
+      emit(
+        "// #{desc}",
+        "node [ #{render_opts(dot_opts)} ] #{name};",
+        "",
+      )
+    end
+
+    def render_edge desc, source_name, target_name, dot_opts
+      @edges << [
+        "// #{desc}",
+        "#{source_name} -> #{target_name} [ #{render_opts(dot_opts)} ];",
+        "",
+      ]
+    end
+
+    #################################################################################
+
+    def dot_opts_State s
+      dot_opts = {
+        label:     dot_label(s),
+        shape:     :box,
+        style:     "filled,rounded",
+        fontcolor: :black,
+        color:     :black,
+        fillcolor: :white,
+      }.update(dot_opts_for s)
+      if (hs = options[:highlight_states]) && hs.include?(s)
+        dot_opts[:style] += ",#{dot_opts[:highlite_state_style] || :bold}"
+      end
+
+      sequence = [ ]
+      if options[:history]
+        options[:history].each_with_index do | hist, i |
+          if hist[:new_state] && s.is_a_superstate_of?(hist[:new_state])
+            sequence << i + 1
+          end
+        end
+      end
+
+      label_more = dot_opts[:label] + "#{sequence_to_s(sequence)}\\l" # "\\r"
+      if options[:show_state_sequence]
+        dot_opts[:label] = label_more
+      else
+        # dot_opts[:tooltip] = label_more
+      end
+      unless sequence.empty?
+        if options[:highlight_state_history]
+          dot_opts.update(highlight_state_reached_options)
+        end
+      else
+        if options[:highlight_state_history]
+          dot_opts.update(highlight_state_unreached_options)
+        end
+      end
+      if s.superstate && options[:show_superstate_glyph]
+        dot_opts[:label] += "\\no-o\\r"
+      end
+      dot_opts
+    end
+
+    #################################################################################
+
+    def dot_name x, context = nil
+      case context
+      when Array
+        r = dot_name(x)
+        context.each { | c | @dot_name[[ x, c ]] = r }
+        r
+      else
+        @dot_name[[ x, context ]] ||= _dot_name(x, context)
+      end
+    end
+
+    def _dot_name x, context = nil
+      case x
+      when StateMachine
+        if context
+          return "x#{@dot_id += 1}_#{context}"
+        else
+          return "cluster_x#{@dot_id += 1}"
+        end
+      end
+      "x#{@dot_id +=1}"
+    end
+
+    #################################################################################
+
+    # Returns the Dot label for the object.
+    # !!! refactor this to only return annotations
+    def dot_label x
+      if label = _dot_label(x)
+        label.to_s
+      else
+        return label if label = @dot_label[x.object_id]
+        @dot_label[x.object_id] = _dot_label(x)
+      end
+    end
+
+    def _dot_label x
+      case x
+      when StateMachine
+        x.name.to_s
+      when State
+        _dot_label_State x
+      when Transition
+        _dot_label_Transition x
+      end
+    end
+
+    def _dot_label_State x
+      dot_opts = options.merge(dot_opts_for(x))
+      label = x.name.to_s
+
+      render_label(x, "#{label}\n", dot_opts,
+        [
+          [ :show_entry, :entry,      'entry / %s\\l' ],
+          [ :show_exit,  :exit,       'exit / %s\\l'  ],
+          [ :show_do,    :doActivity, 'do / %s\\l'    ],
+        ]
+      )
+    end
+
+    # See UML Spec 2.1 superstructure p. 574:
+    #   trigger [ ',' trigger ]* [ '[' guard ']' ]? [ '/' effect ]?
+    def _dot_label_Transition x
+        dot_opts = options.merge(dot_opts_for(x))
+        dot_opts[:show_name] = true if x.trigger.empty?
+        dot_opts[:show_trigger] = true unless dot_opts[:show_name]
+        render_label(x, '', dot_opts,
+          [
+            [ :show_name,    :name,    '%s\n'    ],
+            [ :show_trigger, :trigger, '%s\\l'   ],
+            [ :show_guard,   :guard,   '[%s]\\l' ],
+            [ :show_effect,  :effect,  '/%s\\l'  ],
+          ]
+        )
+    end
+
+    def render_label x, label, dot_opts, patterns
+      patterns.each do | (opt, sel, fmt) |
+        next unless opt == true || dot_opts[opt]
+        case v = x.send(sel)
+        when nil
+          # NOTHING
+        when Array
+          v = v.map(&:to_s) * ','
+        when String, Symbol
+          v = v.inspect
+        else
+          v = '...'
+        end
+        if fmt && ! v.nil?
+          label += (fmt % v.to_s)
+        end
+      end
+      label
+    end
+
+    #################################################################################
+
     # !!!: parameterize these:
     def highlight_state_reached_options
-      { fillcolor: :grey85 }
+      {
+        fillcolor: :grey85,
+        penwidth:  1.75,
+        # style:    'rounded,bold,filled',
+      }
     end
     def highlight_state_unreached_options
-      { fontcolor: :grey33 }
+      {
+        fontcolor: :grey33,
+        penwidth:  1.0,
+        # style:   'rounded,dashed,filled',
+      }
     end
     def highlight_transition_reached_options
       {
-        style:    'bold',
-        penwidth:  1.5,
+        # style:    'bold',
+        penwidth:  1.75,
       }
     end
     def highlight_transition_unreached_options
       {
-        color:     :grey55,
-        fontcolor: :grey45,
+        # color:     :grey55,
+        # fontcolor: :grey45,
+        penwidth:  1.0,
+        style: :dashed,
       }
     end
 
     def sequence_to_s s, limit = 4
       s = s.sort
       s.uniq!
+      return '' if s.size.zero?
       if s.size <= limit
         t = s
       else
@@ -520,11 +677,22 @@ module RedSteak
       if t.size > limit
         t = t[0 .. 3] << "\01" << t[-1]
       end
-      t.join(',').gsub(/\.\./, '-').sub("\01", '...')
+      '(' + t.join(',').gsub(/\.\./, '-').sub("\01", '...') + ')'
     end
 
-    def dot_opts_for x, opts = nil
-      opts ||= { }
+    def rendered? obj
+      if @rendered[obj.object_id]
+        true
+      else
+        @rendered[obj.object_id] = obj
+        false
+      end
+    end
+    def was_rendered? obj
+      @rendered[obj.object_id]
+    end
+
+    def dot_opts_for x
       kind =
       case x
       when StateMachine
@@ -537,25 +705,33 @@ module RedSteak
         nil
       end
 
+      opts = {}
+
+      # binding.pry
       # overlay based on representation type.
       opts.update((options[:dot_options] || EMPTY_HASH)[kind] || EMPTY_HASH)
+      # binding.pry if opts[:label] =~ /::/
 
       # overlay based on class of element.
       opts.update((options[:dot_options] || EMPTY_HASH)[x.class] || EMPTY_HASH)
+      # binding.pry if opts[:label] =~ /::/
 
       # overlay element's options[:dot_options]
       opts.update(x.options[:dot_options] || EMPTY_HASH)
+      # binding.pry if opts[:label] =~ /::/
 
       # overlay based on object.
       opts.update((options[:dot_options] || EMPTY_HASH)[x] || EMPTY_HASH)
+      # binding.pry if opts[:label] =~ /::/
 
       opts
     end
 
-    def render_opts x, j = ', '
+    def render_opts x, sep = ', '
+      items =
       case x
       when Hash
-        x = x.keys.sort { | a, b | a.to_s <=> b.to_s }.map do | k |
+        x.keys.map do | k |
           v = x[k]
           case k
           # when :label
@@ -567,161 +743,19 @@ module RedSteak
           end
           "#{k}=#{v}"
         end
-        if j =~ /\n/
-          x << ''
-        end
-        x * j
       when Array
-        x * ','
+        x
       else
-        x.to_s.inspect
+        [x.to_s.inspect]
+      end
+      if sep[0] == ";"
+        indent = ''
+        items.map do |s|
+          "#{indent}#{s}#{sep}".tap{indent = @indent}
+        end.join('')
+      else
+        items * sep
       end
     end
-
-    # _machine_ can be a Machine or a Statemachine object.
-    #
-    # Returns self.
-    #
-    # File Options:
-    #
-    #   :dir
-    #     The directory to create the .dot and .dot.svg files.
-    #     Defaults to '.'
-    #   :name
-    #     The base filename to use.  Defaults to the name of
-    #     StateMachine object.
-    #
-    # General Options:
-    #   :show_all
-    #     Same as :show_entry, :show_exit, :show_do, :show_trigger, :show_effect
-    #
-    # History options:
-    #
-    #   :show_history
-    #     If true, the history stored in Machine is shown as
-    #     numbered transitions between states.
-    #   :history
-    #     An enumeration of Hashes as stored in Machine#history.
-    #
-    # States Options:
-    #   :show_state_sequence
-    #   :show_entry
-    #   :show_exit
-    #   :show_do
-    #   :highlight_states
-    #     An enumeration of States to highlight.
-    #
-    # Transition Options:
-    #   :show_transition_sequence
-    #   :show_guard
-    #   :show_effect
-    #   :show_trigger
-    #   :highlight_transitions
-    #     An enumeration of Transitions to highlight.
-    #
-    # Results:
-    #
-    #   file_dot
-    #     The *.dot file.
-    #
-    #   file_svg
-    #     The *.svg file.
-    #     Defaults to "#{file_dot}.svg"
-    #
-    # Color names:
-    # * https://graphviz.org/doc/info/colors.html
-    #
-    def render_graph(machine, opts = nil)
-      opts ||= self.options
-
-      case machine
-      when RedSteak::Machine
-        sm = machine.statemachine
-      when RedSteak::StateMachine
-        sm = machine
-      else
-        raise ArgumentError, "expected Machine or StateMachine, given #{machine.class}"
-      end
-
-      # Compute dot file name.
-      unless file_dot
-        dir = opts[:dir] || '.'
-        file = "#{dir}/"
-        file += opts[:name_prefix].to_s
-        opts[:name] ||= sm.name
-        file += opts[:name].to_s
-        file += opts[:name_suffix].to_s
-        file += '-history' if opts[:show_history]
-        file += ".dot"
-        self.file_dot = file
-      end
-
-      # Write the dot file.
-      File.open(file_dot, 'w') do | fh |
-        opts[:stream] = fh
-        # Why are we creating a new instance!?!?
-        RedSteak::Dot.new(opts).render(machine)
-      end
-      opts[:stream] = nil
-
-      # Compute the SVG file name.
-      self.file_svg ||= "#{file_dot}.svg"
-
-      # Render dot to SVG.
-      cmd = "dot -V"
-      if system("#{cmd} >/dev/null 2>&1") == true
-        File.unlink(file_svg) rescue nil
-
-        # Try using cairo svg renderer.
-        cmd = "dot -Tsvg:cairo:cairo #{file_dot.inspect} -o #{file_svg.inspect}"
-        _log { "Run: #{cmd}" }
-        result = @dot_command_output = `#{cmd} 2>&1`
-        _log { "Result: #{result}" }
-
-        # Fall back to plain svg renderer.
-        if result =~ /Warning: language .* not recognized, use one of:|cairo: out of memory/ || ! File.exist?(file_svg)
-          cmd = "dot -Tsvg #{file_dot.inspect} -o #{file_svg.inspect}"
-          _log { "Run: #{cmd}" }
-          result = @dot_command_output = `#{cmd} 2>&1`
-          _log { "Result: #{result}" }
-        end
-
-        # Check for file.
-        unless File.exist?(file_svg)
-          err = Error.new(:message => 'dot command failed',
-                          :command => cmd,
-                          :file => file_svg,
-                          :output => @dot_command_output)
-          _log { "Error: #{err.inspect}" }
-          raise err
-        end
-
-        _log { "Generated: file://#{file_svg}" }
-      else
-        _log { "Warning: #{cmd} failed" }
-        raise Error, :message => 'dot command not found',
-          :command => cmd
-      end
-
-      self
-    end
-
-    # Returns SVG data of the graph, using a temporary file.
-    def render_graph_svg_data machine, opts = { }
-      require 'tempfile'
-      tmp = Tempfile.new("red_steak_dot")
-      self.file_dot = tmp.path + ".dot"
-      self.file_svg = nil
-      render_graph(machine, opts)
-      result = File.open(self.file_svg, "r") { | fh | fh.read }
-      if opts[:xml_header] == false || options[:xml_header] == false
-        result.sub!(/\A.*?<svg /m, '<svg ')
-      end
-      result
-    ensure
-      tmp.unlink rescue nil
-      File.unlink(self.file_dot) rescue nil
-      File.unlink(self.file_svg) rescue nil
-    end
-  end # class
-end # module
+  end
+end

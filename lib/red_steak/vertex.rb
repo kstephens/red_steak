@@ -104,5 +104,5 @@ module RedSteak
         [ @name ]
       end
     end
-  end # class
-end # module
+  end
+end

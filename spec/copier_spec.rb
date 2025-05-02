@@ -91,4 +91,4 @@ RSpec.describe 'RedSteak::Copier' do
     # pp c.map
     expect(c.size).to eq(9)
   end
-end # describe
+end

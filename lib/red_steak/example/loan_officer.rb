@@ -45,6 +45,10 @@ module RedSteak
     x
   end
 
+  def prompt_customer! *args
+    _log "prompt customer"
+  end
+
   def create_customer! m, trans, *args
     _log
     @customer = @data
@@ -104,6 +108,10 @@ module RedSteak
     @loan[:approved?] = true
   end
 
+  def loan_denied! *args
+    true
+  end
+
   def deny_loan! *args
     @loan[:denied?] = true
   end
@@ -126,66 +134,66 @@ module RedSteak
   end
 
   def sm
-    @sm ||=
-      # RedSteak::StateMachine.build do
-      RedSteak::Builder.new.build do
-      statemachine :loan_application do
-        initial :start
-        final :complete
+      @sm ||=
+        # RedSteak::StateMachine.build do
+        RedSteak::Builder.new.build do
+        statemachine :loan_application do
+          initial :start
+          final :complete
 
-        state :start
-        transition :customer_data
+          state :start
+          transition :customer_data
 
-        state :customer_data,
-          :do => :do_merge_customer_data!,
-          :exit => :create_customer!
-        transition :customer_data,
-          :guard => :customer_data_not_complete?,
-          :effect => :customer_data_still_needed!
-        transition :loan_data,
-          :guard => :customer_data_complete?
+          state :customer_data,
+            :do => :do_merge_customer_data!,
+            :exit => :create_customer!
+          transition :customer_data,
+            :guard => :customer_data_not_complete?,
+            :effect => :customer_data_still_needed!
+          transition :loan_data,
+            :guard => :customer_data_complete?
 
-        state :loan_data,
-          :do => :do_merge_loan_data!,
-          :exit => :create_loan!
-        transition :loan_data,
-          :guard => :loan_data_not_complete?
-        transition :risk_assessment,
-          :guard => :loan_data_complete?
+          state :loan_data,
+            :do => :do_merge_loan_data!,
+            :exit => :create_loan!
+          transition :loan_data,
+            :guard => :loan_data_not_complete?
+          transition :risk_assessment,
+            :guard => :loan_data_complete?
 
-        state :risk_assessment,
-          :entry => :start_risk_assessment!
-        transition :display_contract,
-          :guard => :approve_loan?,
-          :effect => :approve_loan!
-        transition :loan_denied,
-          :guard => :deny_loan?,
-          :effect => :deny_loan!
+          state :risk_assessment,
+            :entry => :start_risk_assessment!
+          transition :display_contract,
+            :guard => :approve_loan?,
+            :effect => :approve_loan!
+          transition :loan_denied,
+            :guard => :deny_loan?,
+            :effect => :deny_loan!
 
-        state :display_contract
-        transition :loan_approved,
-          :name => :sign_contract!
-        transition :loan_unsigned,
-          :name => :loan_signature_timeout!
+          state :display_contract
+          transition :loan_approved,
+            :name => :sign_contract!
+          transition :loan_unsigned,
+            :name => :loan_signature_timeout!
 
 
-        state :loan_approved
-        transition :complete
+          state :loan_approved
+          transition :complete
 
-        state :loan_denied
-        transition :complete
-        transition :customer_data,
-          :name => :revise_customer_data!
-        transition :loan_data,
-          :name => :revise_loan_data!
+          state :loan_denied
+          transition :complete
+          transition :customer_data,
+            :name => :revise_customer_data!
+          transition :loan_data,
+            :name => :revise_loan_data!
 
-        state :loan_unsigned
-        transition :complete
+          state :loan_unsigned
+          transition :complete
 
-        state :complete
+          state :complete
+        end
       end
     end
   end
-end
 end
 end

@@ -35,7 +35,6 @@ module RedSteak
 
     def deepen_copy! copier, src
       super
-
       @source = copier[@source]
       @target = copier[@target]
       @trigger = copier[@trigger]
@@ -110,5 +109,5 @@ module RedSteak
           x
         end
     end
-  end # class
-end # module
+  end
+end

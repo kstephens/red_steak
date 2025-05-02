@@ -2,20 +2,26 @@ require 'red_steak'
 require 'pp'
 
 RSpec.describe 'RedSteak::Builder' do
+  it 'should raise error if start and stop states are not specified' do
+    expect do
+      sm = RedSteak::Builder.new.build do
+        statemachine __LINE__.to_s do
+          state :a
+          state :b
+          transition :a, :b
+        end
+      end
+    end.to raise_error(RedSteak::Error::ObjectInvalid)
+  end
+
   it 'should handle undefined ambiguous Transition names' do
     sm = RedSteak::Builder.new.build do
-      statemachine :test1 do
+      statemachine __LINE__.to_s do
         initial :initial
         final :final
-
         state :initial
-
-        transition :final,
-        :trigger => :trigger1
-
-        transition :final,
-        :trigger => :trigger2
-
+        transition :final, trigger: :trigger1
+        transition :final, trigger: :trigger2
         state :final
       end
     end
@@ -36,61 +42,89 @@ RSpec.describe 'RedSteak::Builder' do
     expect(t2.trigger).to eq([ :trigger2 ])
   end
 
+  it 'should raise error if State is not reachable' do
+    expect do
+      sm = RedSteak::Builder.new.build do
+        statemachine __LINE__.to_s do
+          initial :a
+          final :b
+
+          state :a
+          state :b
+          state :c
+        end
+      end
+    end.to raise_error(RedSteak::Error::ObjectInvalid)
+  end
+
+  xit 'should raise error overloaded State names' do
+    expect do
+      sm = RedSteak::Builder.new.build do
+        statemachine __LINE__.to_s do
+          initial :a
+          final :b
+
+          state :a
+          state :a
+          state :b
+          transition :a, :b
+        end
+      end
+    end.to raise_error(RedSteak::Error::NameConflict, /state/)
+  end
+
   it 'should raise error overloaded Transition names' do
     expect do
       sm = RedSteak::Builder.new.build do
-        statemachine :test2 do
+        statemachine __LINE__.to_s do
           initial :initial
           final :final
 
           state :initial
-
-          transition :final, :name => :foo
-          transition :final, :name => :foo
-
+          transition :final, name: :foo
+          transition :initial, :final, name: :foo
           state :final
         end
       end
-      pp sm
-    end.to raise_error(RedSteak::Error, /Ambiguous Transition Name/)
+    end.to raise_error(RedSteak::Error::NameConflict, /transition/)
   end
 
   it 'should find original States when augmenting' do
     s1 = s2 = nil
     sm = RedSteak::Builder.new.build do
-      statemachine :test3 do
+      statemachine __LINE__.to_s do
         initial :initial
         final :final
 
         s1 = state :initial
-
         transition :final
-
         s2 = state :final
       end
     end
 
-    expect((t1 = sm.transition[0])).to_not eq(nil)
+    t1 = sm.transition[0]
+    expect(sm.transition.size).to eq(1)
+    expect(t1).to_not eq(nil)
+    expect(t1.source).to be(s1)
+    expect(t1.target).to be(s2)
 
     a = b = nil
     sm.build do
-      a = state(:initial)
-      b = state(:final)
+      a = state :initial
+      b = state :final
     end
     expect(a).to be(s1)
     expect(b).to be(s2)
   end
 
-  it 'should uniquely name Transtions when augmenting' do
+  it 'should uniquely name Transitions when augmenting' do
     sm = RedSteak::Builder.new.build do
-      statemachine :test4 do
+      statemachine __LINE__.to_s do
         initial :initial
         final :final
 
         state :initial
-
-        transition :final, :foo => 1
-
+        transition :final, foo: 1
         state :final
       end
     end
@@ -100,7 +134,7 @@ RSpec.describe 'RedSteak::Builder' do
     expect(t1[:foo]).to eq(1)
 
     sm.build do
-      transition :initial, :final, :foo => 2
+      transition :initial, :final, foo: 2
     end
 
     expect(t1[:foo]).to eq(2)
@@ -108,14 +142,11 @@ RSpec.describe 'RedSteak::Builder' do
 
     sm.build do
       transition :initial, :final
-      transition :initial, :final
+      transition :initial, :final, name: :other
     end
 
-=begin
-    # FIXME!!!
-    expect((t2 = sm.transition[1])).to_not eq(nil)
-    expect(t2).to_not be(t1)
-    expect(t2.name).to eq(:'initial->final-2')
-=end
+    expect(sm.transition.size).to eq(2)
+    t2 = sm.transition[1]
+    expect(t2.name).to eq(:other)
   end
 end

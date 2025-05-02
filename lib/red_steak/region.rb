@@ -5,5 +5,5 @@ module RedSteak
     # subsets ownedMember
     attr_reader :subvertexs # not UML
     alias :subvertex :subvertexs # UML
-  end # class
-end # module
+  end
+end

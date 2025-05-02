@@ -108,7 +108,7 @@ RUBY
         transition :final,
           :trigger => :terminate
 
-        state(:active, :dot_options => { :hide_decomposition => false }) do
+        state(:active, :dot_options => { :show_decomposition => true }) do
           statemachine do
             initial :dial_tone
 
@@ -154,7 +154,7 @@ RUBY
               :effect => :enable_speech
 
             state :talking,
-              :dot_options => { :color => :green, :fontcolor => :blue }
+              :dot_options => { color: :blue, fontcolor: :blue }
             transition :pinned,
               :trigger => :callee_hangs_up
 

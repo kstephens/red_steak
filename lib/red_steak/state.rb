@@ -36,9 +36,16 @@ module RedSteak
       super
     end
 
+    def freeze
+      return self if frozen?
+      @submachine.freeze
+      @connectionPoint.freeze
+      ancestors.freeze
+      super
+    end
+
     def deepen_copy! copier, src
       super
-
       @submachine = copier[@submachine]
       @connectionPoint = copier[@connectionPoint]
     end
@@ -52,36 +59,6 @@ module RedSteak
       @submachine ? @submachine.state : NamedArray::EMPTY
     end
     alias :substate :state
-
-    # Adds a Pseudostate to this State.
-    def add_connectionPoint! s
-      _log { "add_connectionPoint! #{s.inspect}" }
-
-      if @connectionPoint.find { | x | x.name == s.name }
-        raise ArgumentError, "connectionPoint named #{s.name.inspect} already exists"
-      end
-
-      @connectionPoint << s
-      s.state = self
-
-      # Notify.
-      s.connectionPoint_added! self
-
-      s
-    end
-
-    # Removes a Pseudostate from this State.
-    def remove_connectionPoint! s
-      _log { "remove_connectionPoint! #{s.inspect}" }
-
-      @connectionPoint.delete(s)
-      s.state = nil
-
-      # Notify.
-      s.connectionPoint_removed! self
-
-      self
-    end
 
     # Returns true if this a start state.
     def start_state?
@@ -151,15 +128,21 @@ module RedSteak
     # Returns a NamedArray of all ancestor States.
     # self is the first element.
     def ancestors
-      @ancestors ||=
-        begin
-          x = [ self ]
-          if ss = superstate
-            x.push(*ss.ancestors)
-          end
-          NamedArray.new(x.freeze, :state)
-        end
+      if frozen?
+        _ancestors.freeze
+      else
+        @ancestors ||= _ancestors
+      end
     end
+
+    def _ancestors
+      x = [ self ]
+      if ss = superstate
+        x.push(*ss.ancestors)
+      end
+      NamedArray.new(x.freeze, :state)
+    end
+
 
     # Called by Machine when State is entered.
     def entry! machine, args
@@ -189,32 +172,24 @@ module RedSteak
     # Adds a Pseudostate to this State.
     def add_connectionPoint! s
       _log { "add_connectionPoint! #{s.inspect}" }
-
-      if @connectionPoint.find { | x | x.name == s.name }
-        raise ArgumentError, "connectionPoint named #{s.name.inspect} already exists"
-      end
-
+      @connectionPoint.check_name_conflict!(:add_connectionPoint!, s)
+      @ownedMember.check_name_conflict!(:add_connectionPoint!, s)
       @ownedMember << s # ownedElement?!?!
       @connectionPoint << s
       s.state = self
-
       # Notify.
       s.connectionPoint_added! self
-
       s
     end
 
     # Removes a Pseudostate from this StateMachine.
     def remove_connectionPoint! s
       _log { "remove_connectionPoint! #{s.inspect}" }
-
       @ownedMember.delete(s) # ownedElement?!?!
       @connectionPoint.delete(s)
       s.state = nil
-
       # Notify.
       s.connectionPoint_removed! self
-
       self
     end
 
@@ -234,5 +209,5 @@ module RedSteak
         errors << :end_state_has_substates unless ! end_state?
       end
     end
-  end # class
-end # module
+  end
+end

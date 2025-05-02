@@ -1,323 +1,106 @@
 require 'red_steak'
+require 'red_steak/example/loan_officer'
+require 'red_steak/example/render'
 require 'ostruct'
 require 'fileutils' # FileUtil.mkdir_p
 require 'pp'
 
 RSpec.describe 'RedSteak LoanOfficer Example' do
-  # A test context for the StateMachine.
-  class LoanOfficer
-    include RedSteak::Logging
-
-    attr_reader :data
-    attr_reader :customer
-    attr_reader :loan
-    attr_accessor :controller
-
-    def initialize
-      @data = { }
-      @customer = nil
-      @loan = nil
-      @controller = nil
-    end
-
-    ######################################3
-    # Customer
-    #
-
-    @@required_customer_data =
-      [
-       :first_name,
-       :last_name,
-       :ssn,
-       :email,
-       :income,
-       ]
-
-    def do_merge_customer_data! m, state, *args
-      _log
-      @data.merge!(controller.params)
-    end
-
-    def customer_data_complete? *args
-      x = @@required_customer_data.all? { |x| @data[x].to_s != '' }
-      _log x
-      x
-    end
-
-    def customer_data_not_complete? *args
-      x = ! customer_data_complete?
-      _log x
-      x
-    end
-
-    def create_customer! m, trans, *args
-      _log
-      @customer = @data
-    end
-
-    def customer_data_still_needed! m, trans, *args
-      _log
-    end
-
-
-    ######################################3
-    # Loan
-    #
-
-    @@required_loan_data =
-      [
-       :amount,
-       :due_date,
-       ]
-
-    def do_merge_loan_data! m, state, *args
-      _log
-      @data.merge!(controller.params)
-    end
-
-    def loan_data_complete? *args
-      x = @@required_loan_data.all? { |x| @data[x].to_s != '' }
-      _log x
-      x
-    end
-
-    def loan_data_not_complete? *args
-      x = ! loan_data_complete?
-      _log x
-      x
-    end
-
-    def create_loan! m, trans, *args
-      _log
-      @loan = @data
-    end
-
-    def start_risk_assessment! *args
-      @loan[:approved?] =
-        @loan[:denied?] = false
-    end
-
-    def approve_loan? *args
-      @customer[:income] >= @loan[:amount] * 10
-    end
-
-    def deny_loan? *args
-      ! approve_loan?
-    end
-
-    def approve_loan! *args
-      @loan[:approved?] = true
-    end
-
-    def deny_loan! *args
-      @loan[:denied?] = true
-    end
-
-    def machine
-      @machine ||=
-        begin
-          m = sm.machine
-          m.context = self
-          m
-        end
-    end
-
-    def _log *args
-      line = caller(1).first
-      line =~ /`([^']*)'/
-      method = $1 || line
-      super("#{method} #{args * ' '}")
-      self
-    end
-
-    def sm
-      @sm ||=
-        # RedSteak::StateMachine.build do
-        RedSteak::Builder.new.build do
-        statemachine :loan_application do
-          initial :start
-          final :complete
-
-          state :start
-          transition :customer_data
-
-          state :customer_data,
-            :do => :do_merge_customer_data!,
-            :exit => :create_customer!
-          transition :customer_data,
-            :guard => :customer_data_not_complete?,
-            :effect => :customer_data_still_needed!
-          transition :loan_data,
-            :guard => :customer_data_complete?
-
-          state :loan_data,
-            :do => :do_merge_loan_data!,
-            :exit => :create_loan!
-          transition :loan_data,
-            :guard => :loan_data_not_complete?
-          transition :risk_assessment,
-            :guard => :loan_data_complete?
-
-          state :risk_assessment,
-            :entry => :start_risk_assessment!
-          transition :display_contract,
-            :guard => :approve_loan?,
-            :effect => :approve_loan!
-          transition :loan_denied,
-            :guard => :deny_loan?,
-            :effect => :deny_loan!
-
-          state :display_contract
-          transition :loan_approved,
-            :name => :sign_contract!
-          transition :loan_unsigned,
-            :name => :loan_signature_timeout!
-
-
-          state :loan_approved
-          transition :complete
-
-          state :loan_denied
-          transition :complete
-          transition :customer_data,
-            :name => :revise_customer_data!
-          transition :loan_data,
-            :name => :revise_loan_data!
-
-          state :loan_unsigned
-          transition :complete
-
-          state :complete
-        end
-      end
-    end
-  end
-
-
-  def render_graph sm, opts = { }
-    lo._log lo.data.inspect
-    #pp lo.data
-    #pp sm.to_hash
-
-    opts[:dir] ||= File.expand_path(File.dirname(__FILE__) + '/../doc/example')
-    FileUtils.mkdir_p(opts[:dir])
-    opts[:name_prefix] = 'red_steak-'
-    @graph_id ||= 0
-    opts[:name_suffix] = "-%02d" % (@graph_id += 1)
-
-    opts[:show_state_sequence] = true
-    opts[:show_transition_sequence] = true
-    opts[:highlight_state_history] = true
-    opts[:highlight_transition_history] = true
-    opts[:show_effect] = true
-    opts[:show_guard] = true
-    opts[:show_entry] = true
-    opts[:show_exit] = true
-    opts[:show_do] = true
-
-    RedSteak::Dot.new.render_graph(sm, opts)
-    # pp sm.history
-  end
-
-
-  ####################################################################
-
-
   attr_accessor :lo
 
   it 'transitions using transition_if_valid!' do
-    self.lo = LoanOfficer.new
+    self.lo = RedSteak::Example::LoanOfficer.new
     # lo._logger = $stdout if ENV['TEST_VERBOSE']
     controller = OpenStruct.new(:params => { })
     lo.controller = controller
-
     m = lo.machine
     m.history = [ ]
     m.logger = lo._logger if ENV['TEST_VERBOSE']
     m.auto_run = true
-    render_graph(m)
+
+    render = RedSteak::Example::Render.new(context: lo, machine: lo.machine)
+    render.render_graph!
 
     m.start!
-    render_graph(m)
+    render.render_graph!
     expect(m.state.name).to eq(:start)
     lo._log m.valid_transitions.inspect
     expect(m.transition_if_valid!).to_not eq(nil)
 
-    render_graph(m)
+    render.render_graph!
     expect(m.state.name).to eq(:customer_data)
     controller.params[:first_name] = 'Joe'
     lo._log m.valid_transitions.inspect
     expect(m.transition_if_valid!).to_not eq(nil)
 
-    render_graph(m)
+    render.render_graph!
     expect(m.state.name).to eq(:customer_data)
     controller.params[:last_name] = 'Borrower'
     expect(m.transition_if_valid!).to_not eq(nil)
 
-    render_graph(m)
+    render.render_graph!
     expect(m.state.name).to eq(:customer_data)
     controller.params[:ssn] = '123456789'
     controller.params[:email] = 'joeb@asdf.com'
     controller.params[:income] = 1000
     expect(m.transition_if_valid!).to_not eq(nil)
 
-    render_graph(m)
+    render.render_graph!
     expect(m.transition_if_valid!).to_not eq(nil)
 
-    render_graph(m)
+    render.render_graph!
     expect(m.state.name).to eq(:loan_data)
     expect(lo.customer).to_not eq(nil)
     controller.params[:amount] = 500
     expect(m.transition_if_valid!).to_not eq(nil)
 
-    render_graph(m)
+    render.render_graph!
     expect(m.state.name).to eq(:loan_data)
     controller.params[:due_date] = '2009/01/20'
     expect(m.transition_if_valid!).to_not eq(nil)
 
-    render_graph(m)
+    render.render_graph!
     expect(m.transition_if_valid!).to_not eq(nil)
 
-    render_graph(m)
+    render.render_graph!
     expect(m.state.name).to eq(:risk_assessment)
     expect(lo.loan).to_not eq(nil)
     expect(lo.loan[:approved?]).to eq(false)
     expect(lo.loan[:denied?]).to eq(false)
     expect(m.transition_if_valid!).to_not eq(nil)
 
-    render_graph(m)
+    render.render_graph!
     expect(m.state.name).to eq(:loan_denied)
     expect(lo.loan).to_not eq(nil)
     expect(lo.loan[:approved?]).to eq(false)
     expect(lo.loan[:denied?]).to eq(true)
     m.transition! :revise_loan_data!
 
-    render_graph(m)
+    render.render_graph!
     expect(m.state.name).to eq(:loan_data)
     lo.loan[:amount] = 100
     expect(m.transition_if_valid!).to_not eq(nil)
 
-    render_graph(m)
+    render.render_graph!
     expect(m.state.name).to eq(:risk_assessment)
     expect(lo.loan[:approved?]).to eq(false)
     expect(lo.loan[:denied?]).to eq(false)
     expect(m.transition_if_valid!).to_not eq(nil)
 
-    render_graph(m)
+    render.render_graph!
     expect(m.state.name).to eq(:display_contract)
     expect(lo.loan[:approved?]).to eq(true)
     expect(lo.loan[:denied?]).to eq(false)
     m.transition! :sign_contract!
 
-    render_graph(m)
+    render.render_graph!
     expect(m.state.name).to eq(:loan_approved)
     expect(m.transition_if_valid!).to_not eq(nil)
 
-    render_graph(m)
+    render.render_graph!
     expect(m.state.name).to eq(:complete)
     expect(lo.loan[:approved?] || lo.loan[:denied?]).to eq(true)
     expect(m.at_end?).to eq(true)
     expect(m.transition_if_valid!).to eq(nil)
   end
-
-end # describe
+end

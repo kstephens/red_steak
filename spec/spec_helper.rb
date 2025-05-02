@@ -6,7 +6,7 @@ require 'awesome_print'
 
 TEST_VERBOSE = ENV.fetch('TEST_VERBOSE', '0').to_i != 0
 
-if (ENV['COVERAGE'] || '1').to_i > 0
+if (ENV['COVERAGE'] || 0).to_i > 0
   require 'simplecov'
   SimpleCov.start do
     enable_coverage :branch

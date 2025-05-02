@@ -38,4 +38,4 @@ RSpec.describe 'RedSteak::Error' do
     expect(e.message).to eq("message")
     expect(e.inspect).to eq("#<RedSteak::Error \"message\"\n  :foo => :bar>")
   end
-end # describe
+end

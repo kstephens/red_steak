@@ -1,4 +1,5 @@
 require 'red_steak'
+require 'red_steak/example/render'
 require 'fileutils' # FileUtils.mkdir_p
 
 RSpec.describe RedSteak do
@@ -29,7 +30,6 @@ RSpec.describe RedSteak do
         @_transition =
         @_a_to_b =
         nil
-
       @_guard = [ ]
       @_effect = [ ]
       @_state = [ ]
@@ -224,7 +224,9 @@ RSpec.describe RedSteak do
 
     d = sm.states[:d]
     expect(d.submachine).to_not eq(nil)
-    expect(d.submachine.rootNamespace).to be(d.submachine)
+    expect(d.submachine.rootNamespace).to be(sm)
+    expect(d.submachine.superstatemachine).to be(sm)
+    expect(d.submachine.rootStateMachine).to be(sm)
 
     d_d1 = d.submachine.states[:d1]
     expect(d_d1.inspect).to eq("#<RedSteak::State test::d d::d1>")
@@ -232,6 +234,17 @@ RSpec.describe RedSteak do
     expect(d_d1.is_a_superstate_of?(d)).to eq(false)
     expect(d_d1.is_a_substate_of?(d)).to eq(true)
     expect(d.is_a_substate_of?(d_d1)).to eq(false)
+    expect(d.isSubmachineState).to eq(true)
+    expect(d.is_submachine_state?).to eq(true)
+
+    expect(d.namespace.class).to be(RedSteak::StateMachine)
+    expect(d.namespace.name).to eq(:test)
+    expect(d.namespace.root_namespace).to be(sm)
+
+    expect(d_d1.namespace.class).to be(RedSteak::StateMachine)
+    expect(d_d1.namespace).to be(d.submachine)
+    expect(d_d1.namespace.name).to eq(:d)
+    expect(d_d1.namespace.root_namespace).to be(sm)
 
     e = sm.states[:end]
     expect(e).to_not eq(nil)
@@ -259,35 +272,25 @@ RSpec.describe RedSteak do
   # Returns a Machine that can walk a StateMachine with context object.
   def machine_with_context sm = nil
     sm ||= statemachine
-
     m = sm.machine
-
     m.history = [ ]
-
     m.logger = $stdout if ENV['TEST_VERBOSE']
-
     m.context = RedSteak::TestContext.new
-
     m
   end
 
-
   # Render graph.
-  def render_graph sm, opts = { }
-    opts[:dir] ||= File.expand_path(File.dirname(__FILE__) + '/../doc/example')
-    FileUtils.mkdir_p(opts[:dir])
-    opts[:name_prefix] = 'red_steak-'
+  def render_graph! m, opts = { }
+    opts = opts.dup
     opts[:highlight_state_history] = true
     opts[:highlight_transition_history] = true
-    RedSteak::Dot.new.render_graph(sm, opts)
+    RedSteak::Example::Render.new(machine: m)
   end
-
 
   it 'should generate Dot output' do
     sm = statemachine
-    render_graph sm
+    render_graph! sm.machine
   end
-
 
   it 'should handle transitions' do
     m = machine_with_context
@@ -348,6 +351,7 @@ RSpec.describe RedSteak do
     expect(c._exit).to eq([ [ "a", :arg1 ] ])
     expect(c._doActivity).to eq([ [ "b", :arg1 ] ])
     expect(m.history.size).to eq(2)
+    expect(c._transition.to_uml_s).to eq("'a_to_b' [:a_to_b?]")
 
     #################################
     # Transition 2
@@ -470,7 +474,7 @@ RSpec.describe RedSteak do
     ]
     )
 
-    render_graph m, :show_history => true
+    render_graph! m, :show_history => true
   end
 
 
@@ -573,7 +577,7 @@ RSpec.describe RedSteak do
     m.transition_to! :end
     expect(m.at_end?).to eq(true)
 
-    render_graph m, :name => "with-substates", :show_history => true
+    render_graph! m, :name => "with-substates", :show_history => true
   end
 
 
@@ -595,7 +599,7 @@ RSpec.describe RedSteak do
       transition :f, :end
     end
 
-    render_graph sm
+    render_graph! sm.machine
 
     expect(a.object_id).to eq(sm.states[:a].object_id)
     expect(e.object_id).to eq(sm.states[:end].object_id)
@@ -619,7 +623,7 @@ RSpec.describe RedSteak do
     expect(c._entry).to eq([ [ "a", :foo, :bar ] ])
     expect(c._exit).to eq([ ])
 
-    render_graph m, :show_history => true
+    render_graph! m, :show_history => true
 
     m.transition_to! :f
     expect(m.state.name).to eq(:f)
@@ -627,8 +631,7 @@ RSpec.describe RedSteak do
     m.transition_to! :end
     expect(m.state.name).to eq(:end)
 
-    render_graph m, :show_history => true
-
+    render_graph! m, :show_history => true
   end
 
 
@@ -678,7 +681,7 @@ RSpec.describe RedSteak do
       transition :end
     end
 
-    render_graph sm
+    render_graph! sm.machine
 
     expect(sm.state[:a]).to be(sm.state['a'])
     expect(sm.state[:b]).to be(sm.state['b'])
@@ -737,7 +740,7 @@ RSpec.describe RedSteak do
     expect(c._exit).to eq([["a::b"], ["a"]])
     expect(c._entry).to eq([["c"]])
 
-    render_graph m, :show_history => true
+    render_graph! m, :show_history => true
 
     svg_data = RedSteak::Dot.new.render_graph_svg_data(m, :show_history => true)
     expect(svg_data).to match(/\A<\?xml/)

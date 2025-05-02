@@ -15,6 +15,12 @@ module RedSteak
       self.options = opts
     end
 
+    def freeze
+      return self if frozen?
+      @options.freeze
+      super
+    end
+
     # Sets all options.
     def options= opts
       # If some options are already set, merge them.
