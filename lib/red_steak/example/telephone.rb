@@ -86,7 +86,7 @@ RUBY
   end
 
   def inspect
-    "#{self.class} state=#{@m.state.to_s} n=#{number.inspect} t=#{call_type.inspect}"
+    "#<#{self.class} #{@m.state.to_s} #{number.inspect} #{call_type}>"
   end
 
   def method_missing sel, *args
@@ -94,7 +94,16 @@ RUBY
     log :do, "#{sel}(#{args.inspect.gsub(/^\[|\]$/, '')})"
   end
 
+  def active_state_info
+    "number: #{number.inspect} #{prefix(number)}"
+  end
+
+  def dialing_state_info
+    "dialed: #{number.inspect}"
+  end
+
   def sm
+    context = self
     @sm ||= RedSteak::Builder.new.build do
       statemachine :telephone do
         initial :idle
@@ -108,7 +117,11 @@ RUBY
         transition :final,
           :trigger => :terminate
 
-        state(:active, :dot_options => { :show_decomposition => true }) do
+        state(:active,
+              :dot_options => {
+                :show_decomposition => true,
+                :show_data => lambda { |_| context.active_state_info },
+              }) do
           statemachine do
             initial :dial_tone
 
@@ -122,10 +135,15 @@ RUBY
             state :time_out,
               :do => :play_message
 
-            state :dialing
+            state :dialing,
+              :dot_options => {
+                :show_data => lambda { |_| context.dialing_state_info },
+              }
+
             transition :dialing,
               :trigger => :dial_digit,
               :guard => :incomplete?
+
             transition :time_out,
               :trigger => :after_timeout
             transition :connecting,
@@ -168,12 +186,7 @@ RUBY
           :effect => :disconnect
         transition :final,
           :trigger => :terminate
-=begin
-        transition :aborted,
-          :trigger => :abort
 
-        state :aborted
-=end
         state :final
       end
     end

@@ -568,13 +568,13 @@ module RedSteak
 
     def _dot_label_State x
       dot_opts = options.merge(dot_opts_for(x))
-      label = x.name.to_s
-
-      render_label(x, "#{label}\n", dot_opts,
+      render_label(x, dot_opts,
         [
-          [ :show_entry, :entry,      'entry / %s\\l' ],
-          [ :show_exit,  :exit,       'exit / %s\\l'  ],
-          [ :show_do,    :doActivity, 'do / %s\\l'    ],
+          [ true         , :name       , "%s\n"          , :to_s ],
+          [ :show_entry  , :entry      , 'entry / %s\\l' ,       ],
+          [ :show_exit   , :exit       , 'exit / %s\\l'  ,       ],
+          [ :show_do     , :doActivity , 'do / %s\\l'    ,       ],
+          [ :show_data   , true        , "%s\n"          ,]
         ]
       )
     end
@@ -582,32 +582,56 @@ module RedSteak
     # See UML Spec 2.1 superstructure p. 574:
     #   trigger [ ',' trigger ]* [ '[' guard ']' ]? [ '/' effect ]?
     def _dot_label_Transition x
-        dot_opts = options.merge(dot_opts_for(x))
-        dot_opts[:show_name] = true if x.trigger.empty?
-        dot_opts[:show_trigger] = true unless dot_opts[:show_name]
-        render_label(x, '', dot_opts,
-          [
-            [ :show_name,    :name,    '%s\n'    ],
-            [ :show_trigger, :trigger, '%s\\l'   ],
-            [ :show_guard,   :guard,   '[%s]\\l' ],
-            [ :show_effect,  :effect,  '/%s\\l'  ],
-          ]
-        )
+      dot_opts = options.merge(dot_opts_for(x))
+      if x.trigger.empty?
+        dot_opts[:show_name] = true
+      else
+        dot_opts[:show_trigger] = true
+        # dot_opts[:show_name] = false
+      end
+      render_label(x, dot_opts,
+        [
+          [ :show_name     , :name    , "%s\n"    , :to_s  ],
+          [ :show_trigger  , :trigger , '%s\\l'   , :to_s  ],
+          [ :show_guard    , :guard   , '[%s]\\l' ,        ],
+          [ :show_effect   , :effect  , '/%s\\l'  ,        ],
+          [ :show_data     , true     , "%s\n"          ,]
+        ]
+      )
     end
 
-    def render_label x, label, dot_opts, patterns
-      patterns.each do | (opt, sel, fmt) |
-        next unless opt == true || dot_opts[opt]
-        case v = x.send(sel)
+    def render_label x, dot_opts, patterns
+      label = ''
+      patterns.each do | (opt, sel, fmt, xform) |
+        visible = opt != false && (opt == true || dot_opts[opt])
+        next unless visible
+
+        case sel
+        when true
+          v = dot_opts[opt]
+        when Symbol
+          v = x.send(sel)
+        else
+          v = sel
+        end
+
+        case v
         when nil
           # NOTHING
+        when Proc
+          v = v.call(x).to_s
         when Array
-          v = v.map(&:to_s) * ','
+          v = v.map(&xform) * ','
         when String, Symbol
-          v = v.inspect
+          if xform
+            v = v.send(xform)
+          else
+            v = v.inspect
+          end
         else
           v = '...'
         end
+
         if fmt && ! v.nil?
           label += (fmt % v.to_s)
         end
@@ -731,15 +755,20 @@ module RedSteak
       items =
       case x
       when Hash
+        x = x.dup
+        x.delete(:show_data)
         x.keys.map do | k |
           v = x[k]
           case k
-          # when :label
-          #  v = "<#{v.to_s}>" # HTML see http://www.graphviz.org/doc/info/shapes.html#html
           when :label, :shape, :style
-            v = v.to_s.inspect
+            if String === v && v[0] == "\01"
+              v = v[1..-1]
+              v = "<#{v}>" # HTML see http://www.graphviz.org/doc/info/shapes.html#html
+            else
+              v = v.to_s.inspect
+            end
             # http://www.graphviz.org/doc/info/attrs.html#k:escString
-            v.gsub!(/\\\\([lrn])/){ "\\" +$1 }
+            v.gsub!(/\\\\([lrn])/){ "\\" + $1 }
           end
           "#{k}=#{v}"
         end
