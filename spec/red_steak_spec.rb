@@ -38,63 +38,64 @@ RSpec.describe RedSteak do
       @_doActivity = [ ]
     end
 
+    def capture_machine!
+      @_machine = RedSteak::Machine.current or raise
+      @_transition = @_machine.transition if @_machine.transition
+      @_state = @_machine.state if @_machine.state
+      @_event = @_machine.event if @_machine.event
+    end
 
     # Called by Transition#guard?
-    def guard(machine, trans, *args)
-      @_machine = machine
-      @_transition = trans
+    def guard *args
+      capture_machine!
       @_guard << (@_args = args)
       _log
       true # Ok
     end
 
     # Special Guard.
-    def a_to_b?(machine, trans, *args)
-      guard(machine, trans, *args)
+    def a_to_b?(*args)
+      guard(*args)
       @_a_to_b = args
       true
     end
 
-    def e_f_guard_true(machine, trans, *args)
+    def e_f_guard_true(*args)
       true
     end
 
-    def e_f_guard_false(machine, trans, *args)
+    def e_f_guard_false(*args)
       false
     end
 
     # Called by Transition#effect
-    def effect(machine, trans, *args)
-      @_machine = machine
-      @_transition = trans
+    def effect(*args)
+      capture_machine!
       @_effect << (@_args = args)
       _log
     end
 
     # Called by State#entry!
-    def entry(machine, state, *args)
-      @_machine = machine
-      @_state = state
+    def entry(*args)
+      capture_machine!
       @_args = args
-      @_entry << [ state.to_s, *args ]
+      @_entry << [ @_state.to_s, *args ]
       _log
     end
 
     # Called by State#exit!
-    def exit(machine, state, *args)
-      @_machine = machine
-      @_state = state
+    def exit(*args)
+      capture_machine!
       @_args = args
-      @_exit << [ state.to_s, *args ]
+      @_exit << [ @_state.to_s, *args ]
       _log
     end
 
     # Called by State#doActivity!
-    def doActivity(machine, state, *args)
-      @_machine = machine
-      @_state = state
+    def doActivity(*args)
+      capture_machine!
       @_args = args
-      @_doActivity << [ state.to_s, *args ]
+      @_doActivity << [ @_state.to_s, *args ]
       _log
     end
 
@@ -333,7 +334,7 @@ RSpec.describe RedSteak do
     #
 
     c.clear!
-    m.transition! "a_to_b", :arg1
+    m.transition! "a_to_b", [:arg1]
     expect(m.at_start?).to eq(false)
     expect(m.at_end?).to eq(false)
 

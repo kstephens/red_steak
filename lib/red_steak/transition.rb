@@ -79,14 +79,14 @@ module RedSteak
     # _args_ are the args from the Event.
     # If :guard is not defined, the guard is effectively true.
     # If guard returns nil or false, the guard is effectively false.
-    def guard? machine, args
-      _behavior! :guard, machine, args, true
+    def guard? machine, info
+      _behavior! :guard, machine, info, true
     end
 
     # Called by Machine to perform #effect when transition fires.
     # _args_ are the args from the Event.
-    def effect! machine, args
-      _behavior! :effect, machine, args
+    def effect! machine, info
+      _behavior! :effect, machine, info
       self
     end
 
