@@ -418,8 +418,7 @@ RSpec.describe RedSteak do
       expect(err.class).to be(RedSteak::Error::NoTransitions)
       expect(err.machine).to be(m)
       expect(err.message).to eq("transition_to_next_state!")
-      expect(err[:transitions]).to eq(nil)
-      expect(err[:state]).to be(m.state)
+      expect(err.transitions).to eq(nil)
       expect(err.state).to be(m.state)
       expect(err.event).to be(nil)
     end

@@ -4,3 +4,4 @@
 /doc
 /example/*.zuml.bak*
 /pkg/
+/tmp

@@ -27,30 +27,26 @@ RSpec.describe 'RedSteak::Machine#event!' do
 
     events =
       [
-       :lift_receiver,
+       [ :lift_receiver,  ],
        [ :dial_digit, "5" ],
        [ :dial_digit, "5" ],
        [ :dial_digit, "5" ],
-       [ :dial_digit, "1" ],
-       [ :dial_digit, "2" ],
-       [ :dial_digit, "1" ],
-       [ :dial_digit, "2" ],
-       :connected,
-       :callee_answers,
-       :caller_hangs_up,
-       :terminate,
+       [ :dial_digit, "9" ],
+       [ :dial_digit, "8" ],
+       [ :dial_digit, "7" ],
+       [ :dial_digit, "6" ],
+       [ :connected, ],
+       [ :callee_answers, ],
+       # [ :dial_digit, "#" ],
+       [ :caller_hangs_up, ],
+       [ :terminate, ],
       ]
 
     until m.at_end?
       # t.log :context, t.inspect
       event = events.shift
       raise "out of events" unless events
-      case event
-      when Array
-        t.send(*event)
-      else
-        t.send(event)
-      end
+      t.send(*event)
       m.run_events!
       render.render_graph!
     end

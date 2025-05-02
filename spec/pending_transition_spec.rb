@@ -14,32 +14,35 @@ RSpec.describe RedSteak do
       @do_trans = true
     end
 
-    def a machine, *args
+    def machine
+      RedSteak::Machine.current
+    end
+    def a
       @history << :a
       _log
       machine.transition_to! :b if @do_trans
     end
 
-    def b machine, *args
+    def b
       @history << :b
       _log
     end
 
-    def c machine, *args
+    def c
       @history << :c
       _log
       machine.transition_to! :d if @do_trans
     end
 
-    def c_to_a? *args
+    def c_to_a?
       @do_trans
     end
 
-    def c_to_d? *args
+    def c_to_d?
       true
     end
 
-    def d machine, *args
+    def d
       @history << :d
       _log
     end
@@ -226,25 +229,13 @@ RSpec.describe RedSteak do
     expect(m.state.name).to eq(:d)
     expect(s.name).to eq(:c)
     expect(t.name).to eq(:"c->d")
-
     expect(m.at_end?).to eq(true)
 
     expect(m.context.history).to eq(
-      [
-       :a,
-       :b,
-       :c,
-       :d,
-      ]
+      [ :a, :b, :c, :d, ]
     )
-
     expect(m.history.map { | h | h[:new_state].name }).to eq(
-      [
-       :a,
-       :b,
-       :c,
-       :d,
-      ]
+      [ :a, :b, :c, :d, ]
     )
   end
 end

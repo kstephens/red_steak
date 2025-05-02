@@ -46,9 +46,10 @@ RSpec.describe "RedSteak Synchronous/Asynchronous Interactions" do
       _log!(:exit, *args)
     end
 
-    def doActivity m, s, *args
-      _log!(:doActivity, m, s, *args)
-      @m = m
+    def doActivity *args
+      _log!(:doActivity, *args)
+      @m = RedSteak::Machine.current
+      s = @m.state
       @next_transition = s.outgoing.to_a
       @next_transition = @next_transition[rand(@next_transition.size)]
       if m.stateMachine.name == :synchronous
@@ -57,7 +58,7 @@ RSpec.describe "RedSteak Synchronous/Asynchronous Interactions" do
       end
     end
 
-    def guard m, t, *args
+    def guard *args
       result = t == @next_transition
       _interaction! "c.guard(#{_format_args([m, t] + args)}) => #{result.inspect}"
       result

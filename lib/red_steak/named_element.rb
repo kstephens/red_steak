@@ -39,35 +39,27 @@ module RedSteak
       raise Error, 'action is not a Symbol' unless Symbol === action
       args ||= EMPTY_ARRAY
       # Determine the behavior.
-      behavior =
-        (force_send =
-         (send(action) ||
-          @stateMachine.options[action])) ||
-        action
+      behavior = (force_send = (send(action) || @stateMachine.options[action])) || action
+      pp(_behavior!: {action: action, behavior: behavior, force_send: force_send})
       case
       when Proc === behavior
-        return behavior.call(machine, self, *args)
-      when Symbol === behavior &&
-          (c = machine.context)
+        return behavior.call(*args)
+      when Symbol === behavior && (c = machine.context)
         # Don't force send unless the object responds.
         unless force_send
           force_send = c.respond_to?(behavior)
         end
         if force_send
-          meth_arity = c.method(behavior).arity rescue args.size + 2
+          meth_arity = c.method(behavior).arity rescue 0
           case
+          when meth_arity < 0
+          when meth_arity == args.size
           when meth_arity == 0
             args = EMPTY_ARRAY
-          when meth_arity < 0
-            args = args.dup # args might be frozen.
-            args.unshift self
-            args.unshift machine
           else
-            args = args.dup # args might be frozen.
-            args.unshift self
-            args.unshift machine
-            args = [0 ... meth_arity]
+            args = args[0 ... meth_arity]
           end
+          pp(_behavior!: {send: {behavior: behavior, args: args}})
           return c.send(behavior, *args)
         end
       end
