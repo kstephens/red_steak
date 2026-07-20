@@ -28,9 +28,11 @@ end
 
 # Support
 require 'red_steak/version'
+require 'red_steak/support'
 require 'red_steak/logging'
 require 'red_steak/error'
 require 'red_steak/base'
+require 'red_steak/action'
 
 # UML Metamodel
 require 'red_steak/named_element'

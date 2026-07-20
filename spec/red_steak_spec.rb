@@ -39,10 +39,11 @@ RSpec.describe RedSteak do
     end
 
     def capture_machine!
-      @_machine = RedSteak::Machine.current or raise
-      @_transition = @_machine.transition if @_machine.transition
-      @_state = @_machine.state if @_machine.state
-      @_event = @_machine.event if @_machine.event
+      action = RedSteak::Action.current or raise
+      @_machine = action.machine
+      @_transition = action.transition if action.transition
+      @_state = action.state if action.state
+      @_event = action.event if action.event
     end
 
     # Called by Transition#guard?
@@ -614,7 +615,7 @@ RSpec.describe RedSteak do
     m.auto_run = true
     c = m.context
 
-    m.start! :foo, :bar
+    m.start! [:foo, :bar]
     expect(m.at_start?).to eq(true)
     expect(m.at_end?).to eq(false)
 

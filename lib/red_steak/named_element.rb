@@ -35,39 +35,46 @@ module RedSteak
     # Called by subclasses to notify/query the context object for specific actions.
     # Will get the method from local options or the StateMachine's options Hash.
     # The context is either the local object's context or the StateMachine's context.
-    def _behavior! action, machine, info, default_value = nil
-      event = info.event
-      action, *args = event
-      machine.as_current do
-      raise Error, 'action is not a Symbol' unless Symbol === action
-      args ||= EMPTY_ARRAY
+    def _behavior! meta_action, action, default_value = nil
+      _typecheck! Symbol, meta_action
+      args = action.event # + [action]
       # Determine the behavior.
-      behavior = (force_send = (send(action) || @stateMachine.options[action])) || action
-      pp(_behavior!: {action: action, behavior: behavior, force_send: force_send})
-      case
-      when Proc === behavior
-        return behavior.call(*args)
-      when Symbol === behavior && (c = machine.context)
+      behavior = (force_send = (send(meta_action) || @stateMachine.options[meta_action])) || meta_action
+      # pp(_behavior!: {meta_action: meta_action, behavior: behavior, force_send: force_send})
+      case behavior
+      when Proc
+        args = _trim_arity!(args, behavior.arity)
+        # pp(_behavior!: {call: {behavior: behavior, args: args}})
+        action.as_current do
+          return behavior.call(*args)
+        end
+      when Symbol
+        context = action.context
         # Don't force send unless the object responds.
-        unless force_send
-          force_send = c.respond_to?(behavior)
-        end
-        if force_send
-          meth_arity = c.method(behavior).arity rescue 0
-          case
-          when meth_arity < 0
-          when meth_arity == args.size
-          when meth_arity == 0
-            args = EMPTY_ARRAY
-          else
-            args = args[0 ... meth_arity]
+        if force_send || context.respond_to?(behavior)
+          args = _trim_arity!(args, (context.method(behavior).arity rescue 0))
+          # pp(_behavior!: {send: {behavior: behavior, args: args}})
+          # binding.pry if behavior == :a
+          action.as_current do
+            begin
+              return context.send(behavior, *args)
+            rescue => exc
+              binding.pry
+              raise
+            end
           end
-          pp(_behavior!: {send: {behavior: behavior, args: args}})
-          return c.send(behavior, *args)
         end
       end
-      end
+      # pp(_behavior!: {skipping: true, behavior: behavior, args: args})
       default_value
+    end
+
+    def _trim_arity! args, arity
+      if arity >= 0 && args.size > arity
+        args[0 ... arity]
+      else
+        args
+      end
     end
 
     def inspect

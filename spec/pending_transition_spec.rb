@@ -15,7 +15,7 @@ RSpec.describe RedSteak do
     end
 
     def machine
-      RedSteak::Machine.current
+      @machine ||= RedSteak::Action.current.machine
     end
     def a
       @history << :a
@@ -89,11 +89,11 @@ RSpec.describe RedSteak do
 
     m.start!
     expect(m.state.name).to eq(:a)
-    expect(m.transition_queue.size).to eq(1)
+    expect(m.action_queue.size).to eq(1)
 
     m.run! :single
     expect(m.state.name).to eq(:b)
-    expect(m.transition_queue.size).to eq(0)
+    expect(m.action_queue.size).to eq(0)
 
     # Nothing pending so run! does nothing here.
     m.run!
@@ -143,11 +143,11 @@ RSpec.describe RedSteak do
 
     m.start!
     expect(m.state.name).to eq(:a)
-    expect(m.transition_queue.size).to eq(1)
+    expect(m.action_queue.size).to eq(1)
 
     m.run! :single
     expect(m.state.name).to eq(:b)
-    expect(m.transition_queue.size).to eq(0)
+    expect(m.action_queue.size).to eq(0)
 
     # Nothing queued.
     m.run!
@@ -194,7 +194,7 @@ RSpec.describe RedSteak do
 
     m.start!
     expect(m.state.name).to eq(:a)
-    expect(m.transition_queue.size).to eq(0)
+    expect(m.action_queue.size).to eq(0)
 
     # this sequence should to nothing
     # because no transitions are valid.
@@ -208,13 +208,13 @@ RSpec.describe RedSteak do
     expect(m.state.name).to eq(:a)
 
     m.transition! :'a->b'
-    expect(m.transition_queue.size).to eq(1)
+    expect(m.action_queue.size).to eq(1)
     block_executed = false
     m.run!(:single) do | x |
       block_executed = true
     end
     expect(block_executed).to eq(false)
-    expect(m.transition_queue.size).to eq(0)
+    expect(m.action_queue.size).to eq(0)
     expect(m.state.name).to eq(:b)
 
     block_executed = false
@@ -225,7 +225,7 @@ RSpec.describe RedSteak do
       t = m.transition_if_valid!
     end
     expect(block_executed).to eq(true)
-    expect(m.transition_queue.size).to eq(0)
+    expect(m.action_queue.size).to eq(0)
     expect(m.state.name).to eq(:d)
     expect(s.name).to eq(:c)
     expect(t.name).to eq(:"c->d")

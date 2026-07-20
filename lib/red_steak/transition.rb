@@ -60,8 +60,9 @@ module RedSteak
     end
 
     # Returns the first #trigger that matches the event.
-    # Called by Machine#transitions_matching_event.
     # Returns nil if Transitions has no triggers or none that match.
+    # Proc triggers are called with the entire element tuple.
+    # Regex triggers match the #to_s value of the first event tuple element.
     def matches_event? event
       @trigger.find do | t |
         case t
@@ -76,17 +77,15 @@ module RedSteak
     end
 
     # Called by Machine to check #guard.
-    # _args_ are the args from the Event.
     # If :guard is not defined, the guard is effectively true.
     # If guard returns nil or false, the guard is effectively false.
-    def guard? machine, info
-      _behavior! :guard, machine, info, true
+    def guard? action
+      _behavior! :guard, action, true
     end
 
     # Called by Machine to perform #effect when transition fires.
-    # _args_ are the args from the Event.
-    def effect! machine, info
-      _behavior! :effect, machine, info
+    def effect! action
+      _behavior! :effect, action
       self
     end
 
@@ -98,7 +97,7 @@ module RedSteak
     def to_uml_s
       @to_uml_s ||=
         begin
-          x = ''
+          x = String.new
           unless @trigger.empty?
             x << "#{@trigger.inspect.gsub(/\A\[|\]\Z/, '')}"
           else

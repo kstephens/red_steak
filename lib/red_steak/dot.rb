@@ -221,7 +221,7 @@ module RedSteak
         options[:history] ||= x.history
         options[:highlight_states] ||= [ x.state ].compact
         options[:highlight_transitions] ||= (
-          x.transition_queue.map{|e| e.first} <<
+          x.action_queue.map{|e| e.first} <<
           x.transition
         ).compact
         render x.stateMachine

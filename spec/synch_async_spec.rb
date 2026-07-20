@@ -31,7 +31,7 @@ RSpec.describe "RedSteak Synchronous/Asynchronous Interactions" do
 
   class TestContext
     attr_accessor :tracker
-    attr_reader :m
+    attr_reader :m, :s, :t
 
     def method_missing sel, *args
       _log!(sel, *args)
@@ -46,10 +46,16 @@ RSpec.describe "RedSteak Synchronous/Asynchronous Interactions" do
       _log!(:exit, *args)
     end
 
+    def capture_info!
+      action = RedSteak::Action.current
+      @m = action.machine
+      @s = action.machine.state
+      @t = action.transition
+    end
+
     def doActivity *args
+      capture_info!
       _log!(:doActivity, *args)
-      @m = RedSteak::Machine.current
-      s = @m.state
       @next_transition = s.outgoing.to_a
       @next_transition = @next_transition[rand(@next_transition.size)]
       if m.stateMachine.name == :synchronous
@@ -59,6 +65,7 @@ RSpec.describe "RedSteak Synchronous/Asynchronous Interactions" do
     end
 
     def guard *args
+      capture_info!
       result = t == @next_transition
       _interaction! "c.guard(#{_format_args([m, t] + args)}) => #{result.inspect}"
       result

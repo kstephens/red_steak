@@ -27,10 +27,7 @@ module RedSteak
 
     # Clears caches of related transitions.
     def transitions_changed!
-      @transition =
-        @target =
-        @source =
-        nil
+      @transition = @target = @source = nil
     end
 
     # Called after a Transition is connected to this state.
@@ -51,30 +48,27 @@ module RedSteak
 
     # Returns a list of Transitions incoming to or outgoing from this Vertex.
     def transition
-      @transition ||=
-        NamedArray.new(
-                       (incoming + outgoing).uniq.freeze
-                       )
+      @transition ||= NamedArray.new(
+        (incoming + outgoing).uniq.freeze
+      )
     end
     alias :transitions :transition
 
     # Returns a list of Vertex objects that are immediately transitional from this one.
     def target
-      @target ||=
-        NamedArray.new(
-                       outgoing.map { | t | t.target }.uniq.freeze,
-                       :state
-                       )
+      @target ||= NamedArray.new(
+        outgoing.map(&:target).uniq.freeze,
+        :state
+      )
     end
     alias :targets :target
 
     # Returns a list of Vertex that are immediately transitional to this one.
     def source
-      @source ||=
-        NamedArray.new(
-                       incoming.map { | t | t.source }.uniq.freeze,
-                       :state
-                       )
+      @source ||= NamedArray.new(
+        incoming.map(&:source).uniq.freeze,
+        :state
+      )
     end
     alias :sources :source
 

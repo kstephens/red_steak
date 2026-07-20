@@ -88,6 +88,12 @@ module RedSteak
       end
     end
 
+    # Invalid value was given.
+    class InvalidValue < self; end
+
+    # A block was not given.
+    class NoBlock < self; end
+
     # Transition is unknown by name.
     class UnknownTransition < self; end
 
@@ -113,6 +119,9 @@ module RedSteak
         raise self, message: "#{msg}: #{other.class} named #{name.inspect} already exists", object: object, other: other
       end
     end
+
+    # Machine is not running.
+    class NotRunning < self; end
 
     # Feature is not implemented, yet.
     class NotImplemented < self; end

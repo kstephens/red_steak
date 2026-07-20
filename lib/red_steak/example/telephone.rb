@@ -65,6 +65,7 @@ class Telephone
   def event! e
     tick!
     log :event, e.join(', ')
+    binding.pry
     @m.event! e
   end
 

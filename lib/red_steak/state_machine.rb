@@ -25,13 +25,6 @@ module RedSteak
     # The end state.
     attr_accessor :end_state # not UML
 
-    # The logging object.
-    # Can be a Log4r::Logger or IO object.
-    attr_accessor :logger
-
-    # Log level method Symbol if Log4r::Logger === logger.
-    attr_accessor :log_level
-
     def initialize opts
       @states = NamedArray.new([ ], :state)
       @transitions = NamedArray.new([ ])
@@ -39,7 +32,6 @@ module RedSteak
       @submachineState = nil
       @start_state = nil
       @end_state = nil
-      @s = @t = nil
       super
     end
 

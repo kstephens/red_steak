@@ -130,6 +130,11 @@ module RedSteak
         raise Error::ObjectInvalid, attrs
       end
     end
+
+    def _typecheck! type, obj
+      raise Error, "expected #{type}, given #{obj.class}" unless type === obj
+      obj
+    end
   end
 end
 
